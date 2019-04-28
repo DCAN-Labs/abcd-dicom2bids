@@ -1,58 +1,105 @@
-# ABCD QC-Passed Image Downloader
+# ABCD DICOM to BIDS
 
-## Required spreadsheets
+Written by the OHSU ABCD site for selectively downloading ABCD Study imaging DICOM data QC'ed as good by the ABCD DAIC site, converting it to BIDS standard input data, selecting the best pair of spin echo field maps, and correcting the sidecar JSON files to meet the BIDS Validator specification.
 
-To download images for ABCD you must have two spreadsheets:
+## Installation
+
+Clone this repository and save it somewhere on the Linux system you want to do ABCD DICOM downloads and conversions to BIDS.
+
+## Dependencies
+
+1. [MathWorks MATLAB (R2016b and newer)](https://www.mathworks.com/products/matlab.html)
+1. [Python 2.7](https://www.python.org/download/releases/2.7/)
+1. [NIMH Data Archive (NDA) `nda_aws_token_generator`](https://github.com/NDAR/nda_aws_token_generator)
+1. [cbedetti Dcm2Bids](https://github.com/cbedetti/Dcm2Bids) (`export` into your BASH `PATH` variable)
+1. [Rorden Lab dcm2niix](https://github.com/rordenlab/dcm2niix) (`export` into your BASH `PATH` variable)
+1. [zlib's pigz-2.4](https://zlib.net/pigz) (`export` into your BASH `PATH` variable)
+
+## Spreadsheets (not included)
+
+To download images for ABCD you must have two spreadsheets downloaded to this repository's `spreadsheets` folder:
 
 1. `DAL_ABCD_merged_pcqcinfo.csv`
-
-  - This is provided to us by the DAIC
-  - Contains operator QC information for each scan. If the image fails operator QC (0) the image is not downloaded
-
 1. `image03.txt`
 
-  - This is downloaded from the NIMH Data Archive.
-  - Contains paths to the tgz on s3 where the image is downloaded from
-  - Login to the NIMH Data Archive (https://ndar.nih.gov/)
-  - Go to "Data Dictionary" under Quick Navigation
-  - Select all ABCD Releases under Source
-  - Click 'Filter'
-  - Select just Image/image03
-  - Click 'Download'
-  - In the upper right hand corner under 'Selected Filters' click 'Download/Add to Study'
-    - Under Collections by Permission Group click 'Deselect All'
-    - At the bottom re-select 'Adolescent Brain Cognitive Development (ABCD)'
-    - Click 'Create Package'
-      - Name the package Image03
-      - Select only 'Include documentation'
-      - Click 'Create Package'
-  - Download the Package Manager and download
+`DAL_ABCD_merged_pcqcinfo.csv` was provided to OHSU by the ABCD DAIC.  A future version of this code will utilize the [NIMH Data Archive (NDA)](https://ndar.nih.gov/) version of this QC information.  The spreadsheet contains operator QC information for each MRI series.  If the image fails operator QC (a score of 0) the image is not downloaded.
 
-These two files are used in the `data_gatherer.m` to create the `ABCD_good_bad_series_table.csv` that is used to actually download the images.
+`image03.txt` can be downloaded from [the NDA](https://ndar.nih.gov/) with an ABCD Study Data Use Certification in place.  It contains paths to the TGZ files on the NDA's Amazon AWS S3 buckets where the images can be downloaded from per series.  The following are explicit steps to download just this file:
 
-`data_gatherer.m` also depends on a mapping file (`mapping.mat`), which maps among other things the SeriesDescriptions from each txt to known OHSU descriptors that classify each tgz into T1, T2, rfMRI, tfMRI_nBack, etc.
+1. Login to the [NIMH Data Archive](https://ndar.nih.gov/)
+1. Go to **Data Dictionary** under **Quick Navigation**
+1. Select **All ABCD Releases** under **Source**
+1. Click **Filter**
+1. Select just **Image/image03**
+1. Click **Download**
+1. In the upper right hand corner under **Selected Filters** click **Download/Add to Study**
+    - Under **Collections** by **Permission Group** click **Deselect All**
+    - At the bottom re-select **Adolescent Brain Cognitive Development (ABCD)**
+1. Click **Create Package**
+    - Name the package something like **Image03**
+    - Select Only **Include documentation**
+    - Click **Create Package**
+1. Download and use the **Package Manager** to download your package
 
-## Required software dependencies
+## Setup
 
-From there, other necessary scripts are the `nda_aws_token_maker.py` to be called before each attempted DICOM series TGZ download.  Requires:
+You will also need to reach into the `nda_aws_token_maker.py` in this repository and update it with your NDA USERNAME and PASSWORD.  Make sure the file is locked down to only your own read and write privileges so no one else can read your username and password in there:
 
-- https://github.com/NDAR/nda_aws_token_generator
+```
+chmod 600 nda_aws_token_maker.py
+```
 
-You will also need to reach into the `nda_aws_token_maker.py` and update it with your NDA USERNAME and PASSWORD.  Make sure the file is locked down with `chmod 600 nda_aws_token_maker.py` so no one else can read your username and password in there.  We don't have a better solution right now.
+We don't have a better solution for securing your credentials while automating downloads right now.
 
-# Usage
+## Usage
 
-The actual download work is done by `good_bad_series_parser.py` which only requires the `ABCD_good_bad_series_table.csv` spreadsheet present under `./spreadsheets/`.
+This repo's usage is broken out into four distinct scripting sections.  You will need to run them in order, each independently of the next waiting for the first to complete.
 
+1. (MATLAB) `data_gatherer.m`
+2. (Python) `good_bad_series_parser.py`
+3. (BASH) `unpack_and_setup.sh`
+4. (Python) `correct_jsons.py`
 
-# ABCD TGZ to BIDS Input Setup
+The MATLAB portion is for producing a download list for the Python & BASH portion to download, convert, select, and prepare.
 
-`unpack_and_setup.sh` does the work.  It takes three arguments:
+## 1. (MATLAB) `data_gatherer.m`
+
+The two spreadsheets referenced above are used in the `data_gatherer.m` to create the `ABCD_good_and_bad_series_table.csv` which gets used to actually download the images.
+
+`data_gatherer.m` depends on a mapping file (`mapping.mat`), which maps the SeriesDescriptions to known OHSU descriptors that classify each TGZ file into T1, T2, task-rest, task-nback, etc.
+
+## 2. (Python) `good_bad_series_parser.py`
+
+The download is done like this:
+
+```
+./good_bad_series_parser.py
+```
+
+This only requires the `ABCD_good_and_bad_series_table.csv` spreadsheet present under a `spreadsheets` folder inside this repository's cloned folder.
+
+**Note:** The `nda_aws_token_maker.py` is called before each attempted DICOM series TGZ download.
+
+## 3. (BASH) `unpack_and_setup.sh`
+
+`unpack_and_setup.sh` should be called in a loop to do the DICOM to BIDS conversion and spin echo field map selection.  It takes three arguments:
 
 ```
 SUB=$1 # Full BIDS formatted subject ID (sub-SUBJECTID)
 VISIT=$2 # Full BIDS formatted session ID (ses-SESSIONID)
-TGZDIR=$3 # Path to directory containing all .tgz for subject
+TGZDIR=$3 # Path to directory containing all TGZ files for SUB/VISIT
 ```
 
-**IMPORTANT**: update paths inside the script everywhere a `...` appears.
+Here is an example:
+
+```
+./unpack_and_setup.sh sub-NDARINVABCD1234 ses-baselineYear1Arm1 ./new_download/sub-NDARINVABCD1234/ses-baseline_year_1_arm_1
+```
+
+## 4. (Python) `correct_jsons.py`
+
+Finally at the end `correct_jsons.py` is run on the whole BIDS input directory to correct/prepare all BIDS sidecar JSON files to comply with the BIDS specification standard version 1.2.0.
+
+```
+./correct_jsons.py ./ABCD-HCP
+```
