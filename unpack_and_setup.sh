@@ -17,11 +17,11 @@ set -e
 # run_order_fix.py (in this repo)
 # sefm_eval_and_json_editor.py (in this repo)
 
-
-
+ScratchSpaceDir=/tmp/abcd-dicom2bids
+ROOT_BIDSINPUT=./ABCD-HCP
 SUB=$1 # Full BIDS formatted subject ID (sub-SUBJECTID)
 VISIT=$2 # Full BIDS formatted session ID (ses-SESSIONID)
-TGZDIR=$3 # Path to directory containing all .tgz for subject
+TGZDIR=$3 # Path to directory containing all .tgz for this subject's session
 
 participant=`echo ${SUB} | sed 's|sub-||'`
 session=`echo ${VISIT} | sed 's|ses-||'`
@@ -32,47 +32,45 @@ hostname
 echo ${SLURM_JOB_ID}
 
 # Setup scratch space directory
-ScratchSpaceDir=/mnt/scratch/fnl_lab
 if [ ! -d ${ScratchSpaceDir} ]; then
     mkdir -p ${ScratchSpaceDir}
-    chown :fnl_lab ${ScratchSpaceDir} || true
+    # chown :fnl_lab ${ScratchSpaceDir} || true 
     chmod 770 ${ScratchSpaceDir} || true
 fi
 RandomHash=`cat /dev/urandom | tr -cd 'a-f0-9' | head -c 16`
 TempSubjectDir=${ScratchSpaceDir}/${RandomHash}
 mkdir -p ${TempSubjectDir}
-chown :fnl_lab ${TempSubjectDir} || true
+# chown :fnl_lab ${TempSubjectDir} || true
 echo "TempSubjectDir = ${TempSubjectDir}"
 
 # copy all tgz to the scratch space dir
-echo `date`" :COPYING TGZs TO SCRATCH"
+echo `date`" :COPYING TGZs TO SCRATCH: ${TempSubjectDir}"
 cp ${TGZDIR}/* ${TempSubjectDir}
 
 # unpack tgz to ABCD_DCMs directory
 mkdir ${TempSubjectDir}/DCMs
-echo `date`" :UNPACKING DCMs"
+echo `date`" :UNPACKING DCMs: ${TempSubjectDir}/DCMs"
 for tgz in ${TempSubjectDir}/*.tgz; do
     echo $tgz
     tar -xzf ${tgz} -C ${TempSubjectDir}/DCMs
 done
 
 
-# IMPORTANT PATH DEPENDENCY VARIABLES
-export PATH=.../anaconda2/bin:${PATH} # relevant Python path with dcm2bids
-export PATH=.../mricrogl_lx/:${PATH} # relevant dcm2niix path
-export PATH=.../pigz-2.4/:${PATH} # relevant pigz path for improved (de)compression
-
+# # IMPORTANT PATH DEPENDENCY VARIABLES AT OHSU IN SLURM CLUSTER
+# export PATH=.../anaconda2/bin:${PATH} # relevant Python path with dcm2bids
+# export PATH=.../mricrogl_lx/:${PATH} # relevant dcm2niix path
+# export PATH=.../pigz-2.4/:${PATH} # relevant pigz path for improved (de)compression
 
 
 # convert DCM to BIDS and move to ABCD directory
 mkdir ${TempSubjectDir}/BIDS_unprocessed
 echo ${participant}
 echo `date`" :RUNNING dcm2bids"
-dcm2bids -d ${TempSubjectDir}/DCMs/${SUB} -p ${participant} -s ${session} -c `dirname $0`/abcd_dcm2bids.conf -o ${TempSubjectDir}/BIDS_unprocessed --forceDcm2niix --clobber
+dcm2bids -d ${TempSubjectDir}/DCMs/${SUB} -p ${participant} -s ${session} -c ./abcd_dcm2bids.conf -o ${TempSubjectDir}/BIDS_unprocessed --forceDcm2niix --clobber
 
 echo `date`" :CHECKING BIDS ORDERING OF EPIs"
 if [ -e ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/func ]; then
-    if [ `.../run_order_fix.py ${TempSubjectDir}/BIDS_unprocessed ${TempSubjectDir}/bids_order_error.json ${TempSubjectDir}/bids_order_map.json --all --subject ${SUB}` == ${SUB} ]; then
+    if [ `./run_order_fix.py ${TempSubjectDir}/BIDS_unprocessed ${TempSubjectDir}/bids_order_error.json ${TempSubjectDir}/bids_order_map.json --all --subject ${SUB}` == ${SUB} ]; then
         echo BIDS correctly ordered
     else
         echo ERROR: BIDS incorrectly ordered even after running run_order_fix.py
@@ -85,7 +83,7 @@ fi
 
 # select best fieldmap and update sidecar jsons
 echo `date`" :RUNNING SEFM SELECTION AND EDITING SIDECAR JSONS"
-`dirname $0`/sefm_eval_and_json_editor.py ${TempSubjectDir}/BIDS_unprocessed/${SUB} --participant-label=${participant}
+./sefm_eval_and_json_editor.py ${TempSubjectDir}/BIDS_unprocessed/${SUB} --participant-label=${participant}
 
 rm ${TempSubjectDir}/BIDS_unprocessed/${SUB}/ses-baselineYear1Arm1/fmap/*dir-both* 2> /dev/null || true
 
@@ -115,14 +113,13 @@ fi
 if [ `echo ${nBack_evs} | wc -w` -eq 2 ]; then
     i=1
     for ev in ${nBack_evs}; do
-        cp ${ev} ${srcdata_dir}/${SUB}_ses-baselineYear1Arm1_task-nBack_run-0${i}_bold_EventRelatedInformation.txt
+        cp ${ev} ${srcdata_dir}/${SUB}_ses-baselineYear1Arm1_task-nback_run-0${i}_bold_EventRelatedInformation.txt
         ((i++))
     done
 fi
 
-echo `date`" :COPYING SOURCE AND SORTED DATA BACK TO RDS"
+echo `date`" :COPYING SOURCE AND SORTED DATA BACK: ${ROOT_BIDSINPUT}"
 
-ROOT_BIDSINPUT=.../ABCD
 TEMPBIDSINPUT=${TempSubjectDir}/BIDS_unprocessed/${SUB}
 if [ -d ${TEMPBIDSINPUT} ] ; then
     echo `date`" :CHMOD BIDS INPUT"
@@ -142,4 +139,4 @@ if [ -d ${TEMPSRCDATA} ] ; then
     cp -r ${TEMPSRCDATA} ${ROOT_SRCDATA}/
 fi
 
-echo `date`" :UNPACKING AND SETUP COMPLETE"
+echo `date`" :UNPACKING AND SETUP COMPLETE: ${SUB}/${VISIT}"
