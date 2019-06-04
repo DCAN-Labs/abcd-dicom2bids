@@ -109,3 +109,7 @@ Finally at the end `correct_jsons.py` is run on the whole BIDS input directory t
 ```
 ./correct_jsons.py ./ABCD-HCP
 ```
+
+## 5. Run official BIDS validator
+
+Go to [BIDS validator website](https://github.com/bids-standard/bids-validator) and follow the instructions to validate the dataset in the `ABCD-HCP` folder created by this process.
