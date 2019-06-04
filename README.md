@@ -100,7 +100,7 @@ Here is an example:
 ./unpack_and_setup.sh sub-NDARINVABCD1234 ses-baselineYear1Arm1 ./new_download/sub-NDARINVABCD1234/ses-baseline_year_1_arm_1
 ```
 
-This will create a `abcd-dicom2bids_unpack_temp` subdirectory of the user's home directory containing temporary files used for the download.
+This will create a `abcd-dicom2bids_unpack_temp` subdirectory of the user's home directory containing temporary files used for the download, and a `ABCD-HCP` subdirectory of this repository's cloned folder.
 
 ## 4. (Python) `correct_jsons.py`
 
