@@ -18,7 +18,14 @@ set -e
 # sefm_eval_and_json_editor.py (in this repo)
 
 ScratchSpaceDir=~/abcd-dicom2bids_unpack_tmp
-ROOT_BIDSINPUT=./ABCD-HCP
+
+# If output folder is given as a command line arg, get it; otherwise use
+# ./ABCD-HCP/ as the default. Added by Greg 2019-06-06
+if [ "x$4" = "x" ]; then
+    ROOT_BIDSINPUT=./ABCD-HCP
+else
+    ROOT_BIDSINPUT=$4
+fi
 SUB=$1 # Full BIDS formatted subject ID (sub-SUBJECTID)
 VISIT=$2 # Full BIDS formatted session ID (ses-SESSIONID)
 TGZDIR=$3 # Path to directory containing all .tgz for this subject's session
