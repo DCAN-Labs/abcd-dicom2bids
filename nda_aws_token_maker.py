@@ -14,8 +14,14 @@ else:
 
 
 web_service_url = 'https://nda.nih.gov/DataManager/dataManager'
-username  = input('Enter your NIMH Data Archives username: ') # Replace with empty string and instructions to put username here
-password  = getpass.getpass('Enter your NIMH Data Archives password: ') # Replace with empty string and instructions to put password here
+
+# Use credentials from args if possible; if not, prompt user for them
+if len(sys.argv) is 3:  # [0] is self, [1] is username, [2] is password = 3
+    username = sys.argv[1]
+    password = sys.argv[2]
+else:
+    username = input('Enter your NIMH Data Archives username: ')
+    password = getpass.getpass('Enter your NIMH Data Archives password: ')
 
 generator = NDATokenGenerator(web_service_url)
 

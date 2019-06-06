@@ -5,6 +5,7 @@ import pandas as pd
 import csv
 import subprocess
 import os
+import sys
 
 #######################################
 # Read in ABCD_good_and_bad_series_table.csv that is continually updated
@@ -27,6 +28,15 @@ num_t2 = 0
 num_invalid = 0
 num_valid = 0
 num_subjects_after_checks = 0
+
+# Get download folder name. Use one entered from command line if it exists;
+# otherwise use "./new_download". Added by Greg Conan 2019-06-06
+if len(sys.argv) is 2:
+    new_download_dir = sys.argv[1]
+else:
+    new_download_dir = './new_download/'
+
+
 with open('abcd_download_log.csv','w') as f:
     writer = csv.writer(f)
 
@@ -67,7 +77,7 @@ with open('abcd_download_log.csv','w') as f:
         sub = "sub-" + sub_id.replace("_","")
         #print(sub_id, visit)
         tgz_dir = './download' + sub + '/' + visit
-        new_tgz_dir = './new_download/' + sub + '/' + visit
+        new_tgz_dir = new_download_dir + sub + '/' + visit
         if os.path.exists(tgz_dir):
             print("{0} already exists from old download. Updating now.".format(name))
             #continue
