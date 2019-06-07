@@ -17,8 +17,6 @@ set -e
 # run_order_fix.py (in this repo)
 # sefm_eval_and_json_editor.py (in this repo)
 
-ScratchSpaceDir=~/abcd-dicom2bids_unpack_tmp
-
 # If output folder is given as a command line arg, get it; otherwise use
 # ./ABCD-HCP/ as the default. Added by Greg 2019-06-06
 if [ "x$4" = "x" ]; then
@@ -26,6 +24,15 @@ if [ "x$4" = "x" ]; then
 else
     ROOT_BIDSINPUT=$4
 fi
+
+# If temp files folder is given as a command line arg, get it; otherwise use
+# ~/abcd-dicom2bids_unpack_tmp as the default. Added by Greg 2019-06-07
+if [ "x$5" = "x" ]; then
+    ScratchSpaceDir=~/abcd-dicom2bids_unpack_tmp
+else
+    ScratchSpaceDir=$5
+fi
+
 SUB=$1 # Full BIDS formatted subject ID (sub-SUBJECTID)
 VISIT=$2 # Full BIDS formatted session ID (ses-SESSIONID)
 TGZDIR=$3 # Path to directory containing all .tgz for this subject's session
@@ -77,6 +84,7 @@ dcm2bids -d ${TempSubjectDir}/DCMs/${SUB} -p ${participant} -s ${session} -c ./a
 
 echo `date`" :CHECKING BIDS ORDERING OF EPIs"
 if [ -e ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/func ]; then
+    echo `./run_order_fix.py ${TempSubjectDir}/BIDS_unprocessed ${TempSubjectDir}/bids_order_error.json ${TempSubjectDir}/bids_order_map.json --all --subject ${SUB}`
     if [ `./run_order_fix.py ${TempSubjectDir}/BIDS_unprocessed ${TempSubjectDir}/bids_order_error.json ${TempSubjectDir}/bids_order_map.json --all --subject ${SUB}` == ${SUB} ]; then
         echo BIDS correctly ordered
     else

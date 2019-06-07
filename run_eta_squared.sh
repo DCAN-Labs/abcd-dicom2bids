@@ -25,6 +25,9 @@ else
   export LD_LIBRARY_PATH;
   echo LD_LIBRARY_PATH is ${LD_LIBRARY_PATH};
   shift 1
+  RANDHASH=`cat /dev/urandom | tr -cd "a-f0-9" | head -c 8`
+  export MCR_CACHE_ROOT=$TMPDIR/$USER/$RANDHASH
+  mkdir -p $MCR_CACHE_ROOT
   args=
   while [ $# -gt 0 ]; do
       token=$1
