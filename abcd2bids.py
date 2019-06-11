@@ -239,7 +239,7 @@ def download_nda_data(args):
         else:
             subprocess.check_call([
                 "python3",
-                NDA_AWS_TOKEN_MAKER,
+                NDA_AWS_TOKEN_MAKER
             ])
         print("NDA token maker subprocess finished.")
 
