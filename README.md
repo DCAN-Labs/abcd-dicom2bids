@@ -4,16 +4,17 @@ Written by the OHSU ABCD site for selectively downloading ABCD Study imaging DIC
 
 ## Installation
 
-Clone this repository and save it somewhere on the Linux system you want to do ABCD DICOM downloads and conversions to BIDS.
+Clone this repository and save it somewhere on the Linux system you want to do ABCD DICOM downloads and conversions to BIDS on.
 
 ## Dependencies
 
-1. [MathWorks MATLAB (R2016b and newer)](https://www.mathworks.com/products/matlab.html)
-1. [Python 2.7](https://www.python.org/download/releases/2.7/)
+1. [Python 3.5.2](https://www.python.org/downloads/release/python-352/)
+1. [MathWorks MATLAB Runtime Environment (MRE) version 9.1 (R2016b)](https://www.mathworks.com/products/compiler/matlab-runtime.html)
 1. [NIMH Data Archive (NDA) `nda_aws_token_generator`](https://github.com/NDAR/nda_aws_token_generator)
 1. [cbedetti Dcm2Bids](https://github.com/cbedetti/Dcm2Bids) (`export` into your BASH `PATH` variable)
 1. [Rorden Lab dcm2niix](https://github.com/rordenlab/dcm2niix) (`export` into your BASH `PATH` variable)
 1. [zlib's pigz-2.4](https://zlib.net/pigz) (`export` into your BASH `PATH` variable)
+1. Docker (see documentation for [Docker Community Edition for Ubuntu](https://docs.docker.com/install/linux/docker-ce/ubuntu/))
 
 ## Spreadsheets (not included)
 
@@ -53,32 +54,51 @@ We don't have a better solution for securing your credentials while automating d
 
 ## Usage
 
-This repo's usage is broken out into four distinct scripting sections.  You will need to run them in order, each independently of the next waiting for the first to complete.
+The DICOM to BIDS process can be done by running the `abcd2bids.py` wrapper from within the directory cloned from this repo. `abcd2bids.py` requires two positional arguments and can take several optional arguments. Those positional arguments are file paths to the FSL directory and the MATLAB Runtime Environment. Here is an example of a valid call of this wrapper:
+
+```
+python3 abcd2bids.py /usr/share/fsl/5.0 /usr/software/utilities/Matlab2016bRuntime/v91
+```
+
+**WARNING:** This wrapper will create a temporary folder filled with about 14 GB of files used in the process of preparing the BIDS data, and then delete that temporary folder once the entire process finishes successfully. So if the output of the wrapper does not pass BIDS validation, or if the wrapper is ended early, it will leave large temporary files on the user's filesystem.
+
+### Optional arguments
+
+`--username` and `--password`: If the user does not manually enter their NDA credentials in `nda_aws_token_maker.py`, they can enter them as command line arguments using the `-u`/`--username` and `-p`/`--password` flags. If one flag is included, the other must be too. They can be passed into the wrapper from the command line like so: `-u 'my_nda_username' -p 'my_nda_password'`.
+
+`--nda_token`: When `nda_aws_token_maker.py` is run, it will create an NDA token to log into the NDA website which lasts about one day. The user can use this flag to enter a path to an already-existing NDA token instead of entering their NDA credentials if they want by using the `-n`/`--nda_token`, e.g. `-n '~/.aws/credentials'`.
+
+`--temp`: By default, the temporary folder will be created in the user's home directory, at `~/abcd-dicom2bids_unpack_tmp`. If the user wants to place the temporary folder anywhere else, then they can do so using the optional `-t`/`--temp` flag followed by the path at which to create the directory, e.g. `-t '/usr/temp/abcd2bids-temporary-folder'`.
+
+`--download`: By default, the wrapper will download the ABCD data to a new subdirectory of the cloned folder. That subdirectory will be called `new_download`. If the user wants to download the ABCD data to a different directory, they can use the `-d`/`--download` flag, e.g. `-d '~/abcd-dicom2bids/ABCD-Data-Download'`.
+
+`--output`: By default, the wrapper will place the finished/processed data into a new subdirectory of the cloned folder. That subdirectory will be called `ABCD-HCP`. If the user wants to put the finished data anywhere else, they can do so using the optional `-o`/`--output` flag followed by the path at which to create the directory, e.g. `-o '~/abcd-dicom2bids/Finished-Data'`.
+
+## Explanation of Process
+
+`abcd2bids.py` is a wrapper for five distinct scripts, which previously needed to be run on their own in sequential order:
 
 1. (MATLAB) `data_gatherer.m`
 2. (Python) `good_bad_series_parser.py`
 3. (BASH) `unpack_and_setup.sh`
 4. (Python) `correct_jsons.py`
+5. (Docker) Official BIDS validator
+
+The DICOM 2 BIDS conversion process can be done by running `python3 abcd2bids.py <FSL directory> <MRE directory>` without any other options. If the NDA username and password are not already in `nda_aws_token_maker.sh`, and they are not entered as command line args, then the user will be prompted to enter both of them.
 
 The MATLAB portion is for producing a download list for the Python & BASH portion to download, convert, select, and prepare.
 
-## 1. (MATLAB) `data_gatherer.m`
+## 1. (MATLAB) `data_gatherer`
 
-The two spreadsheets referenced above are used in the `data_gatherer.m` to create the `ABCD_good_and_bad_series_table.csv` which gets used to actually download the images.
+The two spreadsheets referenced above are used in the `data_gatherer` compiled MATLAB script to create the `ABCD_good_and_bad_series_table.csv` which gets used to actually download the images.
 
-`data_gatherer.m` depends on a mapping file (`mapping.mat`), which maps the SeriesDescriptions to known OHSU descriptors that classify each TGZ file into T1, T2, task-rest, task-nback, etc.
+`data_gatherer` depends on a mapping file (`mapping.mat`), which maps the SeriesDescriptions to known OHSU descriptors that classify each TGZ file into T1, T2, task-rest, task-nback, etc.
 
-Run `data_gatherer.m` with this repository's cloned folder as the pwd. If successful, it will create the file `ABCD_good_and_bad_series_table.csv` in the `spreadsheets` folder.
+As its first step, the wrapper will run `data_gatherer` with this repository's cloned folder as the pwd. If successful, it will create the file `ABCD_good_and_bad_series_table.csv` in the `spreadsheets` folder.
 
 ## 2. (Python) `good_bad_series_parser.py`
 
-The download is done like this:
-
-```
-./good_bad_series_parser.py
-```
-
-This must also be run with this repository's cloned folder as the pwd. It requires the `ABCD_good_and_bad_series_table.csv` spreadsheet present under a `spreadsheets` folder inside this repository's cloned folder. It also requires a `.aws` folder in the user's `home` directory.
+The wrapper will run `./good_bad_series_parser.py` with this repository's cloned folder as the pwd to download the ABCD data from the NDA website. It requires the `ABCD_good_and_bad_series_table.csv` spreadsheet under a `spreadsheets` subdirectory of this repository's cloned folder. It also requires a `.aws` folder in the user's `home` directory, which will contain the NDA token.
 
 **Note:** The `nda_aws_token_maker.py` is called before each attempted DICOM series TGZ download. If successful, `nda_aws_token_maker` will create a `credentials` file in `.aws`.
 
@@ -86,30 +106,24 @@ If successful, this will download the ABCD data from the NDA site into a `new_do
 
 ## 3. (BASH) `unpack_and_setup.sh`
 
-`unpack_and_setup.sh` should be called in a loop to do the DICOM to BIDS conversion and spin echo field map selection.  It takes three arguments:
+The wrapper will call `unpack_and_setup.sh` in a loop to do the DICOM to BIDS conversion and spin echo field map selection, taking seven arguments:
 
 ```
 SUB=$1 # Full BIDS formatted subject ID (sub-SUBJECTID)
 VISIT=$2 # Full BIDS formatted session ID (ses-SESSIONID)
 TGZDIR=$3 # Path to directory containing all TGZ files for SUB/VISIT
+ROOTBIDSINPUT=$4 Path to output folder which will be created to store unpacked/setup files
+ScratchSpaceDir=$5 Path to folder which will be created to store temporary files that will be deleted once the wrapper finishes
+FSL_DIR=$6 Path to FSL directory
+MRE_DIR=$7 Path to MATLAB Runtime Environment (MRE) directory
 ```
 
-Here is an example:
-
-```
-./unpack_and_setup.sh sub-NDARINVABCD1234 ses-baselineYear1Arm1 ./new_download/sub-NDARINVABCD1234/ses-baseline_year_1_arm_1
-```
-
-This will create a `abcd-dicom2bids_unpack_temp` subdirectory of the user's home directory containing temporary files used for the download, and a `ABCD-HCP` subdirectory of this repository's cloned folder.
+By default, the wrapper will put the unpacked/setup data in a `ABCD-HCP` subdirectory of this repository's cloned folder. This step will also make a `abcd-dicom2bids_unpack_temp` subdirectory of the user's home directory containing temporary files used for the download. If the user enters other locations for the temp directory or `ABCD-HCP` directory as optional command line args, then those will be used instead.
 
 ## 4. (Python) `correct_jsons.py`
 
-Finally at the end `correct_jsons.py` is run on the whole BIDS input directory to correct/prepare all BIDS sidecar JSON files to comply with the BIDS specification standard version 1.2.0.
-
-```
-./correct_jsons.py ./ABCD-HCP
-```
+Next, the wrapper runs `correct_jsons.py` on the whole BIDS input directory to correct/prepare all BIDS sidecar JSON files to comply with the BIDS specification standard version 1.2.0.
 
 ## 5. Run official BIDS validator
 
-Go to [BIDS validator website](https://github.com/bids-standard/bids-validator) and follow the instructions to validate the dataset in the `ABCD-HCP` folder created by this process.
+Finally, the wrapper will run the [official BIDS validator](https://github.com/bids-standard/bids-validator) using Docker to validate the dataset in the `ABCD-HCP` folder created by this process.

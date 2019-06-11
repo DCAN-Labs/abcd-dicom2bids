@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+
 ## NDA AWS Token Generator
 ## Author: NIMH Data Archives
 ##         http://nda.nih.gov

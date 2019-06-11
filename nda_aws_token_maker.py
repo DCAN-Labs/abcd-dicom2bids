@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 from nda_aws_token_generator import *
 import getpass
@@ -13,15 +13,22 @@ else:
     from configparser import ConfigParser
 
 
-web_service_url = 'https://nda.nih.gov/DataManager/dataManager'
+# Insert NDA credentials here
+username = None
+password = None
 
-# Use credentials from args if possible; if not, prompt user for them
-if len(sys.argv) is 3:  # [0] is self, [1] is username, [2] is password = 3
-    username = sys.argv[1]
-    password = sys.argv[2]
-else:
-    username = input('Enter your NIMH Data Archives username: ')
-    password = getpass.getpass('Enter your NIMH Data Archives password: ')
+# If credentials are not included above, then try to get them from command line
+# args passed in; if there are no args, then prompt user for credentials
+if not username and not password:
+    if len(sys.argv) is 3:  # [0] is self, [1] is username, [2] is password = 3
+        username = sys.argv[1]
+        password = sys.argv[2]
+    else:
+        username = input('Enter your NIMH Data Archives username: ')
+        password = getpass.getpass('Enter your NIMH Data Archives password: ')
+
+
+web_service_url = 'https://nda.nih.gov/DataManager/dataManager'
 
 generator = NDATokenGenerator(web_service_url)
 

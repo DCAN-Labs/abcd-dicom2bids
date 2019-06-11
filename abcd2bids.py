@@ -4,7 +4,7 @@
 ABCD 2 BIDS CLI Wrapper
 Greg Conan
 Created 2019-05-29
-Last Updated 2019-06-07
+Last Updated 2019-06-11
 """
 
 ##################################
@@ -19,15 +19,12 @@ Last Updated 2019-06-07
 ##################################
 
 import argparse
-import getpass
 import os
 import pathlib
 import subprocess
 
-
-# Constants: Paths to scripts to call from this wrapper
+# Constants: Default paths to scripts to call from this wrapper
 DATA_GATHERER = "./bin/run_data_gatherer.sh"
-DATA_GATHERER_UNCOMPILED = "data_gatherer"
 NDA_AWS_TOKEN_MAKER = "./nda_aws_token_maker.py"
 GOOD_BAD_SERIES_PARSER = "./good_bad_series_parser.py"
 UNPACK_AND_SETUP = "./unpack_and_setup.sh"
@@ -35,35 +32,30 @@ DOWNLOAD_FOLDER = "./new_download/"
 UNPACKED_FOLDER = "./ABCD-HCP/"
 TEMP_FILES_DIR = "~/abcd-dicom2bids_unpack_tmp"
 CORRECT_JSONS = "./correct_jsons.py"
-MCR_ROOT = "/mnt/max/software/MATLAB/MCR/v92"
 
 
 def main():
-
-    # Get CLI args
+    """
+    Run entire process of downloading ABCD data from NDA data and validating
+    that it meets BIDS standards.
+    :return: N/A
+    """
     cli_args = cli()
 
     # 1. Use MATLAB script to create good_and_bad_series_table.csv
-    if cli_args.matlab:
-
-        # Use un-compiled script
-        make_series_table_from_matlab(cli_args.matlab)
-    else:
-
-        # Use compiled script
-        create_good_and_bad_series_table(cli_args.mcr_root)
+    create_good_and_bad_series_table(cli_args.mre_dir)
 
     # 2. Parse good_and_bad_series_table.csv to get NDA data
     download_nda_data(cli_args)
 
     # 3. Once NDA data is downloaded, unpack it & set it up using .sh script
-    unpack_and_setup(cli_args.download, cli_args.output, cli_args.temp)
+    unpack_and_setup(cli_args)
 
     # 4. Correct ABCD BIDS input data to conform to official BIDS Validator
     correct_jsons(cli_args.output)
 
     # 5. Run the official BIDS validator on the corrected ABCD BIDS data
-    run_bids_validator(cli_args.output)
+    run_bids_validator(cli_args.output, cli_args.temp)
 
 
 def cli():
@@ -77,22 +69,41 @@ def cli():
         description="Wrapper to download, parse, and validate QC'd ABCD data."
     )
 
+    # Required: Get path to FSL directory
+    parser.add_argument(
+        "fsl_dir",
+        type=str,
+        help=("Required: Path to FSL directory. This positional argument must "
+              "be a valid path to an existing folder, ending with /fsl/5.0")
+    )
+
+    # Required: Get path to MRE / MCR root to run compiled MATLAB script
+    parser.add_argument(
+        "mre_dir",
+        type=str,
+        help=("Required: Path to directory containing MATLAB Runtime "
+              "Environment (MRE) version 9.1 or newer. This is used to run"
+              "a compiled MATLAB script. This positional argument must be a"
+              "valid path to an existing folder, ending with "
+              "/Matlab2016bRuntime/v91")
+    )
+
     # Optional: Get NDA username and password
     parser.add_argument(
         "-u",
         "--username",
         type=str,
-        help="Optional: NDA username. Unless this or --nda_token is added, "
-             + "the user will be prompted for their NDA username and password."
-             + " If this is added, --password must also be added."
+        help=("Optional: NDA username. Unless this or --nda_token is added, "
+              "the user will be prompted for their NDA username and password."
+              " If this is added, --password must also be added.")
     )
     parser.add_argument(
         "-p",
         "--password",
         type=str,
-        help="Optional: NDA password. Unless this or --nda_token is added, "
-             + "the user will be prompted for their NDA username and password."
-             + " If this is added, --username must also be added."
+        help=("Optional: NDA password. Unless this or --nda_token is added, "
+              "the user will be prompted for their NDA username and password."
+              " If this is added, --username must also be added.")
     )
 
     # Optional: Get path to already-existing NDA token
@@ -100,9 +111,9 @@ def cli():
         "-n",
         "--nda_token",
         type=argparse.FileType('r'),
-        help="Optional: Path to already-existing NDA token credentials file. "
-             + "Unless this option or --username and --password is added, the "
-             + "user will be prompted for their NDA username and password."
+        help=("Optional: Path to already-existing NDA token credentials file. "
+              "Unless this option or --username and --password is added, the "
+              "user will be prompted for their NDA username and password.")
     )
 
     # Optional: Get download folder path from user as CLI arg
@@ -120,10 +131,10 @@ def cli():
         "-o",
         "--output",
         default=UNPACKED_FOLDER,
-        help="Optional: Folder path into which NDA data will be unpacked and "
-             + "setup after it is downloaded. By default, this script will "
-             + "place the data into a folder called " + UNPACKED_FOLDER
-             + " as a subdirectory of the pwd."
+        help=("Optional: Folder path into which NDA data will be unpacked and "
+              "setup after it is downloaded. By default, this script will "
+              "place the data into a folder called " + UNPACKED_FOLDER
+              + " as a subdirectory of the pwd.")
     )
 
     # Optional: Get folder to place temp data into during unpacking
@@ -131,45 +142,49 @@ def cli():
         "-t",
         "--temp",
         default=TEMP_FILES_DIR,
-        help="Optional: File path at which to create the directory which "
-             + "will be filled with temporary files during unpacking and "
-             + "stage of this script."
+        help=("Optional: File path at which to create the directory which "
+              "will be filled with temporary files during unpacking and setup."
+              " By default, the temp folder will be created at "
+              + TEMP_FILES_DIR + " and deleted once the script is finished.")
     )
 
-    # Optional: Get MCR root to run compiled MATLAB script
-    parser.add_argument(
-        "-r",
-        "--mcr_root",
-        default=MCR_ROOT,
-        help="Optional: File path to MCR root to run compiled MATLAB script. "
-             + "Default value is " + MCR_ROOT + "."
-    )
+    # Parse, validate, and return all CLI args
+    return validate_cli_args(parser.parse_args(), parser)
 
-    # Optional: Create good_and_bad_series_table.csv within MATLAB instead of
-    # using compiled MATLAB script
-    parser.add_argument(
-        "-m",
-        "--matlab",
-        default=None,
-        nargs="?",
-        const=DATA_GATHERER_UNCOMPILED,
-        help="Optional: Run the first step of the process within MATLAB "
-             + "instead of using the compiled MATLAB script. Takes one "
-             + "parameter: MATLAB script name. If that parameter is excluded, "
-             + "then the default name will be " + DATA_GATHERER_UNCOMPILED
-    )
 
-    args = parser.parse_args()
+def validate_cli_args(args, parser):
+    """
+    Check that all command line arguments will allow this script to work.
+    :param args: argparse namespace with all command-line arguments
+    :param parser: argparse ArgumentParser to raise error if anything's invalid
+    :return: Validated command-line arguments argparse namespace
+    """
 
     # Validate that if username is present, so is password; and vice versa
     if bool(args.password is None) is not bool(args.username is None):
-        parser.error("Error: Username and password must both be included.")
+        parser.error("Username and password must both be included.")
 
-    # Validate directories: check if they exist, and if not, try to create them
+    # Validate FSL and MRE directories
+    validate_dir_path(args.fsl_dir, parser)
+    validate_dir_path(args.mre_dir, parser)
+
+    # Validate other dirs: check if they exist, and if not, try to create them
     try_to_create_directory_at(args.download, parser)
     try_to_create_directory_at(args.output, parser)
 
     return args
+
+
+def validate_dir_path(dir_path, parser):
+    """
+    Validate that a given path refers to an existing directory; if it doesn't,
+    then raise an argparse error
+    :param dir_path: Path to validate
+    :param parser: argparse ArgumentParser to raise error if path is invalid
+    :return: N/A
+    """
+    if not pathlib.Path(dir_path).is_dir():
+        parser.error(dir_path + " is not an existing directory.")
 
 
 def try_to_create_directory_at(folder_path, parser):
@@ -182,89 +197,78 @@ def try_to_create_directory_at(folder_path, parser):
     try:
         pathlib.Path(folder_path).mkdir(exist_ok=True, parents=True)
     except (OSError, TypeError):
-        parser.error("Error: Could not create folder at " + folder_path + ".")
+        parser.error("Could not create folder at " + folder_path)
 
 
-def create_good_and_bad_series_table(mcr_root):
+def create_good_and_bad_series_table(mre_dir):
     """
-    Create good_and_bad_series_table .csv using compiled MATLAB script
+    Create good_and_bad_series_table .csv using compiled MATLAB script, and
+    display how long it takes to the user.
     :return: N/A
     """
-    subprocess.check_call([DATA_GATHERER, mcr_root])
-    print("MATLAB subprocess finished.")
+    print("Running ABCD to BIDS wrapper. data_gatherer subprocess started at:")
+    subprocess.check_call("date")
+    subprocess.check_call([DATA_GATHERER, mre_dir])
+    print("data_gatherer subprocess finished at:")
+    subprocess.check_call('date')
 
 
-def make_series_table_from_matlab(matlab_script):
-    """
-    Call data_gatherer uncompiled MATLAB script in MATLAB via the command line
-    to create good_and_bad_series_table .csv
-    :param matlab_script:
-    :return: N/A
-    """
-    subprocess.check_call([
-        "matlab",
-        "-nodisplay",
-        "-nosplash",
-        "-nodesktop",
-        "-r",
-        matlab_script + "; exit"
-    ])
-    print("MATLAB subprocess finished.")
-
-
-def download_nda_data(cli_args):
+def download_nda_data(args):
     """
     Download NDA data by parsing good_and_bad_series_table.csv, making NDA
     token if needed.
-    :param cli_args: argparse namespace containing all CLI arguments.
+    :param args: argparse namespace containing all CLI arguments. The
+    specific arguments used by this function are --username, --password,
+    --download, and --nda_token.
     :return: N/A
     """
 
     # If NDA token does not already exist, then make one
-    if not cli_args.nda_token:
+    if not args.nda_token:
 
-        # If user did not already enter NDA credentials, get them
-        if not cli_args.username:
-            username = input('Enter your NIMH Data Archives username: ')
-            password = getpass.getpass(
-                'Enter your NIMH Data Archives password: '
-            )
+        # If user gave NDA credentials as CLI args, use those to make NDA token
+        if args.username:
+            subprocess.check_call([
+                "python3",
+                NDA_AWS_TOKEN_MAKER,
+                args.username,
+                args.password
+            ])
 
-        # If user entered NDA credentials as CLI args, use those
+        # Otherwise, let nda_aws_token_maker handle credentials and make token
         else:
-            username = cli_args.username
-            password = cli_args.password
-
-        # Call Python script to make NDA token
-        subprocess.check_call([
-            "python3",
-            NDA_AWS_TOKEN_MAKER,
-            username,
-            password
-        ])
+            subprocess.check_call([
+                "python3",
+                NDA_AWS_TOKEN_MAKER,
+            ])
         print("NDA token maker subprocess finished.")
 
-    # Call Python script to parse good_and_bad_series_table.csv
+    # Call Python script to parse good_and_bad_series_table and download data
+    print("Downloading ABCD data from NDA. Download subprocess started at:")
+    subprocess.check_call("date")
     subprocess.check_call([
         "python3",
         GOOD_BAD_SERIES_PARSER,
-        cli_args.download
+        args.download
     ])
-    print("Good/bad series parser subprocess finished.")
+    print("ABCD data download subprocess finished at:")
+    subprocess.check_call("date")
 
 
-def unpack_and_setup(download, output, temp):
+def unpack_and_setup(args):
     """
     Run unpack_and_setup.sh script to unpack and setup the newly downloaded
     NDA data files.
-    :param download: Path to folder of newly downloaded NDA data.
-    :param temp: Path to directory where temporary files will be put.
-    :param output: Path to folder where unpacked data will be put.
+    :param args: All arguments entered by the user from the command line. The
+    specific arguments used by this function are fsl_dir, mre_dir, --output,
+    --download, and --temp.
     :return: N/A
     """
+    print("Data unpacking and setup subprocess started at:")
+    subprocess.check_call("date")
 
     # Get name of NDA data folder newly downloaded from download_nda_data
-    download_folder = pathlib.Path(download)
+    download_folder = pathlib.Path(args.download)
 
     # Unpack and setup every .tgz file descendant of the NDA data folder
     for subject in download_folder.iterdir():
@@ -279,10 +283,13 @@ def unpack_and_setup(download, output, temp):
                 subject.name,
                 "ses-" + session_name,
                 str(session_dir),
-                output,
-                temp
+                args.output,
+                args.temp,
+                args.fsl_dir,
+                args.mre_dir
             ])
-    print("Unpack and setup subprocess finished.")
+    print("Unpack and setup subprocess finished at:")
+    subprocess.check_call("date")
 
 
 def correct_jsons(output):
@@ -291,21 +298,34 @@ def correct_jsons(output):
     :param output: Path to folder containing unpacked NDA data to correct.
     :return: N/A
     """
+    print("JSON correction subprocess started at:")
+    subprocess.check_call("date")
     subprocess.check_call([CORRECT_JSONS, output])
-    print("JSON correction subprocess finished.")
+    print("JSON correction subprocess finished at:")
+    subprocess.check_call("date")
 
 
-def run_bids_validator(output):
+def run_bids_validator(output, temp_dir):
     """
     Run the official BIDS validator on the corrected ABCD BIDS data.
     :param output: Path to folder containing corrected NDA data to validate.
+    :param temp_dir: Path to folder containing temporary files (created while
+    running unpack_and_setup function) to delete if BIDS validation succeeds.
     :return: N/A
     """
+    print("BIDS validation subprocess started at:")
+    subprocess.check_call("date")
     try:
         subprocess.check_call(["docker", "run", "-ti", "--rm", "-v",
                                os.path.abspath(output) + ":/data:ro",
                                "bids/validator", "/data"])
-        print("BIDS validation subprocess finished. ABCD 2 BIDS complete.")
+
+        # If BIDS validation is successful, then delete temporary files which
+        # were generated by unpack_and_setup
+        subprocess.check_call(["rm", "-rf", temp_dir])
+        print("BIDS validation subprocess finished. Temporary files at "
+              + temp_dir + " deleted. ABCD 2 BIDS completed at:")
+        subprocess.check_call("date")
 
     except subprocess.CalledProcessError:
         print("Error: BIDS validation failed.")

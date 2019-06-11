@@ -1,7 +1,5 @@
 #! /bin/bash
 
-set -e
-
 # Given a subject ID, session, and tgz directory:
 #   1) Copy all tgzs to compute node's disk
 #   2) Unpack tgzs
@@ -31,6 +29,14 @@ if [ "x$5" = "x" ]; then
     ScratchSpaceDir=~/abcd-dicom2bids_unpack_tmp
 else
     ScratchSpaceDir=$5
+fi
+
+# Get FSL and MRE directory paths from command line; added by Greg Conan on
+# 2019-06-10
+if [[ ! "x$6" = "x" && ! "x$7" = "x" ]]; then
+    FSL_DIR=$6
+    MRE_DIR=$7
+    echo "FSL_DIR is ${FSL_DIR} and MRE_DIR is ${MRE_DIR}"
 fi
 
 SUB=$1 # Full BIDS formatted subject ID (sub-SUBJECTID)
@@ -83,9 +89,9 @@ echo `date`" :RUNNING dcm2bids"
 dcm2bids -d ${TempSubjectDir}/DCMs/${SUB} -p ${participant} -s ${session} -c ./abcd_dcm2bids.conf -o ${TempSubjectDir}/BIDS_unprocessed --forceDcm2niix --clobber
 
 echo `date`" :CHECKING BIDS ORDERING OF EPIs"
-if [ -e ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/func ]; then
+if [[ -e ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/func ]]; then
     echo `./run_order_fix.py ${TempSubjectDir}/BIDS_unprocessed ${TempSubjectDir}/bids_order_error.json ${TempSubjectDir}/bids_order_map.json --all --subject ${SUB}`
-    if [ `./run_order_fix.py ${TempSubjectDir}/BIDS_unprocessed ${TempSubjectDir}/bids_order_error.json ${TempSubjectDir}/bids_order_map.json --all --subject ${SUB}` == ${SUB} ]; then
+    if [[ `./run_order_fix.py ${TempSubjectDir}/BIDS_unprocessed ${TempSubjectDir}/bids_order_error.json ${TempSubjectDir}/bids_order_map.json --all --subject ${SUB}` == ${SUB} ]]; then
         echo BIDS correctly ordered
     else
         echo ERROR: BIDS incorrectly ordered even after running run_order_fix.py
@@ -98,19 +104,25 @@ fi
 
 # select best fieldmap and update sidecar jsons
 echo `date`" :RUNNING SEFM SELECTION AND EDITING SIDECAR JSONS"
-./sefm_eval_and_json_editor.py ${TempSubjectDir}/BIDS_unprocessed/${SUB} --participant-label=${participant}
+./sefm_eval_and_json_editor.py ${TempSubjectDir}/BIDS_unprocessed/${SUB} ${FSL_DIR} ${MRE_DIR} --participant-label=${participant}
 
 rm ${TempSubjectDir}/BIDS_unprocessed/${SUB}/ses-baselineYear1Arm1/fmap/*dir-both* 2> /dev/null || true
 
 # rename EventRelatedInformation
 echo `date`" :COPY AND RENAME SOURCE DATA"
 srcdata_dir=${TempSubjectDir}/BIDS_unprocessed/sourcedata/${SUB}/ses-baselineYear1Arm1/func
+echo $srcdata_dir
+ls ${TempSubjectDir}/DCMs/${SUB}/ses-baselineYear1Arm1/func/*EventRelatedInformation.txt
 if ls ${TempSubjectDir}/DCMs/${SUB}/ses-baselineYear1Arm1/func/*EventRelatedInformation.txt > /dev/null 2>&1; then
     mkdir -p ${srcdata_dir}
+    echo "Made srcdata_dir"
 fi
 MID_evs=`ls ${TempSubjectDir}/DCMs/${SUB}/ses-baselineYear1Arm1/func/*MID*EventRelatedInformation.txt 2>/dev/null`
 SST_evs=`ls ${TempSubjectDir}/DCMs/${SUB}/ses-baselineYear1Arm1/func/*SST*EventRelatedInformation.txt 2>/dev/null`
 nBack_evs=`ls ${TempSubjectDir}/DCMs/${SUB}/ses-baselineYear1Arm1/func/*nBack*EventRelatedInformation.txt 2>/dev/null`
+echo ${MID_evs}
+echo ${SST_evs}
+echo ${nBack_evs}
 if [ `echo ${MID_evs} | wc -w` -eq 2 ]; then
     i=1
     for ev in ${MID_evs}; do
