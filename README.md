@@ -94,7 +94,7 @@ The two spreadsheets referenced above are used in the `data_gatherer` compiled M
 
 `data_gatherer` depends on a mapping file (`mapping.mat`), which maps the SeriesDescriptions to known OHSU descriptors that classify each TGZ file into T1, T2, task-rest, task-nback, etc.
 
-As its first step, the wrapper will run `data_gatherer` with this repository's cloned folder as the pwd. If successful, it will create the file `ABCD_good_and_bad_series_table.csv` in the `spreadsheets` folder.
+As its first step, the wrapper will run `data_gatherer` with this repository's cloned folder as the pwd. If successful, it will create the file `ABCD_good_and_bad_series_table.csv` in the `spreadsheets` folder. Note that this step can take over two hours to complete.
 
 ### 2. (Python) `good_bad_series_parser.py`
 
@@ -124,6 +124,6 @@ By default, the wrapper will put the unpacked/setup data in a `ABCD-HCP` subdire
 
 Next, the wrapper runs `correct_jsons.py` on the whole BIDS input directory to correct/prepare all BIDS sidecar JSON files to comply with the BIDS specification standard version 1.2.0.
 
-### 5. Run official BIDS validator
+### 5. (Docker) Run official BIDS validator
 
 Finally, the wrapper will run the [official BIDS validator](https://github.com/bids-standard/bids-validator) using Docker to validate the dataset in the `ABCD-HCP` folder created by this process.
