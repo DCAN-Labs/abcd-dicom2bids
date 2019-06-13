@@ -91,7 +91,7 @@ As its first step, the wrapper will run `data_gatherer` with this repository's c
 
 ### 2. (Python) `good_bad_series_parser.py`
 
-First, the wrapper will try to create an NDA token with the user's NDA credentials. It does this by calling `/src/nda_aws_token_maker.py`, which calls `/src/nda_aws_token_generator` ([taken from the NIMH Data Archive, or "NDA"](https://github.com/NDAR/nda_aws_token_generator)).
+First, the wrapper will try to create an NDA token with the user's NDA credentials. It does this by calling `/src/nda_aws_token_maker.py`, which calls `/src/nda_aws_token_generator` ([taken from the NDA](https://github.com/NDAR/nda_aws_token_generator)).
 
 Once an NDA token is successfully created, the wrapper will run `./src/good_bad_series_parser.py` with this repository's cloned folder as the pwd to download the ABCD data from the NDA website. It requires the `ABCD_good_and_bad_series_table.csv` spreadsheet under a `spreadsheets` subdirectory of this repository's cloned folder.
 
