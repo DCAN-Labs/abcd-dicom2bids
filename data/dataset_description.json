@@ -1,0 +1,17 @@
+{
+    "Name": "Adolescent Brain Cognitive Development (ABCD) Study",
+    "BIDSVersion": "1.1.1",
+    "Authors": [
+        "Eric Earl",
+        "Anders Perrone",
+        "Darrick Sturgeon",
+        "Damien Fair",
+        "Hauke Bartsch"
+    ],
+    "Acknowledgements": "The many other ABCD Study researchers who helped acquire and prepare this data.",
+    "HowToAcknowledge": "Please cite this paper: B.J. Casey, Tariq Cannonier, May I. Conley, Alexandra O. Cohen, Deanna M. Barch, Mary M. Heitzeg, Mary E. Soules, Theresa Teslovich, Danielle V. Dellarco, Hugh Garavan, Catherine A. Orr, Tor D. Wager, Marie T. Banich, Nicole K. Speer, Matthew T. Sutherland, Michael C. Riedel, Anthony S. Dick, James M. Bjork, Kathleen M. Thomas, Bader Chaarani, Margie H. Mejia, Donald J. Hagler, M. Daniela Cornejo, Chelsea S. Sicat, Michael P. Harms, Nico U.F. Dosenbach, Monica Rosenberg, Eric Earl, Hauke Bartsch, Richard Watts, Jonathan R. Polimeni, Joshua M. Kuperman, Damien A. Fair, Anders M. Dale, The Adolescent Brain Cognitive Development (ABCD) study: Imaging acquisition across 21 sites, Developmental Cognitive Neuroscience, Volume 32, 2018, Pages 43-54, ISSN 1878-9293, https://doi.org/10.1016/j.dcn.2018.03.001.",
+    "Funding": "This work was supported in part by U24 DA041123 (BJC, MDC, ASD, HB, DJH, JMK, JRP, CSS), U01 DA041174 (BJC, TC, DVD, MIC, MR, TT, TDW), NSF National Science Foundation Graduate Research Fellowship (AOC), U01 DA041106 (MMH, MES), U01 DA041120 (MTB, DMB, JMB, MH, NUFD, NKS, KMT), U01 DA 041156 (ASD, MCR, ARL), K01 DA037819 (MTS) U01DA041148 (HG, RW) and U24 DA041147 (HG, MHM).",
+    "ReferencesAndLinks": [
+        "https://abcdstudy.org/scientists-publications.html"
+    ]
+}

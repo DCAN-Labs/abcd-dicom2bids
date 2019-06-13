@@ -10,7 +10,6 @@ Clone this repository and save it somewhere on the Linux system you want to do A
 
 1. [Python 3.5.2](https://www.python.org/downloads/release/python-352/)
 1. [MathWorks MATLAB Runtime Environment (MRE) version 9.1 (R2016b)](https://www.mathworks.com/products/compiler/matlab-runtime.html)
-1. [NIMH Data Archive (NDA) `nda_aws_token_generator`](https://github.com/NDAR/nda_aws_token_generator)
 1. [cbedetti Dcm2Bids](https://github.com/cbedetti/Dcm2Bids) (`export` into your BASH `PATH` variable)
 1. [Rorden Lab dcm2niix](https://github.com/rordenlab/dcm2niix) (`export` into your BASH `PATH` variable)
 1. [zlib's pigz-2.4](https://zlib.net/pigz) (`export` into your BASH `PATH` variable)
@@ -52,21 +51,21 @@ The DICOM to BIDS process can be done by running the `abcd2bids.py` wrapper from
 python3 abcd2bids.py /usr/share/fsl/5.0 /mnt/max/shared/code/external/utilities/Matlab2016bRuntime/v91
 ```
 
-The first time that a user uses this wrapper, the user will have to enter their NDA credentials. If the user does not include them as command-line arguments, then the wrapper will prompt the user to enter them. The wrapper will then create a `config.ini` file with the user's username and (encrypted) password, so the user does not have to enter their NDA credentials any subsequent times running this wrapper.
+The first time that a user uses this wrapper, the user will have to enter their NDA credentials. If the user does not include them as command-line arguments, then the wrapper will prompt the user to enter them. The wrapper will then create a `config.ini` file with the user's username and (encrypted) password, so the user will not have to enter their NDA credentials any subsequent times running this wrapper.
 
-**WARNING:** This wrapper will create a temporary folder filled with about 14 GB of files used in the process of preparing the BIDS data, and then delete that temporary folder once the entire process finishes successfully. So if the output of the wrapper does not pass BIDS validation, or if the wrapper is ended early, it will leave large temporary files on the user's filesystem.
+**WARNING:** This wrapper will create a temporary folder filled with about 14 GB of files used in the process of preparing the BIDS data, and then delete that temporary folder once the entire process finishes successfully. So if the output of the wrapper does not pass BIDS validation, or if the wrapper is ended early, it will leave large temporary files on the user's filesystem. Future versions of this script will delete those if the script crashes.
 
 ### Optional arguments
 
-`--username` and `--password`: If the user does not manually enter their NDA credentials in `nda_aws_token_maker.py`, they can enter them as command line arguments using the `-u`/`--username` and `-p`/`--password` flags. If one flag is included, the other must be too. They can be passed into the wrapper from the command line like so: `-u my_nda_username -p my_nda_password`.
+`--username` and `--password`: If `./src/config.ini` does not exist, then the user can enter their NDA credentials as command line arguments using the `-u`/`--username` and `-p`/`--password` flags. If one flag is included, the other must be too. They can be passed into the wrapper from the command line like so: `-u my_nda_username -p my_nda_password`.
 
-`--config`: By default, the wrapper will look for a `config.ini` file in the clone of this repo, and create one if one does not already exist. Use `-c`/`--config` to enter a different path to a config file, e.g. `-c ~/Documents/config.ini`.
+`--config`: By default, the wrapper will look for a `config.ini` file in the `/src/` subdirectory of the clone of this repo, and create one if one does not already exist. Use `-c`/`--config` to enter a different path to a config file, e.g. `-c ~/Documents/config.ini`.
 
-`--temp`: By default, the temporary folder will be created in a subdirectory of the clone of this repo, called `/temp/`. If the user wants to place the temporary folder anywhere else, then they can do so using the optional `-t`/`--temp` flag followed by the path at which to create the directory, e.g. `-t /usr/home/abcd2bids-temporary-folder`.
+`--temp`: By default, the temporary folder will be created in a `/temp/` subdirectory of the clone of this repo. If the user wants to place the temporary folder anywhere else, then they can do so using the optional `-t`/`--temp` flag followed by the path at which to create the directory, e.g. `-t /usr/home/abcd2bids-temporary-folder`.
 
-`--download`: By default, the wrapper will download the ABCD data to a new subdirectory of the cloned folder. That subdirectory will be called `new_download`. If the user wants to download the ABCD data to a different directory, they can use the `-d`/`--download` flag, e.g. `-d ~/abcd-dicom2bids/ABCD-Data-Download`.
+`--download`: By default, the wrapper will download the ABCD data to the `/raw/` subdirectory of the cloned folder. If the user wants to download the ABCD data to a different directory, they can use the `-d`/`--download` flag, e.g. `-d ~/abcd-dicom2bids/ABCD-Data-Download`.
 
-`--output`: By default, the wrapper will place the finished/processed data into a new subdirectory of the cloned folder. That subdirectory will be called `ABCD-HCP`. If the user wants to put the finished data anywhere else, they can do so using the optional `-o`/`--output` flag followed by the path at which to create the directory, e.g. `-o ~/abcd-dicom2bids/Finished-Data`.
+`--output`: By default, the wrapper will place the finished/processed data into the `/data/` subdirectory of the cloned folder. If the user wants to put the finished data anywhere else, they can do so using the optional `-o`/`--output` flag followed by the path at which to create the directory, e.g. `-o ~/abcd-dicom2bids/Finished-Data`.
 
 ## Explanation of Process
 
@@ -92,11 +91,13 @@ As its first step, the wrapper will run `data_gatherer` with this repository's c
 
 ### 2. (Python) `good_bad_series_parser.py`
 
-The wrapper will run `./good_bad_series_parser.py` with this repository's cloned folder as the pwd to download the ABCD data from the NDA website. It requires the `ABCD_good_and_bad_series_table.csv` spreadsheet under a `spreadsheets` subdirectory of this repository's cloned folder. It also requires a `.aws` folder in the user's `home` directory, which will contain the NDA token.
+First, the wrapper will try to create an NDA token with the user's NDA credentials. It does this by calling `/src/nda_aws_token_maker.py`, which calls `/src/nda_aws_token_generator` ([taken from the NIMH Data Archive, or "NDA"](https://github.com/NDAR/nda_aws_token_generator)).
 
-**Note:** The `nda_aws_token_maker.py` is called before each attempted DICOM series TGZ download. If successful, `nda_aws_token_maker` will create a `credentials` file in `.aws`.
+Once an NDA token is successfully created, the wrapper will run `./src/good_bad_series_parser.py` with this repository's cloned folder as the pwd to download the ABCD data from the NDA website. It requires the `ABCD_good_and_bad_series_table.csv` spreadsheet under a `spreadsheets` subdirectory of this repository's cloned folder.
 
-If successful, this will download the ABCD data from the NDA site into a `new_download` subdirectory of the pwd.
+`/src/good_bad_series_parser.py` also requires a `.aws` folder in the user's `home` directory, which will contain the NDA token. The `nda_aws_token_maker.py` is called before each attempted DICOM series TGZ download. If successful, `nda_aws_token_maker` will create a `credentials` file in `.aws`.
+
+If successful, this will download the ABCD data from the NDA site into the `/raw/` subdirectory of the pwd.
 
 ### 3. (BASH) `unpack_and_setup.sh`
 
@@ -112,7 +113,7 @@ FSL_DIR=$6 Path to FSL directory
 MRE_DIR=$7 Path to MATLAB Runtime Environment (MRE) directory
 ```
 
-By default, the wrapper will put the unpacked/setup data in a `ABCD-HCP` subdirectory of this repository's cloned folder. This step will also make a `abcd-dicom2bids_unpack_temp` subdirectory of the user's home directory containing temporary files used for the download. If the user enters other locations for the temp directory or `ABCD-HCP` directory as optional command line args, then those will be used instead.
+By default, the wrapper will put the unpacked/setup data in the `/data/` subdirectory of this repository's cloned folder. This step will also create and fill the `/temp/` subdirectory of the user's home directory containing temporary files used for the download. If the user enters other locations for the temp directory or output data directory as optional command line args, then those will be used instead.
 
 ### 4. (Python) `correct_jsons.py`
 
@@ -120,4 +121,4 @@ Next, the wrapper runs `correct_jsons.py` on the whole BIDS input directory to c
 
 ### 5. (Docker) Run official BIDS validator
 
-Finally, the wrapper will run the [official BIDS validator](https://github.com/bids-standard/bids-validator) using Docker to validate the dataset in the `ABCD-HCP` folder created by this process.
+Finally, the wrapper will run the [official BIDS validator](https://github.com/bids-standard/bids-validator) using Docker to validate the dataset in the `/data/` folder created by this process.
