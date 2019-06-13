@@ -16,9 +16,9 @@
 # sefm_eval_and_json_editor.py (in this repo)
 
 # If output folder is given as a command line arg, get it; otherwise use
-# ./ABCD-HCP/ as the default. Added by Greg 2019-06-06
+# ./data as the default. Added by Greg 2019-06-06
 if [ "x$4" = "x" ]; then
-    ROOT_BIDSINPUT=./ABCD-HCP
+    ROOT_BIDSINPUT=./data
 else
     ROOT_BIDSINPUT=$4
 fi
@@ -90,8 +90,8 @@ dcm2bids -d ${TempSubjectDir}/DCMs/${SUB} -p ${participant} -s ${session} -c ./a
 
 echo `date`" :CHECKING BIDS ORDERING OF EPIs"
 if [[ -e ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/func ]]; then
-    echo `./run_order_fix.py ${TempSubjectDir}/BIDS_unprocessed ${TempSubjectDir}/bids_order_error.json ${TempSubjectDir}/bids_order_map.json --all --subject ${SUB}`
-    if [[ `./run_order_fix.py ${TempSubjectDir}/BIDS_unprocessed ${TempSubjectDir}/bids_order_error.json ${TempSubjectDir}/bids_order_map.json --all --subject ${SUB}` == ${SUB} ]]; then
+    echo `./src/run_order_fix.py ${TempSubjectDir}/BIDS_unprocessed ${TempSubjectDir}/bids_order_error.json ${TempSubjectDir}/bids_order_map.json --all --subject ${SUB}`
+    if [[ `./src/run_order_fix.py ${TempSubjectDir}/BIDS_unprocessed ${TempSubjectDir}/bids_order_error.json ${TempSubjectDir}/bids_order_map.json --all --subject ${SUB}` == ${SUB} ]]; then
         echo BIDS correctly ordered
     else
         echo ERROR: BIDS incorrectly ordered even after running run_order_fix.py
@@ -104,7 +104,7 @@ fi
 
 # select best fieldmap and update sidecar jsons
 echo `date`" :RUNNING SEFM SELECTION AND EDITING SIDECAR JSONS"
-./sefm_eval_and_json_editor.py ${TempSubjectDir}/BIDS_unprocessed/${SUB} ${FSL_DIR} ${MRE_DIR} --participant-label=${participant}
+./src/sefm_eval_and_json_editor.py ${TempSubjectDir}/BIDS_unprocessed/${SUB} ${FSL_DIR} ${MRE_DIR} --participant-label=${participant}
 
 rm ${TempSubjectDir}/BIDS_unprocessed/${SUB}/ses-baselineYear1Arm1/fmap/*dir-both* 2> /dev/null || true
 

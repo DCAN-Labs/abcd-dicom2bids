@@ -2,9 +2,9 @@
 
 """
 ABCD 2 BIDS CLI Wrapper
-Greg Conan
+Greg Conan: conan@ohsu.edu
 Created 2019-05-29
-Last Updated 2019-06-11
+Last Updated 2019-06-12
 """
 
 ##################################
@@ -19,19 +19,23 @@ Last Updated 2019-06-11
 ##################################
 
 import argparse
+import configparser
+from cryptography.fernet import Fernet
+from getpass import getpass
 import os
 import pathlib
 import subprocess
 
 # Constants: Default paths to scripts to call from this wrapper
-DATA_GATHERER = "./bin/run_data_gatherer.sh"
-NDA_AWS_TOKEN_MAKER = "./nda_aws_token_maker.py"
-GOOD_BAD_SERIES_PARSER = "./good_bad_series_parser.py"
-UNPACK_AND_SETUP = "./unpack_and_setup.sh"
-DOWNLOAD_FOLDER = "./new_download/"
-UNPACKED_FOLDER = "./ABCD-HCP/"
+DATA_GATHERER = "./src/bin/run_data_gatherer.sh"
+NDA_AWS_TOKEN_MAKER = "./src/nda_aws_token_maker.py"
+GOOD_BAD_SERIES_PARSER = "./src/good_bad_series_parser.py"
+UNPACK_AND_SETUP = "./src/unpack_and_setup.sh"
+DOWNLOAD_FOLDER = "./raw/"
+UNPACKED_FOLDER = "./data/"
 TEMP_FILES_DIR = "~/abcd-dicom2bids_unpack_tmp"
-CORRECT_JSONS = "./correct_jsons.py"
+CORRECT_JSONS = "./src/correct_jsons.py"
+CONFIG_FILEPATH = "./src/config.ini"
 
 
 def main():
@@ -42,11 +46,12 @@ def main():
     """
     cli_args = cli()
 
-    # 1. Use MATLAB script to create good_and_bad_series_table.csv
+    # 1. Use compiled MATLAB script to create good_and_bad_series_table.csv
     create_good_and_bad_series_table(cli_args.mre_dir)
 
-    # 2. Parse good_and_bad_series_table.csv to get NDA data
-    download_nda_data(cli_args)
+    # 2. Make NDA token and parse good_and_bad_series_table.csv to get NDA data
+    make_nda_token(cli_args)
+    download_nda_data(cli_args.download)
 
     # 3. Once NDA data is downloaded, unpack it & set it up using .sh script
     unpack_and_setup(cli_args)
@@ -82,8 +87,8 @@ def cli():
         "mre_dir",
         type=str,
         help=("Required: Path to directory containing MATLAB Runtime "
-              "Environment (MRE) version 9.1 or newer. This is used to run"
-              "a compiled MATLAB script. This positional argument must be a"
+              "Environment (MRE) version 9.1 or newer. This is used to run "
+              "a compiled MATLAB script. This positional argument must be a "
               "valid path to an existing folder, ending with "
               "/Matlab2016bRuntime/v91")
     )
@@ -93,27 +98,30 @@ def cli():
         "-u",
         "--username",
         type=str,
-        help=("Optional: NDA username. Unless this or --nda_token is added, "
-              "the user will be prompted for their NDA username and password."
-              " If this is added, --password must also be added.")
+        help=("Optional: NDA username. Unless this is added or a config file "
+              "exists with the user's NDA credentials, the user will be "
+              "prompted for them. If this is added, --password must be too.")
     )
     parser.add_argument(
         "-p",
         "--password",
         type=str,
-        help=("Optional: NDA password. Unless this or --nda_token is added, "
-              "the user will be prompted for their NDA username and password."
-              " If this is added, --username must also be added.")
+        help=("Optional: NDA password. Unless this is added or a config file "
+              "exists with the user's NDA credentials, the user will be "
+              "prompted for them. If this is added, --username must be too.")
     )
 
-    # Optional: Get path to already-existing NDA token
+    # Optional: Get path to already-existing config file with NDA credentials
     parser.add_argument(
-        "-n",
-        "--nda_token",
-        type=argparse.FileType('r'),
-        help=("Optional: Path to already-existing NDA token credentials file. "
+        "-c",
+        "--config",
+        default=CONFIG_FILEPATH,
+        help=("Optional: Path to config file with NDA credentials. If no "
+              "config file exists at this path yet, then one will be created. "
               "Unless this option or --username and --password is added, the "
-              "user will be prompted for their NDA username and password.")
+              "user will be prompted for their NDA username and password. "
+              "By default, the config file will be at " + CONFIG_FILEPATH
+              + " as a subdirectory of the pwd.")
     )
 
     # Optional: Get download folder path from user as CLI arg
@@ -121,9 +129,9 @@ def cli():
         "-d",
         "--download",
         default=DOWNLOAD_FOLDER,
-        help="Optional: Folder path to which NDA data will be downloaded. "
-             + "By default, this script will place the data into a folder "
-             + "called " + DOWNLOAD_FOLDER + " as a subdirectory of the pwd."
+        help=("Optional: Folder path to which NDA data will be downloaded. "
+              "By default, this script will place the data into a folder "
+              "called " + DOWNLOAD_FOLDER + " as a subdirectory of the pwd.")
     )
 
     # Optional: Get folder to unpack NDA data into from download folder
@@ -202,8 +210,7 @@ def try_to_create_directory_at(folder_path, parser):
 
 def create_good_and_bad_series_table(mre_dir):
     """
-    Create good_and_bad_series_table .csv using compiled MATLAB script, and
-    display how long it takes to the user.
+    Create good_and_bad_series_table.csv using compiled MATLAB script.
     :return: N/A
     """
     print("Running ABCD to BIDS wrapper. data_gatherer subprocess started at:")
@@ -213,35 +220,105 @@ def create_good_and_bad_series_table(mre_dir):
     subprocess.check_call('date')
 
 
-def download_nda_data(args):
+def make_nda_token(args):
     """
-    Download NDA data by parsing good_and_bad_series_table.csv, making NDA
-    token if needed.
-    :param args: argparse namespace containing all CLI arguments. The
-    specific arguments used by this function are --username, --password,
-    --download, and --nda_token.
+    Create NDA token by getting credentials from config file. If no config file
+    exists yet, then create one to store NDA credentials.
+    :param args: argparse namespace containing all CLI arguments. The specific
+    arguments used by this function are --username, --password, and --config.
     :return: N/A
     """
 
-    # If NDA token does not already exist, then make one
-    if not args.nda_token:
+    # If config file with NDA credentials exists, then get its credentials
+    if pathlib.Path(args.config).exists():
+        username, password = get_nda_credentials_from(args.config)
 
-        # If user gave NDA credentials as CLI args, use those to make NDA token
+    # Otherwise, get NDA credentials and save them in a new config file
+    else:
+
+        # If user gave NDA credentials as CLI args, use those
         if args.username:
-            subprocess.check_call([
-                "python3",
-                NDA_AWS_TOKEN_MAKER,
-                args.username,
-                args.password
-            ])
+            username = args.username
+            password = args.password
 
-        # Otherwise, let nda_aws_token_maker handle credentials and make token
+        # Otherwise, prompt user for NDA credentials
         else:
-            subprocess.check_call([
-                "python3",
-                NDA_AWS_TOKEN_MAKER
-            ])
-        print("NDA token maker subprocess finished.")
+            username = input('Enter your NIMH Data Archives username: ')
+            password = getpass('Enter your NIMH Data Archives password: ')
+
+        make_config_file(args.config, username, password)
+
+    # Make NDA token
+    subprocess.check_call([
+        "python3",
+        NDA_AWS_TOKEN_MAKER,
+        username,
+        password
+    ])
+
+
+def get_nda_credentials_from(config_file_path):
+    """
+    Given the path to a config file, returns user's NDA credentials.
+    :param config_file_path: Path to file containing user's NDA username,
+    encrypted form of user's NDA password, and key to that encryption.
+    :return: Two variables: user's NDA username and password.
+    """
+
+    # Object to read/write config file containing NDA credentials
+    config = configparser.ConfigParser()
+    config.read(config_file_path)
+
+    # Get encrypted password and encryption key from config file
+    encryption_key = config["NDA"]["key"]
+    encrypted_password = config["NDA"]["encrypted_password"]
+
+    # Decrypt password to get user's NDA credentials
+    username = config["NDA"]["username"]
+    password = (
+        Fernet(encryption_key.encode("UTF-8"))
+        .decrypt(token=encrypted_password.encode("UTF-8"))
+        .decode("UTF-8")
+    )
+
+    return username, password
+
+
+def make_config_file(config_filepath, username, password):
+    """
+    If there isn't a config file, create one to save user's NDA credentials.
+    :param config_filepath: Name and path of config file to create.
+    :param username: User's NDA username to save in config file.
+    :param password: User's NDA password to encrypt then save in config file.
+    :return: N/A
+    """
+
+    # Object to read/write config file containing NDA credentials
+    config = configparser.ConfigParser()
+
+    # Encrypt user's NDA password by making an encryption key
+    encryption_key = Fernet.generate_key()
+    encrypted_password = (
+        Fernet(encryption_key).encrypt(password.encode("UTF-8"))
+    )
+
+    # Save the encryption key and encrypted password to a new config file
+    config["NDA"] = {
+        "username": username,
+        "encrypted_password": encrypted_password.decode("UTF-8"),
+        "key": encryption_key.decode("UTF-8")
+    }
+    with open(config_filepath, "w") as configfile:
+        config.write(configfile)
+
+
+def download_nda_data(download):
+    """
+    Download NDA data by making NDA token and parsing the
+    good_and_bad_series_table.csv spreadsheet.
+    :param download: Path of folder to fill with downloaded NDA data.
+    :return: N/A
+    """
 
     # Call Python script to parse good_and_bad_series_table and download data
     print("Downloading ABCD data from NDA. Download subprocess started at:")
@@ -249,7 +326,7 @@ def download_nda_data(args):
     subprocess.check_call([
         "python3",
         GOOD_BAD_SERIES_PARSER,
-        args.download
+        download
     ])
     print("ABCD data download subprocess finished at:")
     subprocess.check_call("date")

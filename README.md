@@ -16,6 +16,7 @@ Clone this repository and save it somewhere on the Linux system you want to do A
 1. [zlib's pigz-2.4](https://zlib.net/pigz) (`export` into your BASH `PATH` variable)
 1. Docker (see documentation for [Docker Community Edition for Ubuntu](https://docs.docker.com/install/linux/docker-ce/ubuntu/))
 1. [FMRIB Software Library (FSL) v5.0](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
+1. [Python `cryptography` package](https://cryptography.io/en/latest/)
 
 ## Spreadsheets (not included)
 
@@ -43,23 +44,15 @@ To download images for ABCD you must have two spreadsheets downloaded to this re
     - Click **Create Package**
 1. Download and use the **Package Manager** to download your package
 
-## Setup
-
-You will also need to reach into the `nda_aws_token_maker.py` in this repository and update it with your NDA USERNAME and PASSWORD.  Make sure the file is locked down to only your own read and write privileges so no one else can read your username and password in there:
-
-```
-chmod 600 nda_aws_token_maker.py
-```
-
-We don't have a better solution for securing your credentials while automating downloads right now.
-
 ## Usage
 
 The DICOM to BIDS process can be done by running the `abcd2bids.py` wrapper from within the directory cloned from this repo. `abcd2bids.py` requires two positional arguments and can take several optional arguments. Those positional arguments are file paths to the FSL directory and the MATLAB Runtime Environment. Here is an example of a valid call of this wrapper:
 
 ```
-python3 abcd2bids.py /usr/share/fsl/5.0 /usr/software/utilities/Matlab2016bRuntime/v91
+python3 abcd2bids.py /usr/share/fsl/5.0 /mnt/max/shared/code/external/utilities/Matlab2016bRuntime/v91
 ```
+
+The first time that a user uses this wrapper, the user will have to enter their NDA credentials. If the user does not include them as command-line arguments, then the wrapper will prompt the user to enter them. The wrapper will then create a `config.ini` file with the user's username and (encrypted) password, so the user does not have to enter their NDA credentials any subsequent times running this wrapper.
 
 **WARNING:** This wrapper will create a temporary folder filled with about 14 GB of files used in the process of preparing the BIDS data, and then delete that temporary folder once the entire process finishes successfully. So if the output of the wrapper does not pass BIDS validation, or if the wrapper is ended early, it will leave large temporary files on the user's filesystem.
 
@@ -67,7 +60,7 @@ python3 abcd2bids.py /usr/share/fsl/5.0 /usr/software/utilities/Matlab2016bRunti
 
 `--username` and `--password`: If the user does not manually enter their NDA credentials in `nda_aws_token_maker.py`, they can enter them as command line arguments using the `-u`/`--username` and `-p`/`--password` flags. If one flag is included, the other must be too. They can be passed into the wrapper from the command line like so: `-u my_nda_username -p my_nda_password`.
 
-`--nda_token`: When `nda_aws_token_maker.py` is run, it will create a token to log into the NDA website which lasts about one day. The user can use this flag to enter a path to an already-existing NDA token instead of entering their NDA credentials if they want by using the `-n`/`--nda_token`, e.g. `-n ~/.aws/credentials`.
+`--config`: By default, the wrapper will look for a `config.ini` file in the clone of this repo, and create one if one does not already exist. Use `-c`/`--config` to enter a different path to a config file, e.g. `-c ~/Documents/config.ini`.
 
 `--temp`: By default, the temporary folder will be created in the user's home directory, at `~/abcd-dicom2bids_unpack_tmp`. If the user wants to place the temporary folder anywhere else, then they can do so using the optional `-t`/`--temp` flag followed by the path at which to create the directory, e.g. `-t ~/temp/abcd2bids-temporary-folder`.
 
@@ -85,7 +78,7 @@ python3 abcd2bids.py /usr/share/fsl/5.0 /usr/software/utilities/Matlab2016bRunti
 4. (Python) `correct_jsons.py`
 5. (Docker) Official BIDS validator
 
-The DICOM 2 BIDS conversion process can be done by running `python3 abcd2bids.py <FSL directory> <MRE directory>` without any other options. If the NDA username and password are not already in `nda_aws_token_maker.sh`, and they are not entered as command line args, then the user will be prompted to enter both of them.
+The DICOM 2 BIDS conversion process can be done by running `python3 abcd2bids.py <FSL directory> <MRE directory>` without any other options. If the wrapper cannot find a `config.ini` file, and the NDA username and password are not entered as command line args, then the user will be prompted to enter both of them.
 
 The MATLAB portion is for producing a download list for the Python & BASH portion to download, convert, select, and prepare.
 

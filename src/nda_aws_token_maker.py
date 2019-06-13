@@ -13,19 +13,14 @@ else:
     from configparser import ConfigParser
 
 
-# Insert NDA credentials here
-username = None
-password = None
-
-# If credentials are not included above, then try to get them from command line
-# args passed in; if there are no args, then prompt user for credentials
-if not username and not password:
-    if len(sys.argv) is 3:  # [0] is self, [1] is username, [2] is password = 3
-        username = sys.argv[1]
-        password = sys.argv[2]
-    else:
-        username = input('Enter your NIMH Data Archives username: ')
-        password = getpass.getpass('Enter your NIMH Data Archives password: ')
+# Try to get NDA credentials from command line args passed in; if there are no
+# args, then prompt user for credentials
+if len(sys.argv) is 3:  # [0] is self, [1] is username, [2] is password, so 3
+    username = sys.argv[1]
+    password = sys.argv[2]
+else:
+    username = input('Enter your NIMH Data Archives username: ')
+    password = getpass.getpass('Enter your NIMH Data Archives password: ')
 
 
 web_service_url = 'https://nda.nih.gov/DataManager/dataManager'
