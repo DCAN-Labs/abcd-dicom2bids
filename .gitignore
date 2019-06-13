@@ -1,8 +1,9 @@
 .idea/
 __pycache__/
 abcd_download_log.csv
-example_script.m
-config.ini
+src/abcd_download_log.csv
+src/config.ini
 spreadsheets/ABCD_good_and_bad_series_table.csv
-spreadsheets/DAL_ABCD_QC_merged_pcqinfo.csv
 spreadsheets/image03.txt
+spreadsheets/DAL_ABCD_QC_merged_pcqcinfo.csv
+

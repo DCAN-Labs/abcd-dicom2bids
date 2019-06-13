@@ -62,7 +62,7 @@ The first time that a user uses this wrapper, the user will have to enter their 
 
 `--config`: By default, the wrapper will look for a `config.ini` file in the clone of this repo, and create one if one does not already exist. Use `-c`/`--config` to enter a different path to a config file, e.g. `-c ~/Documents/config.ini`.
 
-`--temp`: By default, the temporary folder will be created in the user's home directory, at `~/abcd-dicom2bids_unpack_tmp`. If the user wants to place the temporary folder anywhere else, then they can do so using the optional `-t`/`--temp` flag followed by the path at which to create the directory, e.g. `-t ~/temp/abcd2bids-temporary-folder`.
+`--temp`: By default, the temporary folder will be created in a subdirectory of the clone of this repo, called `/temp/`. If the user wants to place the temporary folder anywhere else, then they can do so using the optional `-t`/`--temp` flag followed by the path at which to create the directory, e.g. `-t /usr/home/abcd2bids-temporary-folder`.
 
 `--download`: By default, the wrapper will download the ABCD data to a new subdirectory of the cloned folder. That subdirectory will be called `new_download`. If the user wants to download the ABCD data to a different directory, they can use the `-d`/`--download` flag, e.g. `-d ~/abcd-dicom2bids/ABCD-Data-Download`.
 

@@ -13,9 +13,9 @@ last_modified = "Created by Anders Perrone 3/21/2017. Last modified by Eric Earl
 prog_descrip =  """%(prog)s: sefm_eval pairs each of the pos/neg sefm and returns the pair that is most representative
                    of the average by calculating the eta squared value for each sefm pair to the average sefm.""" + last_modified
 
-# Path to pwd, which contains compiled MATLAB ETA squared function;
-# added by Greg 2019-06-10
-ETA_DIR = "."
+# Path to pwd/src, which contains compiled MATLAB ETA squared function; added
+# by Greg 2019-06-10 & updated 2019-06-13
+ETA_DIR = "./src/"
 
 
 def read_bids_layout(layout, subject_list=None, collect_on_subject=False):
@@ -60,7 +60,6 @@ def sefm_select(layout, subject, sessions, base_temp_dir, fsl_dir, mre_dir,
     # Add trailing slash to fsl_dir variable if it's not present
     if fsl_dir[-1] is not "/":
         fsl_dir += "/"
-    print("fsl_dir is " + fsl_dir)
 
     # Make a temporary working directory
     temp_dir = os.path.join(base_temp_dir, subject + '_eta_temp')
@@ -70,10 +69,8 @@ def sefm_select(layout, subject, sessions, base_temp_dir, fsl_dir, mre_dir,
         print(temp_dir + " already exists")
         pass
 
-    print("Pairing for subject " + subject + ":")
-    print(subject, sessions)
+    print("Pairing for subject " + subject + ": " + subject + ", " + sessions)
     fmap = layout.get(subject=subject, session=sessions, modality='fmap', extensions='.nii.gz')
-    print(fmap)    
     if len(fmap):
         list_pos = [x.filename for i, x in enumerate(fmap) if 'dir-PA' in x.filename]
         list_neg = [x.filename for i, x in enumerate(fmap) if 'dir-AP' in x.filename]
@@ -186,8 +183,8 @@ def seperate_concatenated_fm(bids_layout, subject, session, fsl_dir):
             # Change by Greg 2019-06-10: Replaced hardcoded Exacloud path to
             # FSL_identity_transformation_matrix with relative path to that
             # file in the pwd
-            AP_flirt = [fsl_dir + "/flirt", "-out", AP_filename, "-in", AP_filename, "-ref", func_ref, "-applyxfm", "-init", "./FSL_identity_transformation_matrix.mat", "-interp", "spline"]
-            PA_flirt = [fsl_dir + "/flirt", "-out", PA_filename, "-in", PA_filename, "-ref", func_ref, "-applyxfm", "-init", "./FSL_identity_transformation_matrix.mat", "-interp", "spline"]
+            AP_flirt = [fsl_dir + "/flirt", "-out", AP_filename, "-in", AP_filename, "-ref", func_ref, "-applyxfm", "-init", "./src/FSL_identity_transformation_matrix.mat", "-interp", "spline"]
+            PA_flirt = [fsl_dir + "/flirt", "-out", PA_filename, "-in", PA_filename, "-ref", func_ref, "-applyxfm", "-init", "./src/FSL_identity_transformation_matrix.mat", "-interp", "spline"]
 
             subprocess.run(AP_flirt, env=os.environ)
             subprocess.run(PA_flirt, env=os.environ)
@@ -269,7 +266,6 @@ def main(argv=sys.argv):
     os.environ['FSLDIR'] = args.fsl_dir
     # for this script's usage of FSL_DIR...
     fsl_dir = args.fsl_dir + '/bin'
-    print("fsl_dir is " + fsl_dir)
 
     # Load the bids layout
     layout = BIDSLayout(args.bids_dir)
@@ -338,5 +334,3 @@ def main(argv=sys.argv):
 
 if __name__ == "__main__":
     sys.exit(main())
-
-

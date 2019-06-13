@@ -4,7 +4,7 @@
 ABCD 2 BIDS CLI Wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-05-29
-Last Updated 2019-06-12
+Last Updated 2019-06-13
 """
 
 ##################################
@@ -13,7 +13,7 @@ Last Updated 2019-06-12
 #    1. Runs data_gatherer to create ABCD_good_and_bad_series_table.csv
 #    2. Runs good_bad_series_parser to download ABCD data using that .csv table
 #    3. Runs unpack_and_setup to unpack/setup the downloaded ABCD data
-#    4. Runs correct_jsons to conform to official BIDS Validator
+#    4. Runs correct_jsons to conform to official BIDS validator
 #    5. Runs BIDS validator on unpacked/setup data using Docker
 #
 ##################################
@@ -33,7 +33,7 @@ GOOD_BAD_SERIES_PARSER = "./src/good_bad_series_parser.py"
 UNPACK_AND_SETUP = "./src/unpack_and_setup.sh"
 DOWNLOAD_FOLDER = "./raw/"
 UNPACKED_FOLDER = "./data/"
-TEMP_FILES_DIR = "~/abcd-dicom2bids_unpack_tmp"
+TEMP_FILES_DIR = "./temp"
 CORRECT_JSONS = "./src/correct_jsons.py"
 CONFIG_FILEPATH = "./src/config.ini"
 
@@ -46,10 +46,10 @@ def main():
     """
     cli_args = cli()
 
-    # 1. Use compiled MATLAB script to create good_and_bad_series_table.csv
+    # 1. Use compiled MATLAB script to create good_and_bad_series_table
     create_good_and_bad_series_table(cli_args.mre_dir)
 
-    # 2. Make NDA token and parse good_and_bad_series_table.csv to get NDA data
+    # 2. Make NDA token and parse good_and_bad_series_table to get NDA data
     make_nda_token(cli_args)
     download_nda_data(cli_args.download)
 
@@ -213,10 +213,10 @@ def create_good_and_bad_series_table(mre_dir):
     Create good_and_bad_series_table.csv using compiled MATLAB script.
     :return: N/A
     """
-    print("Running ABCD to BIDS wrapper. data_gatherer subprocess started at:")
+    print("\nRunning ABCD to BIDS wrapper. data_gatherer started at:")
     subprocess.check_call("date")
     subprocess.check_call([DATA_GATHERER, mre_dir])
-    print("data_gatherer subprocess finished at:")
+    print("\ndata_gatherer finished at:")
     subprocess.check_call('date')
 
 
@@ -248,13 +248,19 @@ def make_nda_token(args):
 
         make_config_file(args.config, username, password)
 
-    # Make NDA token
-    subprocess.check_call([
-        "python3",
-        NDA_AWS_TOKEN_MAKER,
-        username,
-        password
-    ])
+    # Try to make NDA token
+    try:
+        subprocess.check_call([
+            "python3",
+            NDA_AWS_TOKEN_MAKER,
+            username,
+            password
+        ])
+
+    # If NDA credentials are invalid, tell user so without printing password
+    except subprocess.CalledProcessError:
+        print("Failed to create NDA token using the username and decrypted "
+              "password from " + str(pathlib.Path(args.config).absolute()))
 
 
 def get_nda_credentials_from(config_file_path):
@@ -311,6 +317,9 @@ def make_config_file(config_filepath, username, password):
     with open(config_filepath, "w") as configfile:
         config.write(configfile)
 
+    # Change permissions of the config file to prevent other users accessing it
+    subprocess.check_call(["chmod", "700", config_filepath])
+
 
 def download_nda_data(download):
     """
@@ -321,14 +330,14 @@ def download_nda_data(download):
     """
 
     # Call Python script to parse good_and_bad_series_table and download data
-    print("Downloading ABCD data from NDA. Download subprocess started at:")
+    print("\nDownloading ABCD data from NDA. Download started at:")
     subprocess.check_call("date")
     subprocess.check_call([
         "python3",
         GOOD_BAD_SERIES_PARSER,
         download
     ])
-    print("ABCD data download subprocess finished at:")
+    print("\nABCD data download finished at:")
     subprocess.check_call("date")
 
 
@@ -341,7 +350,7 @@ def unpack_and_setup(args):
     --download, and --temp.
     :return: N/A
     """
-    print("Data unpacking and setup subprocess started at:")
+    print("\nData unpacking and setup started at:")
     subprocess.check_call("date")
 
     # Get name of NDA data folder newly downloaded from download_nda_data
@@ -365,7 +374,7 @@ def unpack_and_setup(args):
                 args.fsl_dir,
                 args.mre_dir
             ])
-    print("Unpack and setup subprocess finished at:")
+    print("\nUnpacking and setup finished at:")
     subprocess.check_call("date")
 
 
@@ -375,10 +384,10 @@ def correct_jsons(output):
     :param output: Path to folder containing unpacked NDA data to correct.
     :return: N/A
     """
-    print("JSON correction subprocess started at:")
+    print("\nJSON correction started at:")
     subprocess.check_call("date")
     subprocess.check_call([CORRECT_JSONS, output])
-    print("JSON correction subprocess finished at:")
+    print("\nJSON correction finished at:")
     subprocess.check_call("date")
 
 
@@ -390,7 +399,7 @@ def run_bids_validator(output, temp_dir):
     running unpack_and_setup function) to delete if BIDS validation succeeds.
     :return: N/A
     """
-    print("BIDS validation subprocess started at:")
+    print("\nBIDS validation started at:")
     subprocess.check_call("date")
     try:
         subprocess.check_call(["docker", "run", "-ti", "--rm", "-v",
@@ -400,8 +409,8 @@ def run_bids_validator(output, temp_dir):
         # If BIDS validation is successful, then delete temporary files which
         # were generated by unpack_and_setup
         subprocess.check_call(["rm", "-rf", temp_dir])
-        print("BIDS validation subprocess finished. Temporary files at "
-              + temp_dir + " deleted. ABCD 2 BIDS completed at:")
+        print("\nBIDS validation subprocess finished. Temporary files at "
+              + temp_dir + " deleted. ABCD to BIDS wrapper completed at:")
         subprocess.check_call("date")
 
     except subprocess.CalledProcessError:
