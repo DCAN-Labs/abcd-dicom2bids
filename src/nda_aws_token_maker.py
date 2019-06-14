@@ -1,8 +1,10 @@
 #! /usr/bin/env python3
 
-from nda_aws_token_generator import *
 import getpass
 import os
+import sys
+
+from src.nda_aws_token_generator import *
 
 if sys.version_info[0] < 3:
     # Python 2 specific imports
@@ -22,12 +24,15 @@ else:
     username = input('Enter your NIMH Data Archives username: ')
     password = getpass.getpass('Enter your NIMH Data Archives password: ')
 
-
 web_service_url = 'https://nda.nih.gov/DataManager/dataManager'
 
 generator = NDATokenGenerator(web_service_url)
 
-token = generator.generate_token(username, password)
+try:
+    token = generator.generate_token(username, password)
+except Exception as e:
+    print("Failed to create NDA token.")
+    sys.exit(1)
 
 # Read .aws/credentials from the user's HOME directory, add a NDA profile, and update with credentials
 parser = ConfigParser()

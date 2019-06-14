@@ -23,19 +23,22 @@ import configparser
 from cryptography.fernet import Fernet
 from getpass import getpass
 import os
-import pathlib
+from pathlib import Path
+from shutil import copy2
 import subprocess
+import sys
 
-# Constants: Default paths to scripts to call from this wrapper
-DATA_GATHERER = "./src/bin/run_data_gatherer.sh"
-NDA_AWS_TOKEN_MAKER = "./src/nda_aws_token_maker.py"
-GOOD_BAD_SERIES_PARSER = "./src/good_bad_series_parser.py"
-UNPACK_AND_SETUP = "./src/unpack_and_setup.sh"
-DOWNLOAD_FOLDER = "./raw/"
-UNPACKED_FOLDER = "./data/"
-TEMP_FILES_DIR = "./temp"
+# Constants: Default paths to scripts to call from this wrapper, and default
+# paths to folders to manipulate data in
+CONFIG_FILEPATH = os.path.expanduser("~/.abcd2bids/config.ini")
 CORRECT_JSONS = "./src/correct_jsons.py"
-CONFIG_FILEPATH = "./src/config.ini"
+DATA_GATHERER = "./src/bin/run_data_gatherer.sh"
+DOWNLOAD_FOLDER = "./raw/"
+GOOD_BAD_SERIES_PARSER = "./src/good_bad_series_parser.py"
+NDA_AWS_TOKEN_MAKER = "./src/nda_aws_token_maker.py"
+TEMP_FILES_DIR = "./temp"
+UNPACK_AND_SETUP = "./src/unpack_and_setup.sh"
+UNPACKED_FOLDER = "./data/"
 
 
 def main():
@@ -45,12 +48,17 @@ def main():
     :return: N/A
     """
     cli_args = cli()
+    print("\nRunning ABCD to BIDS wrapper. Started at: ")
+    subprocess.check_call("date")
+
+    # Before running any different scripts, validate user's NDA credentials and
+    # use them to make NDA token
+    make_nda_token(cli_args)
 
     # 1. Use compiled MATLAB script to create good_and_bad_series_table
     create_good_and_bad_series_table(cli_args.mre_dir)
 
     # 2. Make NDA token and parse good_and_bad_series_table to get NDA data
-    make_nda_token(cli_args)
     download_nda_data(cli_args.download)
 
     # 3. Once NDA data is downloaded, unpack it & set it up using .sh script
@@ -176,9 +184,14 @@ def validate_cli_args(args, parser):
     validate_dir_path(args.fsl_dir, parser)
     validate_dir_path(args.mre_dir, parser)
 
-    # Validate other dirs: check if they exist, and if not, try to create them
-    try_to_create_directory_at(args.download, parser)
-    try_to_create_directory_at(args.output, parser)
+    # Validate and create config file's parent directory
+    Path(os.path.dirname(args.config)).mkdir(parents=True, exist_ok=True)
+
+    # Validate other dirs: check if they exist; if not, try to create them; and
+    # move important files in the default dir(s) to the new dir(s)
+    try_to_create_and_prep_directory_at(args.download, DOWNLOAD_FOLDER, parser)
+    try_to_create_and_prep_directory_at(args.output, UNPACKED_FOLDER, parser)
+    try_to_create_and_prep_directory_at(args.temp, TEMP_FILES_DIR, parser)
 
     return args
 
@@ -191,33 +204,32 @@ def validate_dir_path(dir_path, parser):
     :param parser: argparse ArgumentParser to raise error if path is invalid
     :return: N/A
     """
-    if not pathlib.Path(dir_path).is_dir():
+    if not Path(dir_path).is_dir():
         parser.error(dir_path + " is not an existing directory.")
 
 
-def try_to_create_directory_at(folder_path, parser):
+def try_to_create_and_prep_directory_at(folder_path, default_path, parser):
     """
-    Validate file path of folder; if it doesn't exist, create it
+    Validate file path of folder, and if it doesn't exist, create it. If a
+    non-default path is given, then move the file(s) in the default folder(s)
+    to the new folder(s) without copying any subdirectories (containing data).
     :param folder_path: Path of folder that either exists or should be created
+    :param default_path: The default value of folder_path. The folder here
+    has some files which will be copied to the new directory at folder_path.
     :param parser: argparse ArgumentParser to raise error if path is invalid
     :return: N/A
     """
     try:
-        pathlib.Path(folder_path).mkdir(exist_ok=True, parents=True)
+        Path(folder_path).mkdir(exist_ok=True, parents=True)
     except (OSError, TypeError):
         parser.error("Could not create folder at " + folder_path)
 
-
-def create_good_and_bad_series_table(mre_dir):
-    """
-    Create good_and_bad_series_table.csv using compiled MATLAB script.
-    :return: N/A
-    """
-    print("\nRunning ABCD to BIDS wrapper. data_gatherer started at:")
-    subprocess.check_call("date")
-    subprocess.check_call([DATA_GATHERER, mre_dir])
-    print("\ndata_gatherer finished at:")
-    subprocess.check_call('date')
+    # If user gave a different directory than the default, then copy the
+    # required files into that directory without copying any subdirectories
+    if folder_path is not default_path:
+        for file in Path(default_path).iterdir():
+            if not file.is_dir():
+                copy2(str(file), folder_path)
 
 
 def make_nda_token(args):
@@ -229,11 +241,11 @@ def make_nda_token(args):
     :return: N/A
     """
 
-    # If config file with NDA credentials exists, then get its credentials
-    if pathlib.Path(args.config).exists():
+    # If config file with NDA credentials exists, then get credentials from it
+    if Path(args.config).exists():
         username, password = get_nda_credentials_from(args.config)
 
-    # Otherwise, get NDA credentials and save them in a new config file
+    # Otherwise get NDA credentials from user & save them in a new config file
     else:
 
         # If user gave NDA credentials as CLI args, use those
@@ -243,24 +255,26 @@ def make_nda_token(args):
 
         # Otherwise, prompt user for NDA credentials
         else:
-            username = input('Enter your NIMH Data Archives username: ')
-            password = getpass('Enter your NIMH Data Archives password: ')
+            username = input("\nEnter your NIMH Data Archives username: ")
+            password = getpass("Enter your NIMH Data Archives password: ")
 
         make_config_file(args.config, username, password)
 
     # Try to make NDA token
-    try:
-        subprocess.check_call([
-            "python3",
-            NDA_AWS_TOKEN_MAKER,
-            username,
-            password
-        ])
+    token_call_response_code = subprocess.call([
+        "python3",
+        NDA_AWS_TOKEN_MAKER,
+        username,
+        password
+    ])
 
-    # If NDA credentials are invalid, tell user so without printing password
-    except subprocess.CalledProcessError:
+    # If NDA credentials are invalid, tell user so without printing password.
+    # Manually catch error instead of using try-except to avoid trying to
+    # catch another file's exception.
+    if token_call_response_code is not 0:
         print("Failed to create NDA token using the username and decrypted "
-              "password from " + str(pathlib.Path(args.config).absolute()))
+              "password from " + str(Path(args.config).absolute()))
+        sys.exit(1)
 
 
 def get_nda_credentials_from(config_file_path):
@@ -321,6 +335,28 @@ def make_config_file(config_filepath, username, password):
     subprocess.check_call(["chmod", "700", config_filepath])
 
 
+def create_good_and_bad_series_table(mre_dir):
+    """
+    Create good_and_bad_series_table.csv using compiled MATLAB script.
+    :return: N/A
+    """
+    print("\ndata_gatherer to create good_and_bad_series_table started at:")
+    subprocess.check_call("date")
+
+    try:
+        subprocess.check_call([DATA_GATHERER, mre_dir])
+
+    # If user does not have the right spreadsheets in the right location, then
+    # inform the user instead of spitting out an unhelpful stack trace
+    except subprocess.CalledProcessError:
+        print("Error: data_gatherer failed. Please check that the "
+              "./spreadsheets/ folder contains image03.txt and "
+              "DAL_ABCD_QC_merged_pcqcinfo.csv, then run this script again.")
+
+    print("\ndata_gatherer finished at:")
+    subprocess.check_call('date')
+
+
 def download_nda_data(download):
     """
     Download NDA data by making NDA token and parsing the
@@ -354,7 +390,7 @@ def unpack_and_setup(args):
     subprocess.check_call("date")
 
     # Get name of NDA data folder newly downloaded from download_nda_data
-    download_folder = pathlib.Path(args.download)
+    download_folder = Path(args.download)
 
     # Unpack and setup every .tgz file descendant of the NDA data folder
     for subject in download_folder.iterdir():
@@ -406,10 +442,10 @@ def run_bids_validator(output, temp_dir):
                                os.path.abspath(output) + ":/data:ro",
                                "bids/validator", "/data"])
 
-        # If BIDS validation is successful, then delete temporary files which
-        # were generated by unpack_and_setup
-        subprocess.check_call(["rm", "-rf", temp_dir + "/*"])
-        print("\nBIDS validation subprocess finished. Temporary files at "
+        # If BIDS validation is successful, then delete directory/ies holding
+        # temporary files which were generated by unpack_and_setup
+        subprocess.check_call(["rm", "-rf", temp_dir + "/*/"])
+        print("\nBIDS validation subprocess finished. Temporary files in "
               + temp_dir + " deleted. ABCD to BIDS wrapper completed at:")
         subprocess.check_call("date")
 
