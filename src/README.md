@@ -6,7 +6,6 @@ This folder contains all of the scripts used by the `abcd2bids.py` wrapper. Ther
 
 #### Metadata:
 1. `__init__.py`
-1. `LICENSE`
 1. `README.md`
 
 #### Scripts used to create NDA token to download NDA data:
@@ -17,8 +16,6 @@ This folder contains all of the scripts used by the `abcd2bids.py` wrapper. Ther
 1. `FSL_identity_transformation_matrix.mat`
 1. `good_bad_series_parser.py`
 1. `mapping.mat`
-1. `mccExcludedFiles.log`
-1. `requiredMCRProducts.txt`
 
 #### Scripts used to unpack and setup NDA data:
 1. `eta_squared`

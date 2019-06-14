@@ -9,3 +9,4 @@ spreadsheets/DAL_ABCD_QC_merged_pcqcinfo.csv
 temp/*/
 raw/*/
 data/*/
+*.pyc
