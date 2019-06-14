@@ -54,21 +54,23 @@ python3 abcd2bids.py /usr/share/fsl/5.0 /mnt/max/shared/code/external/utilities/
 
 The first time that a user uses this wrapper, the user will have to enter their NDA credentials. If the user does not include them as command-line arguments, then the wrapper will prompt the user to enter them. The wrapper will then create a `config.ini` file with the user's username and (encrypted) password, so the user will not have to enter their NDA credentials any subsequent times running this wrapper.
 
-**WARNING:** This wrapper will create a temporary folder with hundreds of thousands of files (about 7 GB or more) per subject session, which are used in the process of preparing the BIDS data. The wrapper will delete that temporary folder once the entire process finishes successfully. So if the output of the wrapper does not pass BIDS validation, or if the wrapper is ended early, then it will leave large temporary files on the user's filesystem. Everything in the `temp/` folder should be deleted before running the wrapper again. Future versions of this script will delete those if the script crashes.
+If the user already has a `config.ini` file, then the wrapper can use that, so the user does not need to enter their NDA credentials again. However, to make another `config.ini` file or overwrite the old one, the user can enter their NDA credentials as command-line args.
+
+**WARNING:** This wrapper will create a temporary folder with hundreds of thousands of files (about 7 GB or more) per subject session. These files are used in the process of preparing the BIDS data. The wrapper will delete that temporary folder once it finishes running, even if it crashes. Still, it is probably a good idea to double-check that the `./temp/` folder has no subdirectories before and after running this wrapper. Otherwise, it may be possible for this wrapper to leave an extremely large set of unneeded files on the user's filesystem.
 
 ### Optional arguments
 
-`--username` and `--password`: If `src/config.ini` does not exist, then the user can enter their NDA credentials as command line arguments using the `--username` and `--password` flags. If one flag is included, the other must be too. They can be passed into the wrapper from the command line like so: `--username my_nda_username --password my_nda_password`.
+`--username` and `--password`: Lets the user enter their NDA credentials to make a new `config.ini` file. If one flag is included, the other must be too. They can be passed into the wrapper from the command line like so: `--username my_nda_username --password my_nda_password`.
 
-`--config`: By default, the wrapper will look for a `config.ini` file in the `src/` subdirectory of the clone of this repo, and create one if one does not already exist. Use `--config` to enter a different path to a config file, e.g. `--config ~/Documents/config.ini`.
+`--config`: By default, the wrapper will look for a `config.ini` file in a hidden subdirectory of the user's home directory (`~/.abcd2bids/`). The wrapper will create a new config file if one does not already exist, or overwrite the existing one if NDA credentials are given as command-line arguments. Use `--config` to enter a different (non-default) path to the config file, e.g. `--config ~/Documents/config.ini`.
 
-`--temp`: By default, the temporary folder will be created in a `temp/` subdirectory of the clone of this repo. If the user wants to place the temporary folder anywhere else, then they can do so using the optional `--temp` flag followed by the path at which to create the directory, e.g. `--temp /usr/home/abcd2bids-temporary-folder`.
+`--temp`: By default, the temporary folder will be created in the `temp/` subdirectory of the clone of this repo. If the user wants to place the temporary folder anywhere else, then they can do so using the optional `--temp` flag followed by the path at which to create the directory, e.g. `--temp /usr/home/abcd2bids-temporary-folder`.
 
 `--download`: By default, the wrapper will download the ABCD data to the `raw/` subdirectory of the cloned folder. If the user wants to download the ABCD data to a different directory, they can use the `--download` flag, e.g. `--download ~/abcd-dicom2bids/ABCD-Data-Download`.
 
 `--output`: By default, the wrapper will place the finished/processed data into the `data/` subdirectory of the cloned folder. If the user wants to put the finished data anywhere else, they can do so using the optional `--output` flag followed by the path at which to create the directory, e.g. `--output ~/abcd-dicom2bids/Finished-Data`.
 
-For more information including the shorthand flags of each option, use the `--help` command.
+For more information including the shorthand flags of each option, use the `--help` command: `python3 abcd2bids.py --help`.
 
 ## Explanation of Process
 

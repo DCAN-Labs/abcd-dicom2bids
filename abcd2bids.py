@@ -1,10 +1,10 @@
 #! /usr/bin/env python3
 
 """
-ABCD 2 BIDS CLI Wrapper
+ABCD to BIDS CLI Wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-05-29
-Last Updated 2019-06-13
+Last Updated 2019-06-14
 """
 
 ##################################
@@ -24,12 +24,13 @@ from cryptography.fernet import Fernet
 from getpass import getpass
 import os
 from pathlib import Path
-from shutil import copy2
+import shutil
+import signal
 import subprocess
 import sys
 
 # Constants: Default paths to scripts to call from this wrapper, and default
-# paths to folders to manipulate data in
+# paths to folders in which to manipulate data
 CONFIG_FILEPATH = os.path.expanduser("~/.abcd2bids/config.ini")
 CORRECT_JSONS = "./src/correct_jsons.py"
 DATA_GATHERER = "./src/bin/run_data_gatherer.sh"
@@ -43,32 +44,38 @@ UNPACKED_FOLDER = "./data/"
 
 def main():
     """
-    Run entire process of downloading ABCD data from NDA data and validating
-    that it meets BIDS standards.
+    Run entire process of downloading ABCD data from NDA website, transforming
+    it to meet BIDS standards, and validating that it meets those standards.
     :return: N/A
     """
     cli_args = cli()
     print("\nRunning ABCD to BIDS wrapper. Started at: ")
     subprocess.check_call("date")
 
+    # Set cleanup function to delete all temporary files if script crashes
+    set_to_cleanup_on_crash(cli_args.temp)
+
     # Before running any different scripts, validate user's NDA credentials and
     # use them to make NDA token
     make_nda_token(cli_args)
 
-    # 1. Use compiled MATLAB script to create good_and_bad_series_table
+    # 1. Use compiled MATLAB script to create good_and_bad_series_table.csv
     create_good_and_bad_series_table(cli_args.mre_dir)
 
-    # 2. Make NDA token and parse good_and_bad_series_table to get NDA data
+    # 2. Parse good_and_bad_series_table.csv and download NDA data
     download_nda_data(cli_args.download)
 
     # 3. Once NDA data is downloaded, unpack it & set it up using .sh script
     unpack_and_setup(cli_args)
 
-    # 4. Correct ABCD BIDS input data to conform to official BIDS Validator
+    # 4. Correct ABCD BIDS input data to conform to official BIDS validator
     correct_jsons(cli_args.output)
 
     # 5. Run the official BIDS validator on the corrected ABCD BIDS data
-    run_bids_validator(cli_args.output, cli_args.temp)
+    run_bids_validator(cli_args.output)
+
+    # Finally, delete temporary files and end script
+    cleanup(cli_args.temp)
 
 
 def cli():
@@ -76,7 +83,6 @@ def cli():
     Get and validate all args from command line using argparse.
     :return: Namespace containing all validated inputted command line arguments
     """
-
     # Create arg parser
     parser = argparse.ArgumentParser(
         description="Wrapper to download, parse, and validate QC'd ABCD data."
@@ -87,7 +93,7 @@ def cli():
         "fsl_dir",
         type=str,
         help=("Required: Path to FSL directory. This positional argument must "
-              "be a valid path to an existing folder, ending with /fsl/5.0")
+              "be a valid path to an existing folder.")
     )
 
     # Required: Get path to MRE / MCR root to run compiled MATLAB script
@@ -97,8 +103,7 @@ def cli():
         help=("Required: Path to directory containing MATLAB Runtime "
               "Environment (MRE) version 9.1 or newer. This is used to run "
               "a compiled MATLAB script. This positional argument must be a "
-              "valid path to an existing folder, ending with "
-              "/Matlab2016bRuntime/v91")
+              "valid path to an existing folder.")
     )
 
     # Optional: Get NDA username and password
@@ -106,16 +111,18 @@ def cli():
         "-u",
         "--username",
         type=str,
-        help=("Optional: NDA username. Unless this is added or a config file "
-              "exists with the user's NDA credentials, the user will be "
+        help=("Optional: NDA username. Adding this will create a new config "
+              "file or overwrite an old one. Unless this is added or a config "
+              "file exists with the user's NDA credentials, the user will be "
               "prompted for them. If this is added, --password must be too.")
     )
     parser.add_argument(
         "-p",
         "--password",
         type=str,
-        help=("Optional: NDA password. Unless this is added or a config file "
-              "exists with the user's NDA credentials, the user will be "
+        help=("Optional: NDA password. Adding this will create a new config "
+              "file or overwrite an old one. Unless this is added or a config "
+              "file exists with the user's NDA credentials, the user will be "
               "prompted for them. If this is added, --username must be too.")
     )
 
@@ -128,8 +135,8 @@ def cli():
               "config file exists at this path yet, then one will be created. "
               "Unless this option or --username and --password is added, the "
               "user will be prompted for their NDA username and password. "
-              "By default, the config file will be at " + CONFIG_FILEPATH
-              + " as a subdirectory of the pwd.")
+              "By default, the config file will be located at "
+              + os.path.abspath(CONFIG_FILEPATH))
     )
 
     # Optional: Get download folder path from user as CLI arg
@@ -137,9 +144,9 @@ def cli():
         "-d",
         "--download",
         default=DOWNLOAD_FOLDER,
-        help=("Optional: Folder path to which NDA data will be downloaded. "
-              "By default, this script will place the data into a folder "
-              "called " + DOWNLOAD_FOLDER + " as a subdirectory of the pwd.")
+        help=("Optional: Path to folder which NDA data will be downloaded "
+              "into. By default, data will be downloaded into the "
+              + os.path.abspath(DOWNLOAD_FOLDER) + " folder.")
     )
 
     # Optional: Get folder to unpack NDA data into from download folder
@@ -148,9 +155,8 @@ def cli():
         "--output",
         default=UNPACKED_FOLDER,
         help=("Optional: Folder path into which NDA data will be unpacked and "
-              "setup after it is downloaded. By default, this script will "
-              "place the data into a folder called " + UNPACKED_FOLDER
-              + " as a subdirectory of the pwd.")
+              "setup once downloaded. By default, this script will put the "
+              "data into the " + os.path.abspath(UNPACKED_FOLDER) + " folder.")
     )
 
     # Optional: Get folder to place temp data into during unpacking
@@ -158,10 +164,10 @@ def cli():
         "-t",
         "--temp",
         default=TEMP_FILES_DIR,
-        help=("Optional: File path at which to create the directory which "
-              "will be filled with temporary files during unpacking and setup."
-              " By default, the temp folder will be created at "
-              + TEMP_FILES_DIR + " and deleted once the script is finished.")
+        help=("Optional: Path to the directory to be created and filled with "
+              "temporary files during unpacking and setup. By default, the "
+              "folder will be created at " + os.path.abspath(TEMP_FILES_DIR)
+              + " and deleted once the script finishes.")
     )
 
     # Parse, validate, and return all CLI args
@@ -175,7 +181,6 @@ def validate_cli_args(args, parser):
     :param parser: argparse ArgumentParser to raise error if anything's invalid
     :return: Validated command-line arguments argparse namespace
     """
-
     # Validate that if username is present, so is password; and vice versa
     if bool(args.password is None) is not bool(args.username is None):
         parser.error("Username and password must both be included.")
@@ -185,7 +190,10 @@ def validate_cli_args(args, parser):
     validate_dir_path(args.mre_dir, parser)
 
     # Validate and create config file's parent directory
-    Path(os.path.dirname(args.config)).mkdir(parents=True, exist_ok=True)
+    try:
+        Path(os.path.dirname(args.config)).mkdir(parents=True, exist_ok=True)
+    except (OSError, TypeError):
+        parser.error("Could not create folder to contain config file.")
 
     # Validate other dirs: check if they exist; if not, try to create them; and
     # move important files in the default dir(s) to the new dir(s)
@@ -212,7 +220,7 @@ def try_to_create_and_prep_directory_at(folder_path, default_path, parser):
     """
     Validate file path of folder, and if it doesn't exist, create it. If a
     non-default path is given, then move the file(s) in the default folder(s)
-    to the new folder(s) without copying any subdirectories (containing data).
+    to the new folder(s) without copying any subdirectories (which have data).
     :param folder_path: Path of folder that either exists or should be created
     :param default_path: The default value of folder_path. The folder here
     has some files which will be copied to the new directory at folder_path.
@@ -225,11 +233,47 @@ def try_to_create_and_prep_directory_at(folder_path, default_path, parser):
         parser.error("Could not create folder at " + folder_path)
 
     # If user gave a different directory than the default, then copy the
-    # required files into that directory without copying any subdirectories
+    # required files into that directory and nothing else
     if folder_path is not default_path:
         for file in Path(default_path).iterdir():
             if not file.is_dir():
-                copy2(str(file), folder_path)
+                shutil.copy2(str(file), folder_path)
+
+
+def set_to_cleanup_on_crash(temp_dir):
+    """
+    Make it so that if the script crashes, all of the temporary files that it
+    generated are deleted. signal.signal() checks if the script has crashed,
+    and cleanup() deletes all of the temporary files.
+    :return: N/A
+    """
+    # Use local function as an intermediate because the signal module does
+    # not allow the signal handler (the second parameter of signal.signal) to
+    # take the parameter (temp_dir) needed by the cleanup function
+    def intermediate_function_which_calls_cleanup(_signum, _frame):
+        cleanup(temp_dir)
+
+    # If this wrapper crashes, delete all temporary files
+    signal.signal(signal.SIGINT, intermediate_function_which_calls_cleanup)
+    signal.signal(signal.SIGTERM, intermediate_function_which_calls_cleanup)
+
+
+def cleanup(temp_dir):
+    """
+    Function to delete all temp files created while running this script. This
+    function will always run right before the wrapper terminates, whether or
+    not the wrapper ran successfully.
+    :param temp_dir: Path to folder containing temporary files to delete.
+    :return: N/A
+    """
+    # Delete all temp folder subdirectories, but not the README in temp folder
+    for temp_dir_subdir in Path(temp_dir).iterdir():
+        shutil.rmtree(str(temp_dir_subdir))
+
+    # Inform user that temporary files were deleted, then terminate wrapper
+    print("\nTemporary files in " + temp_dir + " deleted. ABCD to BIDS "
+          "wrapper terminated.")
+    sys.exit(1)
 
 
 def make_nda_token(args):
@@ -240,12 +284,13 @@ def make_nda_token(args):
     arguments used by this function are --username, --password, and --config.
     :return: N/A
     """
-
-    # If config file with NDA credentials exists, then get credentials from it
-    if Path(args.config).exists():
+    # If config file with NDA credentials exists, then get credentials from it,
+    # unless user entered other credentials to make a new config file
+    if Path(args.config).exists() and not (args.username and args.password):
         username, password = get_nda_credentials_from(args.config)
 
-    # Otherwise get NDA credentials from user & save them in a new config file
+    # Otherwise get NDA credentials from user & save them in a new config file,
+    # overwriting the existing config file if user gave credentials as cli args
     else:
 
         # If user gave NDA credentials as CLI args, use those
@@ -284,7 +329,6 @@ def get_nda_credentials_from(config_file_path):
     encrypted form of user's NDA password, and key to that encryption.
     :return: Two variables: user's NDA username and password.
     """
-
     # Object to read/write config file containing NDA credentials
     config = configparser.ConfigParser()
     config.read(config_file_path)
@@ -306,13 +350,12 @@ def get_nda_credentials_from(config_file_path):
 
 def make_config_file(config_filepath, username, password):
     """
-    If there isn't a config file, create one to save user's NDA credentials.
+    Create a config file to save user's NDA credentials.
     :param config_filepath: Name and path of config file to create.
     :param username: User's NDA username to save in config file.
     :param password: User's NDA password to encrypt then save in config file.
     :return: N/A
     """
-
     # Object to read/write config file containing NDA credentials
     config = configparser.ConfigParser()
 
@@ -337,12 +380,11 @@ def make_config_file(config_filepath, username, password):
 
 def create_good_and_bad_series_table(mre_dir):
     """
-    Create good_and_bad_series_table.csv using compiled MATLAB script.
+    Create good_and_bad_series_table.csv using compiled MATLAB data_gatherer.
     :return: N/A
     """
     print("\ndata_gatherer to create good_and_bad_series_table started at:")
     subprocess.check_call("date")
-
     try:
         subprocess.check_call([DATA_GATHERER, mre_dir])
 
@@ -364,7 +406,6 @@ def download_nda_data(download):
     :param download: Path of folder to fill with downloaded NDA data.
     :return: N/A
     """
-
     # Call Python script to parse good_and_bad_series_table and download data
     print("\nDownloading ABCD data from NDA. Download started at:")
     subprocess.check_call("date")
@@ -427,12 +468,10 @@ def correct_jsons(output):
     subprocess.check_call("date")
 
 
-def run_bids_validator(output, temp_dir):
+def run_bids_validator(output):
     """
     Run the official BIDS validator on the corrected ABCD BIDS data.
     :param output: Path to folder containing corrected NDA data to validate.
-    :param temp_dir: Path to folder containing temporary files (created while
-    running unpack_and_setup function) to delete if BIDS validation succeeds.
     :return: N/A
     """
     print("\nBIDS validation started at:")
@@ -444,9 +483,7 @@ def run_bids_validator(output, temp_dir):
 
         # If BIDS validation is successful, then delete directory/ies holding
         # temporary files which were generated by unpack_and_setup
-        subprocess.check_call(["rm", "-rf", temp_dir + "/*/"])
-        print("\nBIDS validation subprocess finished. Temporary files in "
-              + temp_dir + " deleted. ABCD to BIDS wrapper completed at:")
+        print("\nBIDS validation finished at:")
         subprocess.check_call("date")
 
     except subprocess.CalledProcessError:

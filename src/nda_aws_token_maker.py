@@ -4,7 +4,10 @@ import getpass
 import os
 import sys
 
-from nda_aws_token_generator import *
+try:
+    from nda_aws_token_generator import *
+except ImportError:
+    from src.nda_aws_token_generator import *
 
 if sys.version_info[0] < 3:
     # Python 2 specific imports
