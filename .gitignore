@@ -6,6 +6,6 @@ src/config.ini
 spreadsheets/ABCD_good_and_bad_series_table.csv
 spreadsheets/image03.txt
 spreadsheets/DAL_ABCD_QC_merged_pcqcinfo.csv
-temp/*
-raw/
+temp/*/
+raw/*/
 data/*/
