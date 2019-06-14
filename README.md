@@ -16,6 +16,7 @@ Clone this repository and save it somewhere on the Linux system you want to do A
 1. Docker (see documentation for [Docker Community Edition for Ubuntu](https://docs.docker.com/install/linux/docker-ce/ubuntu/))
 1. [FMRIB Software Library (FSL) v5.0](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
 1. [Python `cryptography` package](https://cryptography.io/en/latest/)
+1. [AWS CLI (Amazon Web Services Command Line Interface) v19.0.0](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
 
 ## Spreadsheets (not included)
 
@@ -97,7 +98,7 @@ First, the wrapper will try to create an NDA token with the user's NDA credentia
 
 Once an NDA token is successfully created, the wrapper will run `src/good_bad_series_parser.py` with this repository's cloned folder as the clone of this repo to download the ABCD data from the NDA website. It requires the `ABCD_good_and_bad_series_table.csv` spreadsheet under a `spreadsheets` subdirectory of this repository's cloned folder.
 
-`src/good_bad_series_parser.py` also requires a `.aws` folder in the user's `home` directory, which will contain the NDA token. The `nda_aws_token_maker.py` is called before each attempted DICOM series TGZ download. If successful, `nda_aws_token_maker` will create a `credentials` file in `.aws`.
+`src/good_bad_series_parser.py` also requires a `.aws` folder in the user's `home` directory, which will contain the NDA token. The `nda_aws_token_maker.py` is called before each attempted DICOM series TGZ download. If successful, `nda_aws_token_maker` will create a `credentials` file in `.aws`. If the download crashes and shows errors about `awscli`, try making sure you have the [latest AWS CLI installed](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html), and that the [`aws` executable is in your BASH `PATH` variable](https://docs.aws.amazon.com/cli/latest/userguide/install-linux.html#install-linux-path).
 
 If successful, this will download the ABCD data from the NDA site into the `raw/` subdirectory of the clone of this repo.
 
