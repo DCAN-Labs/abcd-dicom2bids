@@ -10,3 +10,4 @@ temp/*/
 raw/*/
 data/*/
 *.pyc
+*.txt
