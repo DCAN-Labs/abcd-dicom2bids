@@ -435,22 +435,28 @@ def unpack_and_setup(args):
 
     # Unpack and setup every .tgz file descendant of the NDA data folder
     for subject in download_folder.iterdir():
-        for session_dir in subject.iterdir():
+        if subject.is_dir():
+            for session_dir in subject.iterdir():
+                if session_dir.is_dir():
+                    for tgz in session_dir.iterdir():
+                        if tgz:
+                            # Get session ID from some (arbitrary) .tgz file in session folder
+                            session_name = tgz.name.split("_")[1]
 
-            # Get session ID from some (arbitrary) .tgz file in session folder
-            session_name = next(session_dir.iterdir()).name.split("_", 2)[1]
+                            # Unpack and setup the data for this subject and session
+                            subprocess.check_call([
+                                UNPACK_AND_SETUP,
+                                subject.name,
+                                "ses-" + session_name,
+                                str(session_dir),
+                                args.output,
+                                args.temp,
+                                args.fsl_dir,
+                                args.mre_dir
+                            ])
 
-            # Unpack and setup the data for this subject and session
-            subprocess.check_call([
-                UNPACK_AND_SETUP,
-                subject.name,
-                "ses-" + session_name,
-                str(session_dir),
-                args.output,
-                args.temp,
-                args.fsl_dir,
-                args.mre_dir
-            ])
+                            break
+
     print("\nUnpacking and setup finished at:")
     subprocess.check_call("date")
 
