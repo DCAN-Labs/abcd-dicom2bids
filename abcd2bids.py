@@ -13,7 +13,7 @@ Last Updated 2019-06-17
 #    1. Runs data_gatherer to create ABCD_good_and_bad_series_table.csv
 #    2. Runs good_bad_series_parser to download ABCD data using that .csv table
 #    3. Runs unpack_and_setup to unpack/setup the downloaded ABCD data
-#    4. Runs correct_jsons to conform to official BIDS validator
+#    4. Runs correct_jsons to conform data to official BIDS standards
 #    5. Runs BIDS validator on unpacked/setup data using Docker
 #
 ##################################
@@ -470,7 +470,7 @@ def unpack_and_setup(args):
                                 UNPACK_AND_SETUP,
                                 subject.name,
                                 "ses-" + session_name,
-                                str(session_dir),
+                                session_dir.name,
                                 args.output,
                                 args.temp,
                                 args.fsl_dir,

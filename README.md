@@ -56,11 +56,11 @@ The first time that a user uses this wrapper, the user will have to enter their 
 
 If the user already has a `config.ini` file, then the wrapper can use that, so the user does not need to enter their NDA credentials again. However, to make another `config.ini` file or overwrite the old one, the user can enter their NDA credentials as command-line args.
 
-## Disk Space Usage Warnings
+### Disk Space Usage Warnings
 
-This wrapper will download NDA data (into `./raw/` by default) and then copy it (into `./data/` by default) to process it without deleting the downloaded data, unless the `--remove` flag is added. The downloaded and processed data will take up a large amount of space on the user's filesystem, especially for processing many subjects. About 3 to 7 GB of data or more will be produced by downloading and processing each subject session, not counting the temporary files in `./temp/`.
+This wrapper will download NDA data (into `./raw/` by default) and then copy it (into `./data/` by default) to process it without deleting the downloaded data, unless the `--remove` flag is added. The downloaded and processed data will take up a large amount of space on the user's filesystem, especially for processing many subjects. About 3 to 7 GB of data or more will be produced by downloading and processing one subject session, not counting the temporary files in `./temp/`.
 
-This wrapper will create a temporary folder with hundreds of thousands of files (about 7 GB or more) per subject session. These files are used in the process of preparing the BIDS data. The wrapper will delete that temporary folder once it finishes running, even if it crashes. Still, it is probably a good idea to double-check that the `./temp/` folder has no subdirectories before and after running this wrapper. Otherwise, this wrapper might leave an extremely large set of unneeded files on the user's filesystem.
+This wrapper will create a temporary folder (`./temp/` by default) with hundreds of thousands of files (about 7 GB or more) per subject session. These files are used in the process of preparing the BIDS data. The wrapper will delete that temporary folder once it finishes running, even if it crashes. Still, it is probably a good idea to double-check that the temporary folder has no subdirectories before and after running this wrapper. Otherwise, this wrapper might leave an extremely large set of unneeded files on the user's filesystem.
 
 ### Optional arguments
 
@@ -72,7 +72,7 @@ This wrapper will create a temporary folder with hundreds of thousands of files 
 
 `--download`: By default, the wrapper will download the ABCD data to the `raw/` subdirectory of the cloned folder. If the user wants to download the ABCD data to a different directory, they can use the `--download` flag, e.g. `--download ~/abcd-dicom2bids/ABCD-Data-Download`.
 
-`--remove`: By default, the wrapper will download the ABCD data to the `raw/` subdirectory of the cloned folder. If the user wants to delete the raw downloaded data for each subject after that subject's data is finished processing, the user can use the `--remove` flag without any additional parameters, e.g. `--remove`.
+`--remove`: By default, the wrapper will download the ABCD data to the `raw/` subdirectory of the cloned folder. If the user wants to delete the raw downloaded data for each subject after that subject's data is finished processing, the user can use the `--remove` flag without any additional parameters.
 
 `--output`: By default, the wrapper will place the finished/processed data into the `data/` subdirectory of the cloned folder. If the user wants to put the finished data anywhere else, they can do so using the optional `--output` flag followed by the path at which to create the directory, e.g. `--output ~/abcd-dicom2bids/Finished-Data`.
 
@@ -81,7 +81,7 @@ For more information including the shorthand flags of each option, use the `--he
 Here is the format for a call to the wrapper with more options added:
 
 ```
-python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> --download <Folder to place raw data in> --output <Folder to place processed data in>
+python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> --download <Folder to place raw data in> --output <Folder to place processed data in> --remove
 ```
 
 ## Explanation of Process
