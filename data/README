@@ -3,11 +3,11 @@
 The following files belong here to run `abcd2bids.py`:
 
 1. `CHANGES`
-1. `dataset_description.json`
-1. `task-MID_bold.json`
-1. `task-nback_bold.json`
-1. `task-rest_bold.json`
-1. `task-SST_bold.json`
+2. `dataset_description.json`
+3. `task-MID_bold.json`
+4. `task-nback_bold.json`
+5. `task-rest_bold.json`
+6. `task-SST_bold.json`
 
 Without these files, the output of `abcd2bids.py` will fail BIDS validation. They should be downloaded from the GitHub repo by cloning it.
 

@@ -170,6 +170,15 @@ def cli():
               + " and deleted once the script finishes.")
     )
 
+    # Optional: During unpack_and_setup, remove unprocessed data
+    parser.add_argument(
+        "-r",
+        "--remove",
+        action="store_true",
+        help=("Optional: After each subject's data has finished processing, "
+              "removed that subject's unprocessed data.")
+    )
+
     # Parse, validate, and return all CLI args
     return validate_cli_args(parser.parse_args(), parser)
 
@@ -200,6 +209,15 @@ def validate_cli_args(args, parser):
     try_to_create_and_prep_directory_at(args.download, DOWNLOAD_FOLDER, parser)
     try_to_create_and_prep_directory_at(args.output, UNPACKED_FOLDER, parser)
     try_to_create_and_prep_directory_at(args.temp, TEMP_FILES_DIR, parser)
+
+    # Ensure that the folder paths are formatted correctly: download and output
+    # should have trailing slashes, but temp should not
+    if args.download[-1] is not "/":
+        args.download += "/"
+    if args.output[-1] is not "/":
+        args.output += "/"
+    if args.temp[-1] is "/":
+        args.temp = args.temp[:-1]
 
     return args
 
@@ -234,8 +252,9 @@ def try_to_create_and_prep_directory_at(folder_path, default_path, parser):
 
     # If user gave a different directory than the default, then copy the
     # required files into that directory and nothing else
-    if folder_path is not default_path:
-        for file in Path(default_path).iterdir():
+    default = Path(default_path)
+    if Path(folder_path).absolute() != default.absolute():
+        for file in default.iterdir():
             if not file.is_dir():
                 shutil.copy2(str(file), folder_path)
 
@@ -250,12 +269,12 @@ def set_to_cleanup_on_crash(temp_dir):
     # Use local function as an intermediate because the signal module does
     # not allow the signal handler (the second parameter of signal.signal) to
     # take the parameter (temp_dir) needed by the cleanup function
-    def intermediate_function_which_calls_cleanup(_signum, _frame):
+    def call_cleanup_function(_signum, _frame):
         cleanup(temp_dir)
 
     # If this wrapper crashes, delete all temporary files
-    signal.signal(signal.SIGINT, intermediate_function_which_calls_cleanup)
-    signal.signal(signal.SIGTERM, intermediate_function_which_calls_cleanup)
+    signal.signal(signal.SIGINT, call_cleanup_function)
+    signal.signal(signal.SIGTERM, call_cleanup_function)
 
 
 def cleanup(temp_dir):
@@ -268,7 +287,8 @@ def cleanup(temp_dir):
     """
     # Delete all temp folder subdirectories, but not the README in temp folder
     for temp_dir_subdir in Path(temp_dir).iterdir():
-        shutil.rmtree(str(temp_dir_subdir))
+        if temp_dir_subdir.is_dir():
+            shutil.rmtree(str(temp_dir_subdir))
 
     # Inform user that temporary files were deleted, then terminate wrapper
     print("\nTemporary files in " + temp_dir + " deleted. ABCD to BIDS "
@@ -286,7 +306,7 @@ def make_nda_token(args):
     """
     # If config file with NDA credentials exists, then get credentials from it,
     # unless user entered other credentials to make a new config file
-    if Path(args.config).exists() and not (args.username and args.password):
+    if Path(args.config).exists() and (not args.username or not args.password):
         username, password = get_nda_credentials_from(args.config)
 
     # Otherwise get NDA credentials from user & save them in a new config file,
@@ -394,6 +414,7 @@ def create_good_and_bad_series_table(mre_dir):
         print("Error: data_gatherer failed. Please check that the "
               "./spreadsheets/ folder contains image03.txt and "
               "DAL_ABCD_QC_merged_pcqcinfo.csv, then run this script again.")
+        sys.exit(1)
 
     print("\ndata_gatherer finished at:")
     subprocess.check_call('date')
@@ -440,10 +461,11 @@ def unpack_and_setup(args):
                 if session_dir.is_dir():
                     for tgz in session_dir.iterdir():
                         if tgz:
-                            # Get session ID from some (arbitrary) .tgz file in session folder
+                            # Get session ID from some (arbitrary) .tgz file in
+                            # session folder
                             session_name = tgz.name.split("_")[1]
 
-                            # Unpack and setup the data for this subject and session
+                            # Unpack/setup the data for this subject/session
                             subprocess.check_call([
                                 UNPACK_AND_SETUP,
                                 subject.name,
@@ -454,6 +476,12 @@ def unpack_and_setup(args):
                                 args.fsl_dir,
                                 args.mre_dir
                             ])
+
+                            # If user said to, delete all the raw downloaded
+                            # files for each subject after that subject's data
+                            # has been processed and copied
+                            if args.remove:
+                                shutil.rmtree(args.download + subject.name)
 
                             break
 

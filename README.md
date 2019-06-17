@@ -49,14 +49,18 @@ To download images for ABCD you must have two spreadsheets downloaded to this re
 The DICOM to BIDS process can be done by running the `abcd2bids.py` wrapper from within the directory cloned from this repo. `abcd2bids.py` requires two positional arguments and can take several optional arguments. Those positional arguments are file paths to the FSL directory and the MATLAB Runtime Environment. Here is an example of a valid call of this wrapper:
 
 ```
-python3 abcd2bids.py /usr/share/fsl/5.0 /mnt/max/shared/code/external/utilities/Matlab2016bRuntime/v91
+python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory>
 ```
 
 The first time that a user uses this wrapper, the user will have to enter their NDA credentials. If the user does not include them as command-line arguments, then the wrapper will prompt the user to enter them. The wrapper will then create a `config.ini` file with the user's username and (encrypted) password, so the user will not have to enter their NDA credentials any subsequent times running this wrapper.
 
 If the user already has a `config.ini` file, then the wrapper can use that, so the user does not need to enter their NDA credentials again. However, to make another `config.ini` file or overwrite the old one, the user can enter their NDA credentials as command-line args.
 
-**WARNING:** This wrapper will create a temporary folder with hundreds of thousands of files (about 7 GB or more) per subject session. These files are used in the process of preparing the BIDS data. The wrapper will delete that temporary folder once it finishes running, even if it crashes. Still, it is probably a good idea to double-check that the `./temp/` folder has no subdirectories before and after running this wrapper. Otherwise, it may be possible for this wrapper to leave an extremely large set of unneeded files on the user's filesystem.
+## Disk Space Usage Warnings
+
+This wrapper will download NDA data (into `./raw/` by default) and then copy it (into `./data/` by default) to process it without deleting the downloaded data, unless the `--remove` flag is added. The downloaded and processed data will take up a large amount of space on the user's filesystem, especially for processing many subjects. About 3 to 7 GB of data or more will be produced by downloading and processing each subject session, not counting the temporary files in `./temp/`.
+
+This wrapper will create a temporary folder with hundreds of thousands of files (about 7 GB or more) per subject session. These files are used in the process of preparing the BIDS data. The wrapper will delete that temporary folder once it finishes running, even if it crashes. Still, it is probably a good idea to double-check that the `./temp/` folder has no subdirectories before and after running this wrapper. Otherwise, this wrapper might leave an extremely large set of unneeded files on the user's filesystem.
 
 ### Optional arguments
 
@@ -68,9 +72,17 @@ If the user already has a `config.ini` file, then the wrapper can use that, so t
 
 `--download`: By default, the wrapper will download the ABCD data to the `raw/` subdirectory of the cloned folder. If the user wants to download the ABCD data to a different directory, they can use the `--download` flag, e.g. `--download ~/abcd-dicom2bids/ABCD-Data-Download`.
 
+`--remove`: By default, the wrapper will download the ABCD data to the `raw/` subdirectory of the cloned folder. If the user wants to delete the raw downloaded data for each subject after that subject's data is finished processing, the user can use the `--remove` flag without any additional parameters, e.g. `--remove`.
+
 `--output`: By default, the wrapper will place the finished/processed data into the `data/` subdirectory of the cloned folder. If the user wants to put the finished data anywhere else, they can do so using the optional `--output` flag followed by the path at which to create the directory, e.g. `--output ~/abcd-dicom2bids/Finished-Data`.
 
 For more information including the shorthand flags of each option, use the `--help` command: `python3 abcd2bids.py --help`.
+
+Here is the format for a call to the wrapper with more options added:
+
+```
+python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> --download <Folder to place raw data in> --output <Folder to place processed data in>
+```
 
 ## Explanation of Process
 
@@ -90,7 +102,7 @@ The MATLAB portion is for producing a download list for the Python & BASH portio
 
 The two spreadsheets referenced above are used in the `data_gatherer` compiled MATLAB script to create the `ABCD_good_and_bad_series_table.csv` which gets used to actually download the images. `data_gatherer` depends on a mapping file (`mapping.mat`), which maps the SeriesDescriptions to known OHSU descriptors that classify each TGZ file into T1, T2, task-rest, task-nback, etc.
 
-As its first step, the wrapper will run `data_gatherer` with this repository's cloned folder as the clone of this repo. If successful, it will create the file `ABCD_good_and_bad_series_table.csv` in the `spreadsheets` folder.
+As its first step, the wrapper will run `data_gatherer` with this repository's cloned folder as the clone of this repo. If successful, it will create the file `ABCD_good_and_bad_series_table.csv` in the `./spreadsheets/` folder.
 
 **NOTE:** This step can take over two hours to complete.
 
@@ -118,15 +130,15 @@ FSL_DIR=$6 Path to FSL directory
 MRE_DIR=$7 Path to MATLAB Runtime Environment (MRE) directory
 ```
 
-By default, the wrapper will put the unpacked/setup data in the `data/` subdirectory of this repository's cloned folder. This step will also create and fill the `temp/` subdirectory of the user's home directory containing temporary files used for the download. If the user enters other locations for the temp directory or output data directory as optional command line args, then those will be used instead.
+By default, the wrapper will put the unpacked/setup data in the `data/` subdirectory of this repository's cloned folder. This step will also create and fill the `./temp/` subdirectory of the user's home directory containing temporary files used for the download. If the user enters other locations for the temp directory or output data directory as optional command line args, then those will be used instead.
 
 ### 4. (Python) `correct_jsons.py`
 
-Next, the wrapper runs `correct_jsons.py` on the whole BIDS directory (`data/` ) to correct/prepare all BIDS sidecar JSON files to comply with the BIDS specification standard version 1.2.0.
+Next, the wrapper runs `correct_jsons.py` on the whole BIDS directory (`./data/` ) to correct/prepare all BIDS sidecar JSON files to comply with the BIDS specification standard version 1.2.0.
 
 ### 5. (Docker) Run official BIDS validator
 
-Finally, the wrapper will run the [official BIDS validator](https://github.com/bids-standard/bids-validator) using Docker to validate the dataset in the `data/` folder created by this process.
+Finally, the wrapper will run the [official BIDS validator](https://github.com/bids-standard/bids-validator) using Docker to validate the dataset in the `./data/` folder created by this process.
 
 ## Attributions
 
