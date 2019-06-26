@@ -204,7 +204,10 @@ def cli():
         choices=steps,
         default=steps[0],
         help=("Optional: Give the name of the step in the wrapper to start "
-              "at, then run that step and every step after it.")
+              "at, then run that step and every step after it. Here are the "
+              "names of each step, in order from first to last:\n1. "
+              "create_good_and_bad_series_table\n2. download_nda_data\n3. "
+              "unpack_and_setup\n4. correct_jsons\n5. run_bids_validator")
     )
 
     # Parse, validate, and return all CLI args
