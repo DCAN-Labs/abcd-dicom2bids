@@ -61,7 +61,7 @@ def main():
 
     # Make list of functions, so that the wrapper can be run from any point in
     # the list and then sequentially run every function after that point.
-    data_processing_steps = [
+    data_conversion_steps = [
 
         # 1. Use compiled MATLAB script to create good_and_bad_series_table.csv
         create_good_and_bad_series_table,
@@ -80,8 +80,8 @@ def main():
     ]
 
     # Run the steps sequentially, starting at the one specified by the user
-    for step in range(cli_args.start_at_step-1, len(data_processing_steps)):
-        data_processing_steps[step](cli_args)
+    for step in range(cli_args.start_at-1, len(data_conversion_steps)):
+        data_conversion_steps[step](cli_args)
 
     # Finally, delete temporary files and end script with success exit code
     cleanup(cli_args.temp, 0)
@@ -157,7 +157,8 @@ def cli():
         default=DOWNLOAD_FOLDER,
         help=("Optional: Path to folder which NDA data will be downloaded "
               "into. By default, data will be downloaded into the "
-              + os.path.abspath(DOWNLOAD_FOLDER) + " folder.")
+              + os.path.abspath(DOWNLOAD_FOLDER) + " folder. A folder will be "
+              "created at the given path if one does not already exist.")
     )
 
     # Optional: Get folder to unpack NDA data into from download folder
@@ -167,7 +168,9 @@ def cli():
         default=UNPACKED_FOLDER,
         help=("Optional: Folder path into which NDA data will be unpacked and "
               "setup once downloaded. By default, this script will put the "
-              "data into the " + os.path.abspath(UNPACKED_FOLDER) + " folder.")
+              "data into the " + os.path.abspath(UNPACKED_FOLDER) + " folder. "
+              "A folder will be created at the given path if one does not "
+              "already exist.")
     )
 
     # Optional: Get folder to place temp data into during unpacking
@@ -178,7 +181,8 @@ def cli():
         help=("Optional: Path to the directory to be created and filled with "
               "temporary files during unpacking and setup. By default, the "
               "folder will be created at " + os.path.abspath(TEMP_FILES_DIR)
-              + " and deleted once the script finishes.")
+              + " and deleted once the script finishes. A folder will be "
+              "created at the given path if one does not already exist.")
     )
 
     # Optional: During unpack_and_setup, remove unprocessed data
@@ -186,34 +190,34 @@ def cli():
         "-r",
         "--remove",
         action="store_true",
-        help=("Optional: After each subject's data has finished processing, "
+        help=("Optional: After each subject's data has finished conversion, "
               "removed that subject's unprocessed data.")
     )
 
     # Optional: Pick a step to start at, ignore previous ones, and then run
     # that function and all subsequent ones sequentially
+    steps = ["create_good_and_bad_series_table", "download_nda_data",
+             "unpack_and_setup", "correct_jsons", "run_bids_validator"]
     parser.add_argument(
         "-s",
-        "--start_at_step",
-        type=int,
-        choices=list(range(6)),
-        default=1,
-        help=("Optional: Give the number of the step in the wrapper to start "
-              "at, then run that step and every step after it. Here are the "
-              "numbers of all of the steps:"
-              "\n1. create_good_and_bad_series_table\n2. download_nda_data"
-              "\n3. unpack_and_setup\n4. correct_jsons\n5. run_bids_validator")
+        "--start_at",
+        choices=steps,
+        default=steps[0],
+        help=("Optional: Give the name of the step in the wrapper to start "
+              "at, then run that step and every step after it.")
     )
 
     # Parse, validate, and return all CLI args
-    return validate_cli_args(parser.parse_args(), parser)
+    return validate_cli_args(parser.parse_args(), parser, steps)
 
 
-def validate_cli_args(args, parser):
+def validate_cli_args(args, parser, steps):
     """
     Check that all command line arguments will allow this script to work.
     :param args: argparse namespace with all command-line arguments
     :param parser: argparse ArgumentParser to raise error if anything's invalid
+    :param steps: List of functions which this wrapper will run. Used only for
+    the --start_at functionality (skipping some initial steps).
     :return: Validated command-line arguments argparse namespace
     """
     # Validate FSL and MRE directories
@@ -225,6 +229,13 @@ def validate_cli_args(args, parser):
         Path(os.path.dirname(args.config)).mkdir(parents=True, exist_ok=True)
     except (OSError, TypeError):
         parser.error("Could not create folder to contain config file.")
+
+    # Find the number of the step to start at, so main() can use that number
+    # to start at that step, running that function and all subsequent ones
+    step_number = 1
+    while steps[step_number-1] != args.start_at:
+        step_number += 1
+    args.start_at = step_number
 
     # Validate other dirs: check if they exist; if not, try to create them; and
     # move important files in the default dir(s) to the new dir(s)
@@ -432,8 +443,8 @@ def make_config_file(config_filepath, username, password):
 def create_good_and_bad_series_table(cli_args):
     """
     Create good_and_bad_series_table.csv using compiled MATLAB data_gatherer.
-    :param cli_args: argparse namespace containing all CLI arguments. This function
-    only uses the --mre_dir argument.
+    :param cli_args: argparse namespace containing all CLI arguments. This
+    function only uses the --mre_dir argument.
     :return: N/A
     """
     print("\ndata_gatherer to create good_and_bad_series_table started at:")
@@ -515,7 +526,7 @@ def unpack_and_setup(args):
 
                             # If user said to, delete all the raw downloaded
                             # files for each subject after that subject's data
-                            # has been processed and copied
+                            # has been converted and copied
                             if args.remove:
                                 shutil.rmtree(args.download + subject.name)
 

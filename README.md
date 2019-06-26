@@ -58,7 +58,7 @@ If the user already has a `config.ini` file, then the wrapper can use that, so t
 
 ### Disk Space Usage Warnings
 
-This wrapper will download NDA data (into the `raw/` subdirectory by default) and then copy it (into the `data/` subdirectory by default) to process it without deleting the downloaded data, unless the `--remove` flag is added. The downloaded and processed data will take up a large amount of space on the user's filesystem, especially for processing many subjects. About 3 to 7 GB of data or more will be produced by downloading and processing one subject session, not counting the temporary files in the `temp/` subdirectory.
+This wrapper will download NDA data (into the `raw/` subdirectory by default) and then copy it (into the `data/` subdirectory by default) to convert it without deleting the downloaded data, unless the `--remove` flag is added. The downloaded and converted data will take up a large amount of space on the user's filesystem, especially for converting many subjects. About 3 to 7 GB of data or more will be produced by downloading and converting one subject session, not counting the temporary files in the `temp/` subdirectory.
 
 This wrapper will create a temporary folder (`temp/` by default) with hundreds of thousands of files (about 7 GB or more) per subject session. These files are used in the process of preparing the BIDS data. The wrapper will delete that temporary folder once it finishes running, even if it crashes. Still, it is probably a good idea to double-check that the temporary folder has no subdirectories before and after running this wrapper. Otherwise, this wrapper might leave an extremely large set of unneeded files on the user's filesystem.
 
@@ -72,18 +72,18 @@ This wrapper will create a temporary folder (`temp/` by default) with hundreds o
 
 `--download`: By default, the wrapper will download the ABCD data to the `raw/` subdirectory of the cloned folder. If the user wants to download the ABCD data to a different directory, they can use the `--download` flag, e.g. `--download ~/abcd-dicom2bids/ABCD-Data-Download`. A folder will be created at the given path if one does not already exist.
 
-`--remove`: By default, the wrapper will download the ABCD data to the `raw/` subdirectory of the cloned folder. If the user wants to delete the raw downloaded data for each subject after that subject's data is finished processing, the user can use the `--remove` flag without any additional parameters.
+`--remove`: By default, the wrapper will download the ABCD data to the `raw/` subdirectory of the cloned folder. If the user wants to delete the raw downloaded data for each subject after that subject's data is finished converting, the user can use the `--remove` flag without any additional parameters.
 
-`--output`: By default, the wrapper will place the finished/processed data into the `data/` subdirectory of the cloned folder. If the user wants to put the finished data anywhere else, they can do so using the optional `--output` flag followed by the path at which to create the directory, e.g. `--output ~/abcd-dicom2bids/Finished-Data`. A folder will be created at the given path if one does not already exist.
+`--output`: By default, the wrapper will place the finished/converted data into the `data/` subdirectory of the cloned folder. If the user wants to put the finished data anywhere else, they can do so using the optional `--output` flag followed by the path at which to create the directory, e.g. `--output ~/abcd-dicom2bids/Finished-Data`. A folder will be created at the given path if one does not already exist.
 
-`--start_at_step`: By default, this wrapper will run every step listed under "Explanation of Process" below. Use this flag to start at one step and skip all of the previous ones. To do so, enter the step's number in the list under "Explanation of Process," e.g. `--start_at_step 4` to skip every step before JSON correction.
+`--start_at`: By default, this wrapper will run every step listed under "Explanation of Process" below. Use this flag to start at one step and skip all of the previous ones. To do so, enter the name of the step, e.g. `--start_at correct_jsons` to skip every step before JSON correction.
 
 For more information including the shorthand flags of each option, use the `--help` command: `python3 abcd2bids.py --help`.
 
 Here is the format for a call to the wrapper with more options added:
 
 ```
-python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> --username <NDA username> --download <Folder to place raw data in> --output <Folder to place processed data in> --remove
+python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> --username <NDA username> --download <Folder to place raw data in> --output <Folder to place converted data in> --temp <Directory to hold temporary files> --remove 
 ```
 
 ## Explanation of Process
