@@ -29,6 +29,10 @@ import signal
 import subprocess
 import sys
 
+# Constant: List of function names of steps 1-5 in the list above
+STEP_NAMES = ["create_good_and_bad_series_table", "download_nda_data",
+              "unpack_and_setup", "correct_jsons", "run_bids_validator"]
+
 # Constants: Default paths to scripts to call from this wrapper, and default
 # paths to folders in which to manipulate data
 CONFIG_FILEPATH = os.path.expanduser("~/.abcd2bids/config.ini")
@@ -59,29 +63,13 @@ def main():
     # use them to make NDA token
     make_nda_token(cli_args)
 
-    # Make list of functions, so that the wrapper can be run from any point in
-    # the list and then sequentially run every function after that point.
-    data_conversion_steps = [
-
-        # 1. Use compiled MATLAB script to create good_and_bad_series_table.csv
-        create_good_and_bad_series_table,
-
-        # 2. Parse good_and_bad_series_table.csv and download NDA data
-        download_nda_data,
-
-        # 3. Once NDA data is downloaded, unpack and set it up using .sh script
-        unpack_and_setup,
-
-        # 4. Correct ABCD BIDS input data to conform to official BIDS validator
-        correct_jsons,
-
-        # 5. Run the official BIDS validator on the corrected ABCD BIDS data
-        run_bids_validator
-    ]
-
     # Run the steps sequentially, starting at the one specified by the user
-    for step in range(cli_args.start_at-1, len(data_conversion_steps)):
-        data_conversion_steps[step](cli_args)
+    started = False
+    for step in STEP_NAMES:
+        if step == cli_args.start_at:
+            started = True
+        if started:
+            eval(step + "(cli_args)")
 
     # Finally, delete temporary files and end script with success exit code
     cleanup(cli_args.temp, 0)
@@ -196,13 +184,11 @@ def cli():
 
     # Optional: Pick a step to start at, ignore previous ones, and then run
     # that function and all subsequent ones sequentially
-    steps = ["create_good_and_bad_series_table", "download_nda_data",
-             "unpack_and_setup", "correct_jsons", "run_bids_validator"]
     parser.add_argument(
         "-s",
         "--start_at",
-        choices=steps,
-        default=steps[0],
+        choices=STEP_NAMES,
+        default=STEP_NAMES[0],
         help=("Optional: Give the name of the step in the wrapper to start "
               "at, then run that step and every step after it. Here are the "
               "names of each step, in order from first to last:\n1. "
@@ -211,16 +197,14 @@ def cli():
     )
 
     # Parse, validate, and return all CLI args
-    return validate_cli_args(parser.parse_args(), parser, steps)
+    return validate_cli_args(parser.parse_args(), parser)
 
 
-def validate_cli_args(args, parser, steps):
+def validate_cli_args(args, parser):
     """
     Check that all command line arguments will allow this script to work.
     :param args: argparse namespace with all command-line arguments
     :param parser: argparse ArgumentParser to raise error if anything's invalid
-    :param steps: List of functions which this wrapper will run. Used only for
-    the --start_at functionality (skipping some initial steps).
     :return: Validated command-line arguments argparse namespace
     """
     # Validate FSL and MRE directories
@@ -232,13 +216,6 @@ def validate_cli_args(args, parser, steps):
         Path(os.path.dirname(args.config)).mkdir(parents=True, exist_ok=True)
     except (OSError, TypeError):
         parser.error("Could not create folder to contain config file.")
-
-    # Find the number of the step to start at, so main() can use that number
-    # to start at that step, running that function and all subsequent ones
-    step_number = 1
-    while steps[step_number-1] != args.start_at:
-        step_number += 1
-    args.start_at = step_number
 
     # Validate other dirs: check if they exist; if not, try to create them; and
     # move important files in the default dir(s) to the new dir(s)
