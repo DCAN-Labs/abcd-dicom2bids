@@ -1,16 +1,3 @@
-# `data` folder
+This data collection from the Oregon Health & Science University (OHSU) Developmental Cognition and Neuroimaging (DCAN) Labs contains a regularly updated dataset of ABCD Brain Imaging Data Structure (BIDS) version 1.2.0 pipeline inputs and derivatives. Source data are currently comprised of all the ABCD Study participants baseline year 1 arm 1 DICOM imaging data that passed initial acquisition quality control from the ABCD Data Analysis and Informatics Center (DAIC) and were processed by OHSU DCAN Labs.
 
-The following files belong here to run `abcd2bids.py`:
-
-1. `CHANGES`
-2. `dataset_description.json`
-3. `task-MID_bold.json`
-4. `task-nback_bold.json`
-5. `task-rest_bold.json`
-6. `task-SST_bold.json`
-
-Without these files, the output of `abcd2bids.py` will fail BIDS validation. They should be downloaded from the GitHub repo by cloning it.
-
-This folder is where the output of `abcd2bids.py` will be placed by default. So, after running `abcd2bids.py`, this folder will have subdirectories for each subject session. Those subdirectories will be correctly formatted according to the [official BIDS specification standard v1.2.0](https://github.com/bids-standard/bids-specification/releases/tag/v1.2.0).
-
-The resulting ABCD Study dataset here is made up of all the ABCD Study participants' imaging data that passed initial acquisition quality control (MRI QC).
+The input DICOM data to this BIDS version 1.2.0 (https://www.nature.com/articles/sdata201644) data collection were retrieved from the NIMH Data Archive (NDA) share of ABCD fast-track data (https://nda.nih.gov/edit_collection.html?id=2573) and were last accessed on May 1, 2019. BIDS input data were converted from DICOMs using Dcm2Bids (https://github.com/cbedetti/Dcm2Bids). BIDS derivatives data were derived from the OHSU DCAN Labs ABCD-BIDS MRI processing pipeline which outputs Human Connectome Project (HCP) Minimal Preprocessing Pipelines-style data in both volume and surface spaces (https://doi.org/10.5281/zenodo.2587210, https://doi.org/10.1016/j.neuroimage.2013.04.127). This collection is independent from ABCD Data Collection 2573. Users may access ABCD DICOM files via the ABCD fast-track imaging data release in Collection 2573.

@@ -24,9 +24,9 @@ else
 fi
 
 # If temp files folder is given as a command line arg, get it; otherwise use
-# ~/abcd-dicom2bids_unpack_tmp as the default. Added by Greg 2019-06-07
+# ./temp as the default. Added by Greg 2019-06-07
 if [ "x$5" = "x" ]; then
-    ScratchSpaceDir=~/abcd-dicom2bids_unpack_tmp
+    ScratchSpaceDir=./temp
 else
     ScratchSpaceDir=$5
 fi
@@ -36,7 +36,6 @@ fi
 if [[ ! "x$6" = "x" && ! "x$7" = "x" ]]; then
     FSL_DIR=$6
     MRE_DIR=$7
-    echo "FSL_DIR is ${FSL_DIR} and MRE_DIR is ${MRE_DIR}"
 fi
 
 SUB=$1 # Full BIDS formatted subject ID (sub-SUBJECTID)

@@ -1,6 +1,6 @@
 # `src` folder
 
-This folder contains all of the scripts used by the `abcd2bids.py` wrapper. There should be 17 files in this folder, as well as a `bin` subdirectory.
+This folder contains all of the scripts used by the `abcd2bids.py` wrapper. There should be 13 files in this folder, as well as a `bin` subdirectory.
 
 ## Files belonging in this folder
 
