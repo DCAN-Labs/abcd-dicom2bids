@@ -432,7 +432,7 @@ def make_config_file(config_filepath, username, password):
 def create_good_and_bad_series_table(cli_args):
     """
     Create good_and_bad_series_table.csv using compiled MATLAB data_gatherer.
-    :param args: argparse namespace containing all CLI arguments. This function
+    :param cli_args: argparse namespace containing all CLI arguments. This function
     only uses the --mre_dir argument.
     :return: N/A
     """
@@ -457,9 +457,10 @@ def download_nda_data(cli_args):
     """
     Download NDA data by making NDA token and parsing the
     good_and_bad_series_table.csv spreadsheet.
-    :param args: argparse namespace containing all CLI arguments. This function
-    only uses the --download argument, the path to the folder to fill with
-    downloaded NDA data.    :return: N/A
+    :param cli_args: argparse namespace containing all CLI arguments. This
+    function only uses the --download argument, the path to the folder to fill
+    with downloaded NDA data.
+    :return: N/A
     """
     # Call Python script to parse good_and_bad_series_table and download data
     print("\nDownloading ABCD data from NDA. Download started at:")
@@ -527,8 +528,8 @@ def unpack_and_setup(args):
 def correct_jsons(cli_args):
     """
     Correct ABCD BIDS input data to conform to official BIDS Validator.
-    :param args: argparse namespace containing all CLI arguments. This function
-    only uses the --output argument, the path to the folder containing
+    :param cli_args: argparse namespace containing all CLI arguments. This
+    function only uses the --output argument, the path to the folder containing
     corrected NDA data to validate.
     :return: N/A
     """
@@ -542,8 +543,8 @@ def correct_jsons(cli_args):
 def run_bids_validator(cli_args):
     """
     Run the official BIDS validator on the corrected ABCD BIDS data.
-    :param args: argparse namespace containing all CLI arguments. This function
-    only uses the --output argument, the path to the folder containing
+    :param cli_args: argparse namespace containing all CLI arguments. This
+    function only uses the --output argument, the path to the folder containing
     corrected NDA data to validate.
     :return: N/A
     """
