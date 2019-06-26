@@ -369,7 +369,7 @@ def make_nda_token(args):
     # catch another file's exception.
     if token_call_exit_code is not 0:
         print("Failed to create NDA token using the username and decrypted "
-              "password from " + str(Path(args.config).absolute()))
+              "password from " + str(Path(args.config).resolve()))
         sys.exit(1)
 
 
