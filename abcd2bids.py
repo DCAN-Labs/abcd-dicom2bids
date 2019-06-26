@@ -278,7 +278,7 @@ def try_to_create_and_prep_directory_at(folder_path, default_path, parser):
     # If user gave a different directory than the default, then copy the
     # required files into that directory and nothing else
     default = Path(default_path)
-    if Path(folder_path).absolute() != default.absolute():
+    if Path(folder_path).resolve() != default.resolve():
         for file in default.iterdir():
             if not file.is_dir():
                 shutil.copy2(str(file), folder_path)
