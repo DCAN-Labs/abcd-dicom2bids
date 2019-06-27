@@ -1,0 +1,5 @@
+{
+    "TaskName": "Stop-Signal Task",
+    "TaskDescription": "See https://www.psytoolkit.org/experiment-library/stopsignal.html",
+    "CogAtlasID": "http://www.cognitiveatlas.org/task/id/tsk_4a57abb949e1a/"
+}
