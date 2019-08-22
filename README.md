@@ -30,14 +30,15 @@ To download images for ABCD you must have two spreadsheets downloaded to this re
 `image03.txt` can be downloaded from [the NDA](https://ndar.nih.gov/) with an ABCD Study Data Use Certification in place.  It contains paths to the TGZ files on the NDA's Amazon AWS S3 buckets where the images can be downloaded from per series.  The following are explicit steps to download just this file:
 
 1. Login to the [NIMH Data Archive](https://ndar.nih.gov/)
-1. Go to **Data Dictionary** under **Quick Navigation**
-1. Select **All ABCD Releases** under **Source**
+1. Go to **Data Dictionary** under **Tools**
+1. Select **ABCD Release 2.0 (or whatever release is out)** under **Source Dropdown Menu**
 1. Click **Filter**
-1. Select just **Image/image03**
-1. Click **Download**
-1. In the upper right hand corner under **Selected Filters** click **Download/Add to Study**
+1. Click the box under **Select** for just **Image/image03**
+1. Click **Add to Filter Cart** at the bottom left of the page. 
+1. Wait for your cart filter to update.
+1. In the upper right hand corner in the **Filter Cart Menu** click **Package/Add to Study**
     - Under **Collections** by **Permission Group** click **Deselect All**
-    - At the bottom re-select **Adolescent Brain Cognitive Development (ABCD)**
+    - Collapse any other studies you have access to and re-select **Adolescent Brain Cognitive Development**
 1. Click **Create Package**
     - Name the package something like **Image03**
     - Select Only **Include documentation**
