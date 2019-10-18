@@ -4,7 +4,7 @@
 ABCD to BIDS CLI Wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-05-29
-Last Updated 2019-10-17
+Last Updated 2019-10-18
 """
 
 ##################################
@@ -370,12 +370,12 @@ def make_nda_token(args):
         make_config_file(args.config, username, password)
 
     # Try to make NDA token
-    token_call_exit_code = subprocess.call([
+    token_call_exit_code = subprocess.call((
         "python3",
         NDA_AWS_TOKEN_MAKER,
         username,
         password
-    ])
+    ))
 
     # If NDA credentials are invalid, tell user so without printing password.
     # Manually catch error instead of using try-except to avoid trying to
@@ -439,7 +439,7 @@ def make_config_file(config_filepath, username, password):
         config.write(configfile)
 
     # Change permissions of the config file to prevent other users accessing it
-    subprocess.check_call(["chmod", "700", config_filepath])
+    subprocess.check_call(("chmod", "700", config_filepath))
 
 
 def create_good_and_bad_series_table(cli_args):
@@ -477,9 +477,6 @@ def create_good_and_bad_series_table(cli_args):
             "Manufacturer", "comments_misc": "SeriesDescription",
             "interview_age": "SeriesTime"
         }, axis="columns").to_csv(SPREADSHEET_MERGED, index=False)
-
-    print(SPREADSHEET_MERGED.join(("\n", " creation finished at:")))
-    subprocess.check_call('date')
 
 
 def download_nda_data(cli_args):
