@@ -17,9 +17,9 @@ import sys
 
 # Logging variables
 num_sub_visits = 0
-num_siemens = 0
-num_ge = 0
-num_philips = 0
+# num_siemens = 0
+# num_ge = 0
+# num_philips = 0
 num_rsfmri = 0
 num_sst = 0
 num_mid = 0
@@ -60,16 +60,6 @@ with open('abcd_download_log.csv','w') as f:
 
         # TODO: Add pGUID and EventName (Subject ID and Visit) to csv for logging information
         num_sub_visits += 1
-
-        scanner = group.iloc[0]['Manufacturer']
-        if scanner == 'Philips Medical Systems':
-            num_philips += 1
-        elif scanner == 'GE MEDICAL SYSTEMS':
-            num_ge += 1
-        elif scanner == 'SIEMENS':
-            num_siemens += 1
-        else:
-            print("Unexpected scanner type: %s" % scanner)
 
         # TODO: Create tgz directory if it doesn't already exist
         sub_id = name[0]
@@ -214,9 +204,9 @@ with open('abcd_download_log.csv','w') as f:
 
 print("There are %s subject visits" % num_sub_visits)
 print("%s are valid. %s are invalid" % (num_valid, num_invalid))
-print("%s Siemens" % num_siemens)
-print("%s Philips" % num_philips)
-print("%s GE" % num_ge)
+# print("%s Siemens" % num_siemens)
+# print("%s Philips" % num_philips)
+# print("%s GE" % num_ge)
 print("number of valid subjects with a T2 : %s" % num_t2)
 print("number of valid subjects with rest : %s" % num_rsfmri)
 print("number of valid subjects with mid  : %s" % num_mid)

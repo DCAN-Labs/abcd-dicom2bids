@@ -19,39 +19,16 @@ Clone this repository and save it somewhere on the Linux system you want to do A
 1. Python [`pandas` package](https://pandas.pydata.org)
 1. [AWS CLI (Amazon Web Services Command Line Interface) v19.0.0](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
 
-## Spreadsheets (not included)
+## Spreadsheet (not included)
 
-To download images for ABCD you must have two spreadsheets downloaded to this repository's `spreadsheets` folder:
-
-1. `abcd_fastqc01.csv`
-1. `image03.txt`
-
-Both spreadsheets can be downloaded from the [NIMH Data Archive (NDA)](https://nda.nih.gov/) with an ABCD Study Data Use Certification in place. `abcd_fastqc01.csv` contains operator QC information for each MRI series.  If the image fails operator QC (a score of 0) the image will not be downloaded. `image03.txt` contains paths to the TGZ files on the NDA's Amazon AWS S3 buckets where the images can be downloaded from per series.
-
-### How to Download `image03.txt`
-
-1. Login to the [NIMH Data Archive](https://nda.nih.gov/)
-1. Go to **Data Dictionary** under **Tools**
-1. Select **ABCD Release 2.0 (or whatever release is out)** under **Source Dropdown Menu**
-1. Click **Filter**
-1. Click the box under **Select** for just **Image/image03**
-1. Click **Add to Filter Cart** at the bottom left of the page. 
-1. Wait for your cart filter to update.
-1. In the upper right hand corner in the **Filter Cart Menu** click **Package/Add to Study**
-    - Under **Collections** by **Permission Group** click **Deselect All**
-    - Collapse any other studies you have access to and re-select **Adolescent Brain Cognitive Development**
-1. Click **Create Package**
-    - Name the package something like **Image03**
-    - Select Only **Include documentation**
-    - Click **Create Package**
-1. Download and use the **Package Manager** to download your package
+To download images for ABCD you must have the `abcd_fastqc01.csv` spreadsheet downloaded to this repository's `spreadsheets` folder. It can be downloaded from the [NIMH Data Archive (NDA)](https://nda.nih.gov/) with an ABCD Study Data Use Certification in place. `abcd_fastqc01.csv` contains operator QC information for each MRI series. If the image fails operator QC (a score of 0), then the image will not be downloaded.
 
 ### How to Download `abcd_fastqc01.csv`
 
 1. Login to the [NIMH Data Archive](https://nda.nih.gov/).
 1. From the homepage, click the button labeled `GET DATA` to go to `Featured Datasets`.
 1. Under the `Data Dictionary` heading in the sidebar, click `Data Structures`.
-1. Add both spreadsheets (`image03.txt` and `abcd_fastqc01.csv`) to the Filter Cart.
+1. Add `abcd_fastqc01.csv` to the Filter Cart.
     1. Enter the spreadsheet file name into the `Text Search` box to find `ABCD Fasttrack QC Instrument`, then click its checkbox to select it.
     1. At the bottom of the page, click the `Add to Workspace` button.
 1. At the top-right corner of the page under `logout` is a small icon. Click on it to open the `Selected Filters Workspace`.
@@ -92,7 +69,7 @@ This wrapper will create a temporary folder (`temp/` by default) with hundreds o
 
 ### Optional Arguments
 
-`--username` and `--password`: Include one of these to pass the user's NDA credentials from the command line into a `config.ini` file. This will create a new config file if one does not already exist, or overwrite the existing file. If only one of these flags is included, the user will be prompted for the other. They can be passed into the wrapper from the command line like so: `--username my_nda_username --password my_nda_password`.
+`--username` and `--password`: Include one of these to pass the user's NDA credentials from the command line into a `config.ini` file. This will create a new config file if one does not already exist, or overwrite the existing file. If only one of these flags is included, the user will be prompted for the other. They can be passed into the wrapper from the command line like so: `--username <NDA username> --password <NDA password>`.
 
 `--config`: By default, the wrapper will look for a `config.ini` file in a hidden subdirectory of the user's home directory (`~/.abcd2bids/`). Use `--config` to enter a different (non-default) path to the config file, e.g. `--config ~/Documents/config.ini`.
 
@@ -100,13 +77,13 @@ This wrapper will create a temporary folder (`temp/` by default) with hundreds o
 
 `--download`: By default, the wrapper will download the ABCD data to the `raw/` subdirectory of the cloned folder. If the user wants to download the ABCD data to a different directory, they can use the `--download` flag, e.g. `--download ~/abcd-dicom2bids/ABCD-Data-Download`. A folder will be created at the given path if one does not already exist.
 
+`--qc`: Path to the Quality Control (QC) spreadsheet file downloaded from the NDA. By default, the wrapper will use the `abcd_fastqc01.txt` file in the `spreadsheets` directory.
+
 `--remove`: By default, the wrapper will download the ABCD data to the `raw/` subdirectory of the cloned folder. If the user wants to delete the raw downloaded data for each subject after that subject's data is finished converting, the user can use the `--remove` flag without any additional parameters.
 
 `--output`: By default, the wrapper will place the finished/converted data into the `data/` subdirectory of the cloned folder. If the user wants to put the finished data anywhere else, they can do so using the optional `--output` flag followed by the path at which to create the directory, e.g. `--output ~/abcd-dicom2bids/Finished-Data`. A folder will be created at the given path if one does not already exist.
 
 `--start_at`: By default, this wrapper will run every step listed under "Explanation of Process" below. Use this flag to start at one step and skip all of the previous ones. To do so, enter the name of the step, e.g. `--start_at correct_jsons` to skip every step before JSON correction.
-
-`--image03` By default, this wrapper will use `./spreadsheets/image03.txt` as its neuroimaging data spreadsheet. To use a different spreadsheet, include this flag with a path to a readable file with neuroimaging data, e.g. `--image03 ./data.csv`.
 
 For more information including the shorthand flags of each option, use the `--help` command: `python3 abcd2bids.py --help`.
 
@@ -178,7 +155,7 @@ The following files belong in the `data` subdirectory to run `abcd2bids.py`:
 
 Without these files, the output of `abcd2bids.py` will fail BIDS validation. They should be downloaded from the GitHub repo by cloning it.
 
-This folder is where the output of `abcd2bids.py` will be placed by default. So, after running `abcd2bids.py`, this folder will have subdirectories for each subject session. Those subdirectories will be correctly formatted according to the [official BIDS specification standard v1.2.0](https://github.com/bids-standard/bids-specification/releases/tag/v1.2.0).
+`data` is where the output of `abcd2bids.py` will be placed by default. So, after running `abcd2bids.py`, this folder will have subdirectories for each subject session. Those subdirectories will be correctly formatted according to the [official BIDS specification standard v1.2.0](https://github.com/bids-standard/bids-specification/releases/tag/v1.2.0).
 
 The resulting ABCD Study dataset here is made up of all the ABCD Study participants' imaging data that passed initial acquisition quality control (MRI QC).
 
@@ -193,4 +170,4 @@ This wrapper relies on the following other projects:
 
 ## Meta
 
-Documentation last updated by Greg Conan on 2019-10-17.
+Documentation last updated by Greg Conan on 2019-11-06.

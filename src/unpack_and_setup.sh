@@ -45,6 +45,7 @@ TGZDIR=$3 # Path to directory containing all .tgz for this subject's session
 participant=`echo ${SUB} | sed 's|sub-||'`
 session=`echo ${VISIT} | sed 's|ses-||'`
 
+echo "ScratchSpaceDir=${ScratchSpaceDir}, ROOT_BIDSINPUT=${ROOT_BIDSINPUT}";
 
 date
 hostname
@@ -60,7 +61,6 @@ RandomHash=`cat /dev/urandom | tr -cd 'a-f0-9' | head -c 16`
 TempSubjectDir=${ScratchSpaceDir}/${RandomHash}
 mkdir -p ${TempSubjectDir}
 # chown :fnl_lab ${TempSubjectDir} || true
-echo "TempSubjectDir = ${TempSubjectDir}"
 
 # copy all tgz to the scratch space dir
 echo `date`" :COPYING TGZs TO SCRATCH: ${TempSubjectDir}"
@@ -102,7 +102,9 @@ fi
 
 # select best fieldmap and update sidecar jsons
 echo `date`" :RUNNING SEFM SELECTION AND EDITING SIDECAR JSONS"
-./src/sefm_eval_and_json_editor.py ${TempSubjectDir}/BIDS_unprocessed/${SUB} ${FSL_DIR} ${MRE_DIR} --participant-label=${participant}
+if [ -d ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/fmap ]; then
+    ./src/sefm_eval_and_json_editor.py ${TempSubjectDir}/BIDS_unprocessed/${SUB} ${FSL_DIR} ${MRE_DIR} --participant-label=${participant} --output_dir $ROOT_BIDSINPUT
+fi
 
 rm ${TempSubjectDir}/BIDS_unprocessed/${SUB}/ses-baselineYear1Arm1/fmap/*dir-both* 2> /dev/null || true
 
