@@ -253,6 +253,13 @@ def generate_parser(parser=None):
         '-v', '--version', action='version', version=last_modified,
         help="Return script's last modified date."
     )
+
+    # Added by Greg Conan 2019-11-04
+    parser.add_argument(
+        '-o', '--output_dir', default='./data/',
+        help=('Directory where necessary .json files live, including '
+              'dataset_description.json')
+    )
     
     return parser
 
@@ -267,10 +274,15 @@ def main(argv=sys.argv):
     # for this script's usage of FSL_DIR...
     fsl_dir = args.fsl_dir + '/bin'
 
+    # This block was added by Greg Conan 2019-10-25
+    for json_file in os.scandir(args.output_dir):
+        json_path = json_file.path
+        if "json" in json_path:
+            shutil.copy2(json_path, args.bids_dir)
+
     # Load the bids layout
     layout = BIDSLayout(args.bids_dir)
     subsess = read_bids_layout(layout, subject_list=args.subject_list, collect_on_subject=args.collect)
-    print(subsess)
 
     for subject,sessions in subsess:
         # fmap directory = base dir
@@ -297,24 +309,30 @@ def main(argv=sys.argv):
             TX_json = TX.replace('.nii.gz', '.json') 
             TX_metadata = layout.get_metadata(TX)
                 #if 'T1' in TX_metadata['SeriesDescription']:
+
+            """
             if 'Philips' in TX_metadata['Manufacturer']:
                 insert_edit_json(TX_json, 'DwellTime', 0.00062771)
             if 'GE' in TX_metadata['Manufacturer']:
                 insert_edit_json(TX_json, 'DwellTime', 0.000536)
             if 'Siemens' in TX_metadata['Manufacturer']:
                 insert_edit_json(TX_json, 'DwellTime', 0.00051001152626)
+            """
         
         # add EffectiveEchoSpacing if it doesn't already exist
         fmap = layout.get(subject=subject, session=sessions, modality='fmap', extensions='.nii.gz')
         for sefm in [x.filename for x in fmap]:
             sefm_json = sefm.replace('.nii.gz', '.json')
             sefm_metadata = layout.get_metadata(sefm)
+
+            """
             if 'Philips' in sefm_metadata['Manufacturer']:
                 insert_edit_json(sefm_json, 'EffectiveEchoSpacing', 0.00062771)
             if 'GE' in sefm_metadata['Manufacturer']:
                 insert_edit_json(sefm_json, 'EffectiveEchoSpacing', 0.000536)
             if 'Siemens' in sefm_metadata['Manufacturer']:
                 insert_edit_json(sefm_json, 'EffectiveEchoSpacing', 0.00051001152626)
+            """
 
         # PE direction vs axis
         func = layout.get(subject=subject, session=sessions, modality='func', extensions='.nii.gz')
