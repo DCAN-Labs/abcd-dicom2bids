@@ -7,16 +7,15 @@ from itertools import product
 os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
 
 # Last modified
-last_modified = "Created by Anders Perrone 3/21/2017. Last modified by Eric Earl 8/29/2018"
+last_modified = "Created by Anders Perrone 3/21/2017. Last modified by Greg Conan 11/11/2019"
 
 # Program description
 prog_descrip =  """%(prog)s: sefm_eval pairs each of the pos/neg sefm and returns the pair that is most representative
                    of the average by calculating the eta squared value for each sefm pair to the average sefm.""" + last_modified
 
-# Path to pwd/src, which contains compiled MATLAB ETA squared function; added
-# by Greg 2019-06-10 & updated 2019-06-13
-ETA_DIR = "./src/"
-
+# Path to abcd2bids/src, which contains compiled MATLAB ETA squared function; added
+# by Greg 2019-06-10 & updated 2019-11-07
+ETA_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def read_bids_layout(layout, subject_list=None, collect_on_subject=False):
     """
@@ -183,8 +182,8 @@ def seperate_concatenated_fm(bids_layout, subject, session, fsl_dir):
             # Change by Greg 2019-06-10: Replaced hardcoded Exacloud path to
             # FSL_identity_transformation_matrix with relative path to that
             # file in the pwd
-            AP_flirt = [fsl_dir + "/flirt", "-out", AP_filename, "-in", AP_filename, "-ref", func_ref, "-applyxfm", "-init", "./src/FSL_identity_transformation_matrix.mat", "-interp", "spline"]
-            PA_flirt = [fsl_dir + "/flirt", "-out", PA_filename, "-in", PA_filename, "-ref", func_ref, "-applyxfm", "-init", "./src/FSL_identity_transformation_matrix.mat", "-interp", "spline"]
+            AP_flirt = [fsl_dir + "/flirt", "-out", AP_filename, "-in", AP_filename, "-ref", func_ref, "-applyxfm", "-init", os.path.join(ETA_DIR, "FSL_identity_transformation_matrix.mat"), "-interp", "spline"]
+            PA_flirt = [fsl_dir + "/flirt", "-out", PA_filename, "-in", PA_filename, "-ref", func_ref, "-applyxfm", "-init", os.path.join(ETA_DIR, "FSL_identity_transformation_matrix.mat"), "-interp", "spline"]
 
             subprocess.run(AP_flirt, env=os.environ)
             subprocess.run(PA_flirt, env=os.environ)
@@ -274,12 +273,6 @@ def main(argv=sys.argv):
     # for this script's usage of FSL_DIR...
     fsl_dir = args.fsl_dir + '/bin'
 
-    # This block was added by Greg Conan 2019-10-25
-    for json_file in os.scandir(args.output_dir):
-        json_path = json_file.path
-        if "json" in json_path:
-            shutil.copy2(json_path, args.bids_dir)
-
     # Load the bids layout
     layout = BIDSLayout(args.bids_dir)
     subsess = read_bids_layout(layout, subject_list=args.subject_list, collect_on_subject=args.collect)
@@ -310,14 +303,12 @@ def main(argv=sys.argv):
             TX_metadata = layout.get_metadata(TX)
                 #if 'T1' in TX_metadata['SeriesDescription']:
 
-            """
             if 'Philips' in TX_metadata['Manufacturer']:
                 insert_edit_json(TX_json, 'DwellTime', 0.00062771)
             if 'GE' in TX_metadata['Manufacturer']:
                 insert_edit_json(TX_json, 'DwellTime', 0.000536)
             if 'Siemens' in TX_metadata['Manufacturer']:
                 insert_edit_json(TX_json, 'DwellTime', 0.00051001152626)
-            """
         
         # add EffectiveEchoSpacing if it doesn't already exist
         fmap = layout.get(subject=subject, session=sessions, modality='fmap', extensions='.nii.gz')
@@ -325,14 +316,12 @@ def main(argv=sys.argv):
             sefm_json = sefm.replace('.nii.gz', '.json')
             sefm_metadata = layout.get_metadata(sefm)
 
-            """
             if 'Philips' in sefm_metadata['Manufacturer']:
                 insert_edit_json(sefm_json, 'EffectiveEchoSpacing', 0.00062771)
             if 'GE' in sefm_metadata['Manufacturer']:
                 insert_edit_json(sefm_json, 'EffectiveEchoSpacing', 0.000536)
             if 'Siemens' in sefm_metadata['Manufacturer']:
                 insert_edit_json(sefm_json, 'EffectiveEchoSpacing', 0.00051001152626)
-            """
 
         # PE direction vs axis
         func = layout.get(subject=subject, session=sessions, modality='func', extensions='.nii.gz')
