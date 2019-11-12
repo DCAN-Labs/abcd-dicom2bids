@@ -4,7 +4,7 @@
 ABCD to BIDS CLI Wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-05-29
-Last Updated 2019-11-06
+Last Updated 2019-11-11
 """
 
 ##################################
@@ -35,7 +35,12 @@ import sys
 STEP_NAMES = ["create_good_and_bad_series_table", "download_nda_data",
               "unpack_and_setup", "correct_jsons", "validate_bids"]
 
-PWD = os.getcwd()
+# Get path to directory containing abcd2bids.py
+try:
+    PWD = os.path.dirname(os.path.abspath(__file__))
+    assert os.access(os.path.join(PWD, "abcd2bids.py"), os.R_OK)
+except (OSError, AssertionError):
+    PWD = os.getcwd()
 
 # Constants: Default paths to scripts to call from this wrapper, and default
 # paths to folders in which to manipulate data
@@ -61,6 +66,9 @@ def main():
     cli_args = get_cli_args()
 
     def now():
+        """
+        :return: String with date and time in readable format
+        """
         return datetime.now().strftime("%H:%M:%S on %b %d, %Y")
 
     started_at = now()
@@ -190,7 +198,7 @@ def get_cli_args():
         default=STEP_NAMES[0],
         help=("Give the name of the step in the wrapper to start "
               "at, then run that step and every step after it. Here are the "
-              "names of each step, in order from first to last: "
+              "names of all of the steps, in order from first to last: "
               + ", ".join(STEP_NAMES))
     )
 
@@ -279,7 +287,7 @@ def validate_readable_file(param):
     """
     if not os.access(param, os.R_OK):
         raise argparse.ArgumentTypeError("Could not read file at " + param)
-    return param
+    return os.path.abspath(param)
 
 
 def try_to_create_and_prep_directory_at(folder_path, default_path, parser):
@@ -461,8 +469,7 @@ def create_good_and_bad_series_table(cli_args):
     with open(cli_args.qc) as qc_file:
         all_qc_data = pd.read_csv(
             qc_file, encoding="utf-8-sig", sep=",|\t", engine="python",
-            index_col=False, header=0, skiprows=[1], # Skip row 2 (description)
-            usecols=lambda x: x != "ftq_notes" # Skip unneeded column w/ commas
+            index_col=False, header=0, skiprows=[1]  # Skip row 2 (description)
         )  
     qc_data = fix_split_col(all_qc_data.loc[all_qc_data["ftq_usable"] == 1])
 
@@ -503,6 +510,7 @@ def fix_split_col(qc_df):
         """
         ix = int(row.name)
         if not pd.isna(qc_df.at[ix, columns[-1]]):
+            qc_df.at[ix, columns[-3]] += " " + qc_df.at[ix, columns[-2]]
             qc_df.at[ix, columns[-2]] = qc_df.at[ix, columns[-1]]
 
     # Keep checking and dropping the last column of qc_df until it's valid
@@ -526,7 +534,8 @@ def download_nda_data(cli_args):
     with downloaded NDA data.
     :return: N/A
     """
-    subprocess.check_call(("python3", SERIES_TABLE_PARSER, cli_args.download))
+    subprocess.check_call(("python3", SERIES_TABLE_PARSER, cli_args.download, 
+                           SPREADSHEET_DOWNLOAD))
 
 
 def unpack_and_setup(args):
@@ -584,10 +593,11 @@ def correct_jsons(cli_args):
     # sefm_eval_and_json_editor.py, and the vol*.nii.gz files
     sub_dirs = os.path.join(cli_args.output, "sub*")
     for json_path in iglob(os.path.join(sub_dirs, "*.json")):
-        print("Removing {}".format(json_path))
+        print("Removing .JSON file: {}".format(json_path))
         os.remove(json_path)
-    for vol_file in iglob(os.path.join(sub_dirs, "ses*", "fmap", "vol*.nii.gz")):
-        print("Removing {}".format(vol_file))
+    for vol_file in iglob(os.path.join(sub_dirs, "ses*", 
+                          "fmap", "vol*.nii.gz")):
+        print("Removing 'vol' file: {}".format(vol_file))
         os.remove(vol_file)
 
 

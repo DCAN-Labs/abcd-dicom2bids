@@ -31,18 +31,22 @@ num_subjects_after_checks = 0
 
 # Get download folder name. Use one entered from command line if it exists;
 # otherwise use "./new_download". Added by Greg Conan 2019-06-06
-if len(sys.argv) is 2:
+if len(sys.argv) > 1:
     new_download_dir = sys.argv[1]
-else:
+    if len(sys.argv) > 2:  # added 2019-11-07
+        series_csv = sys.argv[2]
+    else:
+        series_csv = os.path.join(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__))), "spreadsheets",
+            "ABCD_good_and_bad_series_table.csv"
+        )
+elif len(sys.argv) < 1:
     new_download_dir = './new_download/'
-
 
 with open('abcd_download_log.csv','w') as f:
     writer = csv.writer(f)
 
-
     # Read csv as pandas dataframe, drop duplicate entries, sort, and group by subject/visit
-    series_csv = "./spreadsheets/ABCD_good_and_bad_series_table.csv"
     series_df = pd.read_csv(series_csv)
     subject_dfs = series_df.drop_duplicates().sort_values(by='SeriesTime', ascending=True).groupby(["pGUID", "EventName"])
 
@@ -66,8 +70,8 @@ with open('abcd_download_log.csv','w') as f:
         visit = name[1]
         sub = "sub-" + sub_id.replace("_","")
         #print(sub_id, visit)
-        tgz_dir = './download' + sub + '/' + visit
-        new_tgz_dir = new_download_dir + sub + '/' + visit
+        tgz_dir = os.path.join('./download', sub, visit)
+        new_tgz_dir = os.path.join(new_download_dir, sub, visit)
         if os.path.exists(tgz_dir):
             print("{0} already exists from old download. Updating now.".format(name))
             #continue
