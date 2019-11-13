@@ -7,16 +7,15 @@ from itertools import product
 os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
 
 # Last modified
-last_modified = "Created by Anders Perrone 3/21/2017. Last modified by Eric Earl 8/29/2018"
+last_modified = "Created by Anders Perrone 3/21/2017. Last modified by Greg Conan 11/11/2019"
 
 # Program description
 prog_descrip =  """%(prog)s: sefm_eval pairs each of the pos/neg sefm and returns the pair that is most representative
                    of the average by calculating the eta squared value for each sefm pair to the average sefm.""" + last_modified
 
-# Path to pwd/src, which contains compiled MATLAB ETA squared function; added
-# by Greg 2019-06-10 & updated 2019-06-13
-ETA_DIR = "./src/"
-
+# Path to abcd2bids/src, which contains compiled MATLAB ETA squared function; added
+# by Greg 2019-06-10 & updated 2019-11-07
+ETA_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def read_bids_layout(layout, subject_list=None, collect_on_subject=False):
     """
@@ -183,8 +182,8 @@ def seperate_concatenated_fm(bids_layout, subject, session, fsl_dir):
             # Change by Greg 2019-06-10: Replaced hardcoded Exacloud path to
             # FSL_identity_transformation_matrix with relative path to that
             # file in the pwd
-            AP_flirt = [fsl_dir + "/flirt", "-out", AP_filename, "-in", AP_filename, "-ref", func_ref, "-applyxfm", "-init", "./src/FSL_identity_transformation_matrix.mat", "-interp", "spline"]
-            PA_flirt = [fsl_dir + "/flirt", "-out", PA_filename, "-in", PA_filename, "-ref", func_ref, "-applyxfm", "-init", "./src/FSL_identity_transformation_matrix.mat", "-interp", "spline"]
+            AP_flirt = [fsl_dir + "/flirt", "-out", AP_filename, "-in", AP_filename, "-ref", func_ref, "-applyxfm", "-init", os.path.join(ETA_DIR, "FSL_identity_transformation_matrix.mat"), "-interp", "spline"]
+            PA_flirt = [fsl_dir + "/flirt", "-out", PA_filename, "-in", PA_filename, "-ref", func_ref, "-applyxfm", "-init", os.path.join(ETA_DIR, "FSL_identity_transformation_matrix.mat"), "-interp", "spline"]
 
             subprocess.run(AP_flirt, env=os.environ)
             subprocess.run(PA_flirt, env=os.environ)
@@ -253,6 +252,13 @@ def generate_parser(parser=None):
         '-v', '--version', action='version', version=last_modified,
         help="Return script's last modified date."
     )
+
+    # Added by Greg Conan 2019-11-04
+    parser.add_argument(
+        '-o', '--output_dir', default='./data/',
+        help=('Directory where necessary .json files live, including '
+              'dataset_description.json')
+    )
     
     return parser
 
@@ -270,7 +276,6 @@ def main(argv=sys.argv):
     # Load the bids layout
     layout = BIDSLayout(args.bids_dir)
     subsess = read_bids_layout(layout, subject_list=args.subject_list, collect_on_subject=args.collect)
-    print(subsess)
 
     for subject,sessions in subsess:
         # fmap directory = base dir
@@ -297,6 +302,7 @@ def main(argv=sys.argv):
             TX_json = TX.replace('.nii.gz', '.json') 
             TX_metadata = layout.get_metadata(TX)
                 #if 'T1' in TX_metadata['SeriesDescription']:
+
             if 'Philips' in TX_metadata['Manufacturer']:
                 insert_edit_json(TX_json, 'DwellTime', 0.00062771)
             if 'GE' in TX_metadata['Manufacturer']:
@@ -309,6 +315,7 @@ def main(argv=sys.argv):
         for sefm in [x.filename for x in fmap]:
             sefm_json = sefm.replace('.nii.gz', '.json')
             sefm_metadata = layout.get_metadata(sefm)
+
             if 'Philips' in sefm_metadata['Manufacturer']:
                 insert_edit_json(sefm_json, 'EffectiveEchoSpacing', 0.00062771)
             if 'GE' in sefm_metadata['Manufacturer']:

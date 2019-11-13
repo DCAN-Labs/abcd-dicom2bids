@@ -45,7 +45,6 @@ TGZDIR=$3 # Path to directory containing all .tgz for this subject's session
 participant=`echo ${SUB} | sed 's|sub-||'`
 session=`echo ${VISIT} | sed 's|ses-||'`
 
-
 date
 hostname
 echo ${SLURM_JOB_ID}
@@ -60,7 +59,6 @@ RandomHash=`cat /dev/urandom | tr -cd 'a-f0-9' | head -c 16`
 TempSubjectDir=${ScratchSpaceDir}/${RandomHash}
 mkdir -p ${TempSubjectDir}
 # chown :fnl_lab ${TempSubjectDir} || true
-echo "TempSubjectDir = ${TempSubjectDir}"
 
 # copy all tgz to the scratch space dir
 echo `date`" :COPYING TGZs TO SCRATCH: ${TempSubjectDir}"
@@ -85,24 +83,27 @@ done
 mkdir ${TempSubjectDir}/BIDS_unprocessed
 echo ${participant}
 echo `date`" :RUNNING dcm2bids"
-dcm2bids -d ${TempSubjectDir}/DCMs/${SUB} -p ${participant} -s ${session} -c ./abcd_dcm2bids.conf -o ${TempSubjectDir}/BIDS_unprocessed --forceDcm2niix --clobber
+ABCD2BIDS_DIR="$(dirname "$ROOT_BIDSINPUT")"
+dcm2bids -d ${TempSubjectDir}/DCMs/${SUB} -p ${participant} -s ${session} -c ${ABCD2BIDS_DIR}/abcd_dcm2bids.conf -o ${TempSubjectDir}/BIDS_unprocessed --forceDcm2niix --clobber
 
 echo `date`" :CHECKING BIDS ORDERING OF EPIs"
 if [[ -e ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/func ]]; then
-    if [[ `./src/run_order_fix.py ${TempSubjectDir}/BIDS_unprocessed ${TempSubjectDir}/bids_order_error.json ${TempSubjectDir}/bids_order_map.json --all --subject ${SUB}` == ${SUB} ]]; then
+    if [[ `${ABCD2BIDS_DIR}/src/run_order_fix.py ${TempSubjectDir}/BIDS_unprocessed ${TempSubjectDir}/bids_order_error.json ${TempSubjectDir}/bids_order_map.json --all --subject ${SUB}` == ${SUB} ]]; then
         echo BIDS correctly ordered
     else
         echo ERROR: BIDS incorrectly ordered even after running run_order_fix.py
         exit
     fi
 else
-    echo ERROR: No functional images found T1 only processing not yet enabeled
+    echo "No functional images found for subject ${SUB}. Skipping sefm_eval_and_json_editor to copy and rename source data."
     exit
 fi
 
 # select best fieldmap and update sidecar jsons
 echo `date`" :RUNNING SEFM SELECTION AND EDITING SIDECAR JSONS"
-./src/sefm_eval_and_json_editor.py ${TempSubjectDir}/BIDS_unprocessed/${SUB} ${FSL_DIR} ${MRE_DIR} --participant-label=${participant}
+if [ -d ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/fmap ]; then
+    ${ABCD2BIDS_DIR}/src/sefm_eval_and_json_editor.py ${TempSubjectDir}/BIDS_unprocessed/${SUB} ${FSL_DIR} ${MRE_DIR} --participant-label=${participant} --output_dir $ROOT_BIDSINPUT
+fi
 
 rm ${TempSubjectDir}/BIDS_unprocessed/${SUB}/ses-baselineYear1Arm1/fmap/*dir-both* 2> /dev/null || true
 
