@@ -15,34 +15,39 @@ Clone this repository and save it somewhere on the Linux system you want to do A
 1. [zlib's pigz-2.4](https://zlib.net/pigz) (`export` into your BASH `PATH` variable)
 1. Docker (see documentation for [Docker Community Edition for Ubuntu](https://docs.docker.com/install/linux/docker-ce/ubuntu/))
 1. [FMRIB Software Library (FSL) v5.0](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
-1. [Python `cryptography` package](https://cryptography.io/en/latest/)
+1. Python [`cryptography` package](https://cryptography.io/en/latest/)
+1. Python [`pandas` package](https://pandas.pydata.org)
 1. [AWS CLI (Amazon Web Services Command Line Interface) v19.0.0](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
 
-## Spreadsheets (not included)
+## Spreadsheet (not included)
 
-To download images for ABCD you must have two spreadsheets downloaded to this repository's `spreadsheets` folder:
+To download images for ABCD you must have the `abcd_fastqc01.csv` spreadsheet downloaded to this repository's `spreadsheets` folder. It can be downloaded from the [NIMH Data Archive (NDA)](https://nda.nih.gov/) with an ABCD Study Data Use Certification in place. `abcd_fastqc01.csv` contains operator QC information for each MRI series. If the image fails operator QC (a score of 0), then the image will not be downloaded.
 
-1. `DAL_ABCD_merged_pcqcinfo.csv`
-1. `image03.txt`
+### How to Download `abcd_fastqc01.csv`
 
-`DAL_ABCD_merged_pcqcinfo.csv` was provided to OHSU by the ABCD DAIC.  A future version of this code will utilize the [NIMH Data Archive (NDA)](https://ndar.nih.gov/) version of this QC information.  The spreadsheet contains operator QC information for each MRI series.  If the image fails operator QC (a score of 0) the image is not downloaded.
-
-`image03.txt` can be downloaded from [the NDA](https://ndar.nih.gov/) with an ABCD Study Data Use Certification in place.  It contains paths to the TGZ files on the NDA's Amazon AWS S3 buckets where the images can be downloaded from per series.  The following are explicit steps to download just this file:
-
-1. Login to the [NIMH Data Archive](https://ndar.nih.gov/)
-1. Go to **Data Dictionary** under **Quick Navigation**
-1. Select **All ABCD Releases** under **Source**
-1. Click **Filter**
-1. Select just **Image/image03**
-1. Click **Download**
-1. In the upper right hand corner under **Selected Filters** click **Download/Add to Study**
-    - Under **Collections** by **Permission Group** click **Deselect All**
-    - At the bottom re-select **Adolescent Brain Cognitive Development (ABCD)**
-1. Click **Create Package**
-    - Name the package something like **Image03**
-    - Select Only **Include documentation**
-    - Click **Create Package**
-1. Download and use the **Package Manager** to download your package
+1. Login to the [NIMH Data Archive](https://nda.nih.gov/).
+1. From the homepage, click the button labeled `GET DATA` to go to `Featured Datasets`.
+1. Under the `Data Dictionary` heading in the sidebar, click `Data Structures`.
+1. Add `abcd_fastqc01.csv` to the Filter Cart.
+    1. Enter the spreadsheet file name into the `Text Search` box to find `ABCD Fasttrack QC Instrument`, then click its checkbox to select it.
+    1. At the bottom of the page, click the `Add to Workspace` button.
+1. At the top-right corner of the page under `logout` is a small icon. Click on it to open the `Selected Filters Workspace`.
+1. Click `Submit to Filter Cart` at the bottom of the workspace.
+1. Wait until the `Filter Cart` window at the top-right no longer says `Updating Filter Cart`. 
+1. Once the Filter Cart is updated, click `Package/Add to Study` in the `Filter Cart` window.
+1. Click one of the buttons that says `Create Package`
+    - Name each package something like **abcdQC**.
+    - Select Only **Include documentation**.
+    - Click **Create Package**.
+1. From your NDA dashboard, click `Packages`.
+1. Click the `Download Manager` button to download an executable `.jnlp` file. Once it downloads, run it to install the NDA Download Manager on your local machine.
+1. Enter your NDA username and password in the window that pops up.
+1. Accept the terms and conditions.
+1. Click the checkbox at the left side of the window next to the file that you downloaded (e.g. `abcdQC`).
+    - If you want to save the file to a different location than your home directory, click the `Browse` button at the top of the window.
+1. Once the `Status` column of your package says `Ready to Download`, click `Start Downloads` at the bottom of the page to begin the download.
+    - To track your download's progress at any given point, click the `Refresh Queue` button at the top of the window.  
+1. Once the `Status` column of your file says `Download Complete`, your file is ready.
 
 ## Usage
 
@@ -58,19 +63,21 @@ If the user already has a `config.ini` file, then the wrapper can use that, so t
 
 ### Disk Space Usage Warnings
 
-This wrapper will download NDA data (into the `raw/` subdirectory by default) and then copy it (into the `data/` subdirectory by default) to convert it without deleting the downloaded data, unless the `--remove` flag is added. The downloaded and converted data will take up a large amount of space on the user's filesystem, especially for converting many subjects. About 3 to 7 GB of data or more will be produced by downloading and converting one subject session, not counting the temporary files in the `temp/` subdirectory.
+This wrapper will download NDA data (into the `raw/` subdirectory by default) and then copy it (into the `data/` subdirectory by default) to convert it, without deleting the downloaded data unless the `--remove` flag is added. The downloaded and converted data will take up a large amount of space on the user's filesystem, especially for converting many subjects. About 3 to 7 GB of data or more will be produced by downloading and converting one subject session, not counting the temporary files in the `temp/` subdirectory.
 
 This wrapper will create a temporary folder (`temp/` by default) with hundreds of thousands of files (about 7 GB or more) per subject session. These files are used in the process of preparing the BIDS data. The wrapper will delete that temporary folder once it finishes running, even if it crashes. Still, it is probably a good idea to double-check that the temporary folder has no subdirectories before and after running this wrapper. Otherwise, this wrapper might leave an extremely large set of unneeded files on the user's filesystem.
 
-### Optional arguments
+### Optional Arguments
 
-`--username` and `--password`: Include one of these to pass the user's NDA credentials from the command line into a `config.ini` file. This will create a new config file if one does not already exist, or overwrite the existing file. If only one of these flags is included, the user will be prompted for the other. They can be passed into the wrapper from the command line like so: `--username my_nda_username --password my_nda_password`.
+`--username` and `--password`: Include one of these to pass the user's NDA credentials from the command line into a `config.ini` file. This will create a new config file if one does not already exist, or overwrite the existing file. If only one of these flags is included, the user will be prompted for the other. They can be passed into the wrapper from the command line like so: `--username <NDA username> --password <NDA password>`.
 
 `--config`: By default, the wrapper will look for a `config.ini` file in a hidden subdirectory of the user's home directory (`~/.abcd2bids/`). Use `--config` to enter a different (non-default) path to the config file, e.g. `--config ~/Documents/config.ini`.
 
 `--temp`: By default, the temporary files will be created in the `temp/` subdirectory of the clone of this repo. If the user wants to place the temporary files anywhere else, then they can do so using the optional `--temp` flag followed by the path at which to create the directory containing temp files, e.g. `--temp /usr/home/abcd2bids-temporary-folder`. A folder will be created at the given path if one does not already exist.
 
 `--download`: By default, the wrapper will download the ABCD data to the `raw/` subdirectory of the cloned folder. If the user wants to download the ABCD data to a different directory, they can use the `--download` flag, e.g. `--download ~/abcd-dicom2bids/ABCD-Data-Download`. A folder will be created at the given path if one does not already exist.
+
+`--qc`: Path to the Quality Control (QC) spreadsheet file downloaded from the NDA. By default, the wrapper will use the `abcd_fastqc01.txt` file in the `spreadsheets` directory.
 
 `--remove`: By default, the wrapper will download the ABCD data to the `raw/` subdirectory of the cloned folder. If the user wants to delete the raw downloaded data for each subject after that subject's data is finished converting, the user can use the `--remove` flag without any additional parameters.
 
@@ -88,33 +95,30 @@ python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime d
 
 ## Explanation of Process
 
-`abcd2bids.py` is a wrapper for five distinct scripts, which previously needed to be run on their own in sequential order:
+`abcd2bids.py` is a wrapper for 4 distinct scripts, which previously needed to be run on their own in sequential order:
 
-1. (MATLAB) `data_gatherer.m`
-2. (Python) `good_bad_series_parser.py`
-3. (BASH) `unpack_and_setup.sh`
-4. (Python) `correct_jsons.py`
-5. (Docker) Official BIDS validator
+1. (Python) `good_bad_series_parser.py`
+2. (BASH) `unpack_and_setup.sh`
+3. (Python) `correct_jsons.py`
+4. (Docker) Official BIDS validator
 
 The DICOM 2 BIDS conversion process can be done by running `python3 abcd2bids.py <FSL directory> <MRE directory>` without any other options. First, the wrapper will try to create an NDA token with the user's NDA credentials. It does this by calling `src/nda_aws_token_maker.py`, which calls `src/nda_aws_token_generator` ([taken from the NDA](https://github.com/NDAR/nda_aws_token_generator)). If the wrapper cannot find a `config.ini` file with those credentials, and they are not entered as command line args, then the user will be prompted to enter them.
 
-### 1. (MATLAB) `data_gatherer`
+### Preliminary Steps
 
-The MATLAB portion is for producing a download list for the Python & BASH portion to download, convert, select, and prepare. The two spreadsheets referenced above are used in the `data_gatherer` compiled MATLAB script to create the `ABCD_good_and_bad_series_table.csv` which gets used to actually download the images. `data_gatherer` depends on a mapping file (`mapping.mat`), which maps the SeriesDescriptions to known OHSU descriptors that classify each TGZ file into T1, T2, task-rest, task-nback, etc.
+As its first step, the wrapper will call `nda_aws_token_maker.py`. If successful, `nda_aws_token_maker.py` will create a `credentials` file in the `.aws/` subdirectory of the user's `home` directory. 
 
-As its first step, the wrapper will run `data_gatherer` with this repository's cloned folder as the clone of this repo. If successful, it will create the file `ABCD_good_and_bad_series_table.csv` in the `spreadsheets/` subdirectory.
+Next, the wrapper will produce a download list for the Python & BASH portion to download, convert, select, and prepare. The two spreadsheets referenced above are used to create the `ABCD_good_and_bad_series_table.csv` which gets used to actually download the images. If successful, this script will create the file `ABCD_good_and_bad_series_table.csv` in the `spreadsheets/` subdirectory. This step was previously done by a compiled MATLAB script called `data_gatherer`, but now the wrapper has its own functionality to replace that script.
 
 **NOTE:** This step can take over two hours to complete.
 
-### 2. (Python) `good_bad_series_parser.py`
+### 1. (Python) `good_bad_series_parser.py`
 
 Once `ABCD_good_and_bad_series_table.csv` is successfully created, the wrapper will run `src/good_bad_series_parser.py` with this repository's cloned folder as the present working directory to download the ABCD data from the NDA website. It requires the `ABCD_good_and_bad_series_table.csv` spreadsheet under a `spreadsheets` subdirectory of this repository's cloned folder.
 
-`src/good_bad_series_parser.py` also requires a `.aws` folder in the user's `home` directory, which will contain the NDA token. The `nda_aws_token_maker.py` is called before running the wrapper. If successful, `nda_aws_token_maker` will create a `credentials` file in `.aws`. If the download crashes and shows errors about `awscli`, try making sure you have the [latest AWS CLI installed](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html), and that the [`aws` executable is in your BASH `PATH` variable](https://docs.aws.amazon.com/cli/latest/userguide/install-linux.html#install-linux-path).
+`src/good_bad_series_parser.py` also requires a valid NDA token in the `.aws/` folder in the user's `home/` directory. If successful, this will download the ABCD data from the NDA site into the `raw/` subdirectory of the clone of this repo. If the download crashes and shows errors about `awscli`, try making sure you have the [latest AWS CLI installed](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html), and that the [`aws` executable is in your BASH `PATH` variable](https://docs.aws.amazon.com/cli/latest/userguide/install-linux.html#install-linux-path).
 
-If successful, this will download the ABCD data from the NDA site into the `raw/` subdirectory of the clone of this repo.
-
-### 3. (BASH) `unpack_and_setup.sh`
+### 2. (BASH) `unpack_and_setup.sh`
 
 The wrapper will call `unpack_and_setup.sh` in a loop to do the DICOM to BIDS conversion and spin echo field map selection, taking seven arguments:
 
@@ -124,17 +128,17 @@ VISIT=$2 # Full BIDS formatted session ID (ses-SESSIONID)
 TGZDIR=$3 # Path to directory containing all TGZ files for SUB/VISIT
 ROOTBIDSINPUT=$4 Path to output folder which will be created to store unpacked/setup files
 ScratchSpaceDir=$5 Path to folder which will be created to store temporary files that will be deleted once the wrapper finishes
-FSL_DIR=$6 Path to FSL directory
-MRE_DIR=$7 Path to MATLAB Runtime Environment (MRE) directory
+FSL_DIR=$6 # Path to FSL directory
+MRE_DIR=$7 # Path to MATLAB Runtime Environment (MRE) directory
 ```
 
 By default, the wrapper will put the unpacked/setup data in the `data/` subdirectory of this repository's cloned folder. This step will also create and fill the `temp/` subdirectory of the user's home directory containing temporary files used for the download. If the user enters other locations for the temp directory or output data directory as optional command line args, then those will be used instead.
 
-### 4. (Python) `correct_jsons.py`
+### 3. (Python) `correct_jsons.py`
 
 Next, the wrapper runs `correct_jsons.py` on the whole BIDS directory (`data/` by default) to correct/prepare all BIDS sidecar JSON files to comply with the BIDS specification standard version 1.2.0.
 
-### 5. (Docker) Run official BIDS validator
+### 4. (Docker) Run Official BIDS Validator
 
 Finally, the wrapper will run the [official BIDS validator](https://github.com/bids-standard/bids-validator) using Docker to validate the final dataset created by this process in the `data/` subdirectory.
 
@@ -151,7 +155,7 @@ The following files belong in the `data` subdirectory to run `abcd2bids.py`:
 
 Without these files, the output of `abcd2bids.py` will fail BIDS validation. They should be downloaded from the GitHub repo by cloning it.
 
-This folder is where the output of `abcd2bids.py` will be placed by default. So, after running `abcd2bids.py`, this folder will have subdirectories for each subject session. Those subdirectories will be correctly formatted according to the [official BIDS specification standard v1.2.0](https://github.com/bids-standard/bids-specification/releases/tag/v1.2.0).
+`data` is where the output of `abcd2bids.py` will be placed by default. So, after running `abcd2bids.py`, this folder will have subdirectories for each subject session. Those subdirectories will be correctly formatted according to the [official BIDS specification standard v1.2.0](https://github.com/bids-standard/bids-specification/releases/tag/v1.2.0).
 
 The resulting ABCD Study dataset here is made up of all the ABCD Study participants' imaging data that passed initial acquisition quality control (MRI QC).
 
@@ -163,3 +167,7 @@ This wrapper relies on the following other projects:
 - [zlib's pigz-2.4](https://zlib.net/pigz)
 - [Official BIDS validator](https://github.com/bids-standard/bids-validator) 
 - [NDA AWS token generator](https://github.com/NDAR/nda_aws_token_generator)
+
+## Meta
+
+Documentation last updated by Greg Conan on 2019-11-06.
