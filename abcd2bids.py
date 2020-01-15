@@ -4,7 +4,7 @@
 ABCD to BIDS CLI Wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-05-29
-Last Updated 2019-11-11
+Updated 2020-01-15
 """
 
 ##################################
@@ -21,9 +21,9 @@ Last Updated 2019-11-11
 import argparse
 import configparser
 from cryptography.fernet import Fernet
-from datetime import datetime
+import datetime
 from getpass import getpass
-from glob import iglob
+import glob
 import os
 import pandas as pd
 import shutil
@@ -64,15 +64,7 @@ def main():
     :return: N/A
     """
     cli_args = get_cli_args()
-
-    def now():
-        """
-        :return: String with date and time in readable format
-        """
-        return datetime.now().strftime("%H:%M:%S on %b %d, %Y")
-
-    started_at = now()
-    print("\nABCD to BIDS wrapper started at " + started_at)
+    starting_timestamp = get_and_print_timestamp_when(sys.argv[0], "started")
 
     # Set cleanup function to delete all temporary files if script crashes
     set_to_cleanup_on_crash(cli_args.temp)
@@ -87,14 +79,33 @@ def main():
         if step == cli_args.start_at:
             started = True
         if started:
-            print("The {} step started at {}.".format(step, now()))
+            get_and_print_timestamp_when("The {} step".format(step),
+                                         "started")
             globals()[step](cli_args)
-            print("The {} step finished at {}.".format(step, now()))
-    print("\nABCD to BIDS wrapper started at {} and finished at {}.".format(
-        started_at, now()))
+            get_and_print_timestamp_when("The {} step".format(step),
+                                         "finished")
+    print(starting_timestamp)
+    get_and_print_timestamp_when(sys.argv[0], "finished")
 
     # Finally, delete temporary files and end script with success exit code
     cleanup(cli_args.temp, 0)
+
+
+def get_and_print_timestamp_when(script, did_what):
+    """
+    Print and return a string showing the exact date and time when a script
+    reached a certain part of its process
+    :param script: String naming the script that started/finished
+    :param did_what: String which is a past tense verb describing what the
+                     script did at the timestamp, like "started" or "finished"
+    :return: String with a human-readable message showing when script did_what
+    """
+    timestamp = "\n{} {} at {}".format(
+        script, did_what,
+        datetime.datetime.now().strftime("%H:%M:%S on %b %d, %Y")
+    )
+    print(timestamp)
+    return timestamp
 
 
 def get_cli_args():
@@ -384,7 +395,7 @@ def make_nda_token(args):
             password = args.password
         else:
             password = getpass("Enter your NIMH Data Archives password: ")
-
+            
         make_config_file(args.config, username, password)
 
     # Try to make NDA token
@@ -443,14 +454,12 @@ def make_config_file(config_filepath, username, password):
 
     # Encrypt user's NDA password by making an encryption key
     encryption_key = Fernet.generate_key()
-    encrypted_password = (
-        Fernet(encryption_key).encrypt(password.encode("UTF-8"))
-    )
+    encrypted_pass = Fernet(encryption_key).encrypt(password.encode("UTF-8"))
 
     # Save the encryption key and encrypted password to a new config file
     config["NDA"] = {
         "username": username,
-        "encrypted_password": encrypted_password.decode("UTF-8"),
+        "encrypted_password": encrypted_pass.decode("UTF-8"),
         "key": encryption_key.decode("UTF-8")
     }
     with open(config_filepath, "w") as configfile:
@@ -465,13 +474,28 @@ def create_good_and_bad_series_table(cli_args):
     Create good_and_bad_series_table.csv by merging imaging data with QC data
     :param cli_args: argparse namespace containing all CLI arguments.
     :return: N/A
-    """
+    """   
+    # Import QC data from .csv file
     with open(cli_args.qc) as qc_file:
         all_qc_data = pd.read_csv(
             qc_file, encoding="utf-8-sig", sep=",|\t", engine="python",
-            index_col=False, header=0, skiprows=[1]  # Skip row 2 (description)
-        )  
-    qc_data = fix_split_col(all_qc_data.loc[all_qc_data["ftq_usable"] == 1])
+            index_col=False, header=0, skiprows=[1] # Skip row 2 (description)
+        )
+    
+    # Remove quotes from values and convert int-strings to ints
+    all_qc_data = all_qc_data.applymap(lambda x: x.strip('"')).apply(
+        lambda x: x.apply(lambda y: int(y) if y.isnumeric() else y)
+    )
+    
+    # Remove quotes from headers
+    new_headers = []
+    for header in all_qc_data.columns: # data.columns is your list of headers
+        header = header.strip('"') # Remove the quotes off each header
+        new_headers.append(header) # Save the new strings without the quotes
+    all_qc_data.columns = new_headers # Replace the old headers with the new list
+    print(all_qc_data.columns)
+
+    qc_data = fix_split_col(all_qc_data.loc[all_qc_data['ftq_usable'] == 1])
 
     def get_img_desc(row):
         """
@@ -482,7 +506,8 @@ def create_good_and_bad_series_table(cli_args):
 
     # Add missing column by splitting data from other column
     image_desc_col = qc_data.apply(get_img_desc, axis=1)
-    qc_data = qc_data.assign(**{"image_description": image_desc_col.values})
+    
+    qc_data = qc_data.assign(**{'image_description': image_desc_col.values})
 
     # Change column names for good_bad_series_parser to use; then save to .csv
     qc_data.rename({
@@ -499,7 +524,6 @@ def fix_split_col(qc_df):
     :param qc_df: pandas.DataFrame with all QC data
     :return: pandas.DataFrame which is qc_df, but with the last column(s) fixed
     """
-
     def trim_end_columns(row):
         """
         Local function to check for extra columns in a row, and fix them
@@ -534,6 +558,7 @@ def download_nda_data(cli_args):
     with downloaded NDA data.
     :return: N/A
     """
+    subprocess.check_call(("python3", "--version"))
     subprocess.check_call(("python3", SERIES_TABLE_PARSER, cli_args.download, 
                            SPREADSHEET_DOWNLOAD))
 
@@ -592,10 +617,10 @@ def correct_jsons(cli_args):
     # Remove the .json files added to each subject's output directory by
     # sefm_eval_and_json_editor.py, and the vol*.nii.gz files
     sub_dirs = os.path.join(cli_args.output, "sub*")
-    for json_path in iglob(os.path.join(sub_dirs, "*.json")):
+    for json_path in glob.iglob(os.path.join(sub_dirs, "*.json")):
         print("Removing .JSON file: {}".format(json_path))
         os.remove(json_path)
-    for vol_file in iglob(os.path.join(sub_dirs, "ses*", 
+    for vol_file in glob.iglob(os.path.join(sub_dirs, "ses*", 
                           "fmap", "vol*.nii.gz")):
         print("Removing 'vol' file: {}".format(vol_file))
         os.remove(vol_file)
