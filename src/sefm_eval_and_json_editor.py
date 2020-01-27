@@ -3,6 +3,8 @@
 import os, sys, glob, argparse, subprocess, socket, operator, shutil, json
 from bids.grabbids import BIDSLayout
 from itertools import product
+import nibabel as nib
+import numpy as np
 
 os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
 
@@ -49,6 +51,28 @@ def read_bids_layout(layout, subject_list=None, collect_on_subject=False):
             'Otherwise check that the bids folder provided is correct.'
 
     return subsess
+
+def eta_squared(inputIm, refIm):
+    # replace the matlab code - could be done
+    # with either fslstats, simpleitk, or nibabel
+    # nibabel is already in use, so stick with that
+    # Note that this gives a slightly different
+    # answer to eta_squared.m, at least on my
+    # matlab version. Difference is due to matlab
+    # using int16 arithmetic some of the time.
+    # comes out the same when forced to double.
+    im1 = nib.load(refIm)
+    im2 = nib.load(inputIm)
+    imdat1 = im1.get_fdata()
+    imdat2 = im2.get_fdata()
+
+    mn1 = imdat1.mean()
+    mn2 = imdat2.mean()
+    grandmean = (mn1 + mn2)/2
+    MWithin = (imdat1 + imdat2)/2
+    ssWithin = np.sum(np.square(imdat1 - MWithin)) + np.sum(np.square(imdat2 - MWithin))
+    ssTot =  np.sum(np.square(imdat1 - grandmean)) + np.sum(np.square(imdat2 - grandmean))
+    return 1-ssWithin/ssTot
 
 
 def sefm_select(layout, subject, sessions, base_temp_dir, fsl_dir, mre_dir,
@@ -119,9 +143,9 @@ def sefm_select(layout, subject, sessions, base_temp_dir, fsl_dir, mre_dir,
     for i, pair in enumerate(pairs):
         eta_list = []
         for pedir,image in [(pos,pair[0]),(neg,pair[1])]:
-            mat_cmd = [os.path.join(ETA_DIR,'run_eta_squared.sh'), mre_dir, os.path.join(temp_dir,'init_' + pedir + '_reg_' + str(i) + '.nii.gz'), os.path.join(temp_dir,pedir + '_mean.nii.gz')]
-            mat_stdout = subprocess.check_output(mat_cmd)
-            eta = float(mat_stdout.split()[-1])
+            eta = eta_squared(os.path.join(temp_dir,'init_' + pedir + '_reg_' + str(i) + '.nii.gz'), os.path.join(temp_dir,pedir + '_mean.nii.gz'))
+            print(image + " eta value = " + str(eta))
+
             print(image + " eta value = " + str(eta))
             eta_list.append(eta)
         # instead of finding the average between eta values between pairs. Take the pair with the highest lowest eta value.
