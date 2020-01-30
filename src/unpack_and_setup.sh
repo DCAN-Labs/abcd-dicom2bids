@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/bash 
 
 # Given a subject ID, session, and tgz directory:
 #   1) Copy all tgzs to compute node's disk
@@ -83,8 +83,12 @@ done
 mkdir ${TempSubjectDir}/BIDS_unprocessed
 echo ${participant}
 echo `date`" :RUNNING dcm2bids"
-ABCD2BIDS_DIR="$(dirname "$ROOT_BIDSINPUT")"
-dcm2bids -d ${TempSubjectDir}/DCMs/${SUB} -p ${participant} -s ${session} -c ${ABCD2BIDS_DIR}/abcd_dcm2bids.conf -o ${TempSubjectDir}/BIDS_unprocessed --forceDcm2niix --clobber
+
+#ABCD2BIDS_DIR="$(dirname "$ROOT_BIDSINPUT")"
+ABCD2BIDS_DIR=${HOME}/Projects/abcd/Scripts/abcd-dicom2bids/
+ABCD2BIDS_CONF=${HOME}/Projects/abcd/Scripts/abcd-dicom2bids//abcd_dcm2bids.conf
+
+dcm2bids -d ${TempSubjectDir}/DCMs/${SUB} -p ${participant} -s ${session} -c ${ABCD2BIDS_CONF} -o ${TempSubjectDir}/BIDS_unprocessed --forceDcm2niix --clobber
 
 echo `date`" :CHECKING BIDS ORDERING OF EPIs"
 if [[ -e ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/func ]]; then
@@ -102,7 +106,8 @@ fi
 # select best fieldmap and update sidecar jsons
 echo `date`" :RUNNING SEFM SELECTION AND EDITING SIDECAR JSONS"
 if [ -d ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/fmap ]; then
-    ${ABCD2BIDS_DIR}/src/sefm_eval_and_json_editor.py ${TempSubjectDir}/BIDS_unprocessed/${SUB} ${FSL_DIR} ${MRE_DIR} --participant-label=${participant} --output_dir $ROOT_BIDSINPUT
+    cp ${ROOT_BIDSINPUT}/dataset_description.json ${TempSubjectDir}/BIDS_unprocessed/
+    ${ABCD2BIDS_DIR}/src/sefm_eval_and_json_editor.py ${TempSubjectDir}/BIDS_unprocessed/ ${FSL_DIR} ${MRE_DIR} --participant-label=${participant} --output_dir $ROOT_BIDSINPUT
 fi
 
 rm ${TempSubjectDir}/BIDS_unprocessed/${SUB}/ses-baselineYear1Arm1/fmap/*dir-both* 2> /dev/null || true
