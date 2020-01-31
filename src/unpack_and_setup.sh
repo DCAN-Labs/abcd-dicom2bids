@@ -83,7 +83,8 @@ done
 mkdir ${TempSubjectDir}/BIDS_unprocessed
 echo ${participant}
 echo `date`" :RUNNING dcm2bids"
-ABCD2BIDS_DIR="$(dirname "$ROOT_BIDSINPUT")"
+ABCD2BIDS_DIR="$(dirname ${0})"
+ABCD2BIDS_DIR="$(dirname ${ABCD2BIDS_DIR})" # modified by Greg 2020-01-30 to run this script from any location
 dcm2bids -d ${TempSubjectDir}/DCMs/${SUB} -p ${participant} -s ${session} -c ${ABCD2BIDS_DIR}/abcd_dcm2bids.conf -o ${TempSubjectDir}/BIDS_unprocessed --forceDcm2niix --clobber
 
 echo `date`" :CHECKING BIDS ORDERING OF EPIs"
