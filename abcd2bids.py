@@ -45,16 +45,20 @@ except (OSError, AssertionError):
 # Constants: Default paths to scripts to call from this wrapper, and default
 # paths to folders in which to manipulate data
 CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".abcd2bids", "config.ini")
-CORRECT_JSONS = os.path.join(PWD, "src", "correct_jsons.py")
+#CORRECT_JSONS = os.path.join(PWD, "src", "correct_jsons.py")
+CORRECT_JSONS = "./src/correct_jsons.py"
 DOWNLOAD_FOLDER = os.path.join(PWD, "raw")
-NDA_AWS_TOKEN_MAKER = os.path.join(PWD, "src", "nda_aws_token_maker.py")
-SERIES_TABLE_PARSER = os.path.join(PWD, "src", "good_bad_series_parser.py")
-SPREADSHEET_DOWNLOAD = os.path.join(PWD, "spreadsheets",
-                                  "ABCD_good_and_bad_series_table.csv")
-SPREADSHEET_QC = os.path.join(PWD, "spreadsheets", "abcd_fastqc01.txt")
+#NDA_AWS_TOKEN_MAKER = os.path.join(PWD, "src", "nda_aws_token_maker.py")
+NDA_AWS_TOKEN_MAKER = "./src/nda_aws_token_maker.py"
+
+#SERIES_TABLE_PARSER = os.path.join(PWD, "src", "aws_downloader.py")
+SERIES_TABLE_PARSER = "./src/aws_downloader.py"
+SPREADSHEET_DOWNLOAD = "./spreadsheets/ABCD_good_and_bad_series_table.csv"
+SPREADSHEET_QC = "./spreadsheets/abcd_fastqc01.txt"
 TEMP_FILES_DIR = os.path.join(PWD, "temp")
-UNPACK_AND_SETUP = os.path.join(PWD, "src", "unpack_and_setup.sh")
+UNPACK_AND_SETUP = "./src/unpack_and_setup.sh"
 UNPACKED_FOLDER = os.path.join(PWD, "data")
+MODALITIES = ['anat', 'func', 'dwi']
 
 
 def main():
@@ -191,6 +195,30 @@ def get_cli_args():
               "spreadsheet.".format(SPREADSHEET_QC))
     )
 
+    # Optional: Subject list
+    parser.add_argument(
+        "-l",
+        "--subject-list",
+        dest="subject_list",
+        type=validate_readable_file,
+        required=True,
+        help=("Path to a .txt file containing a list of subjects to download. "
+              "The default is to download all available subjects.")
+    )
+
+    # Optional: Modalities
+    parser.add_argument(
+        "-m",
+        "--modalities",
+        choices=MODALITIES,
+        nargs="+",
+        dest="modalities",
+        default=MODALITIES,
+        help=("List of the imaging modalities that should be downloaded for "
+             "each subject. The default is to download all modalities. "
+             "The possible selections are {}".format(MODALITIES))
+)    
+
     # Optional: During unpack_and_setup, remove unprocessed data
     parser.add_argument(
         "-r",
@@ -235,6 +263,17 @@ def get_cli_args():
               "file exists with the user's NDA credentials, the user will be "
               "prompted for them. If this is added and --password is not, "
               "then the user will be prompted for their NDA password.")
+    )
+
+    parser.add_argument(
+        "-z",
+        "--docker-cmd",
+        type=str,
+        dest="docker_cmd",
+        default=None,
+        help=("A necessary docker command replacement on HPCs like "
+              "the one at OHSU, which has it's own special wrapper for"
+              "docker for security reasons. Example: '/opt/acc/sbin/exadocker'")
     )
 
     # Parse, validate, and return all CLI args
@@ -559,8 +598,12 @@ def download_nda_data(cli_args):
     :return: N/A
     """
     subprocess.check_call(("python3", "--version"))
-    subprocess.check_call(("python3", SERIES_TABLE_PARSER, cli_args.download, 
-                           SPREADSHEET_DOWNLOAD))
+    print(cli_args.modalities)
+    subprocess.check_call(("python3", 
+                            SERIES_TABLE_PARSER,
+                            "--download-dir", cli_args.download, 
+                            "--subject-list", cli_args.subject_list,
+                            "--modalities", ','.join(cli_args.modalities)))
 
 
 def unpack_and_setup(args):
@@ -572,36 +615,74 @@ def unpack_and_setup(args):
     --download, --temp, and --remove.
     :return: N/A
     """
-    for subject in os.scandir(args.download):
-        if subject.is_dir():
-            for session_dir in os.scandir(subject.path):
-                if session_dir.is_dir():
-                    for tgz in os.scandir(session_dir.path):
-                        if tgz:
 
-                            # Get session ID from some (arbitrary) .tgz file in
-                            # session folder
-                            session_name = tgz.name.split("_")[1]
+    if args.subject_list:
+        f = open(args.subject_list, 'r')
+        x = f.readlines()
+        f.close
+        subject_list = [sub.strip() for sub in x]
+        for subject in subject_list:
+            subject_dir = os.path.join(args.download, subject)
+            if os.path.isdir(subject_dir):
+                for session_dir in os.scandir(subject_dir):
+                    if session_dir.is_dir():
+                        for tgz in os.scandir(session_dir.path):
+                            if tgz:
 
-                            # Unpack/setup the data for this subject/session
-                            subprocess.check_call((
-                                UNPACK_AND_SETUP,
-                                subject.name,
-                                "ses-" + session_name,
-                                session_dir.path,
-                                args.output,
-                                args.temp,
-                                args.fsl_dir,
-                                args.mre_dir
-                            ))
+                                # Get session ID from some (arbitrary) .tgz file in
+                                # session folder
+                                session_name = tgz.name.split("_")[1]
 
-                            # If user said to, delete all the raw downloaded
-                            # files for each subject after that subject's data
-                            # has been converted and copied
-                            if args.remove:
-                                shutil.rmtree(os.path.join(args.download,
-                                                           subject.name))
-                            break
+                                # Unpack/setup the data for this subject/session
+                                subprocess.check_call((
+                                    UNPACK_AND_SETUP,
+                                    subject,
+                                    "ses-" + session_name,
+                                    session_dir.path,
+                                    args.output,
+                                    args.temp,
+                                    args.fsl_dir,
+                                    args.mre_dir
+                                ))
+
+                                # If user said to, delete all the raw downloaded
+                                # files for each subject after that subject's data
+                                # has been converted and copied
+                                if args.remove:
+                                    shutil.rmtree(os.path.join(args.download,
+                                                               subject))
+                                break
+    else:
+        for subject in os.scandir(args.download):
+            if subject.is_dir():
+                for session_dir in os.scandir(subject.path):
+                    if session_dir.is_dir():
+                        for tgz in os.scandir(session_dir.path):
+                            if tgz:
+
+                                # Get session ID from some (arbitrary) .tgz file in
+                                # session folder
+                                session_name = tgz.name.split("_")[1]
+
+                                # Unpack/setup the data for this subject/session
+                                subprocess.check_call((
+                                    UNPACK_AND_SETUP,
+                                    subject.name,
+                                    "ses-" + session_name,
+                                    session_dir.path,
+                                    args.output,
+                                    args.temp,
+                                    args.fsl_dir,
+                                    args.mre_dir
+                                ))
+
+                                # If user said to, delete all the raw downloaded
+                                # files for each subject after that subject's data
+                                # has been converted and copied
+                                if args.remove:
+                                    shutil.rmtree(os.path.join(args.download,
+                                                               subject.name))
+                                break
 
 
 def correct_jsons(cli_args):
@@ -635,9 +716,14 @@ def validate_bids(cli_args):
     :return: N/A
     """
     try:
-        subprocess.check_call(("docker", "run", "-ti", "--rm", "-v",
-                               cli_args.output + ":/data:ro", "bids/validator",
-                               "/data"))
+        if cli_args.docker_cmd:
+            subprocess.check_call(('sudo', cli_args.docker_cmd, "run", "-ti", "--rm", "-v",
+                                   cli_args.output + ":/data:ro", "bids/validator",
+                                   "/data"))
+        else:    
+            subprocess.check_call(("docker", "run", "-ti", "--rm", "-v",
+                                   cli_args.output + ":/data:ro", "bids/validator",
+                                   "/data"))
     except subprocess.CalledProcessError:
         print("Error: BIDS validation failed.")
 
