@@ -15,10 +15,13 @@
 # run_order_fix.py (in this repo)
 # sefm_eval_and_json_editor.py (in this repo)
 
+# modified by Greg 2020-02-05 to run this script from any location
+ABCD2BIDS_DIR="$(readlink -f ${0}/../..)"
+ 
 # If output folder is given as a command line arg, get it; otherwise use
 # ./data as the default. Added by Greg 2019-06-06
 if [ "x$4" = "x" ]; then
-    ROOT_BIDSINPUT=./data
+    ROOT_BIDSINPUT=${ABCD2BIDS_DIR}/data
 else
     ROOT_BIDSINPUT=$4
 fi
@@ -26,7 +29,7 @@ fi
 # If temp files folder is given as a command line arg, get it; otherwise use
 # ./temp as the default. Added by Greg 2019-06-07
 if [ "x$5" = "x" ]; then
-    ScratchSpaceDir=./temp
+    ScratchSpaceDir=${ABCD2BIDS_DIR}/temp
 else
     ScratchSpaceDir=$5
 fi
@@ -83,8 +86,6 @@ done
 mkdir ${TempSubjectDir}/BIDS_unprocessed
 echo ${participant}
 echo `date`" :RUNNING dcm2bids"
-ABCD2BIDS_DIR="$(dirname ${0})"
-ABCD2BIDS_DIR="$(dirname ${ABCD2BIDS_DIR})" # modified by Greg 2020-01-30 to run this script from any location
 dcm2bids -d ${TempSubjectDir}/DCMs/${SUB} -p ${participant} -s ${session} -c ${ABCD2BIDS_DIR}/abcd_dcm2bids.conf -o ${TempSubjectDir}/BIDS_unprocessed --forceDcm2niix --clobber
 
 echo `date`" :CHECKING BIDS ORDERING OF EPIs"
