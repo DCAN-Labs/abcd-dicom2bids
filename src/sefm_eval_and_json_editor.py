@@ -305,21 +305,22 @@ def main(argv=sys.argv):
     for subject,sessions in subsess:
         # fmap directory = base dir
         fmap = layout.get(subject=subject, session=sessions, datatype='fmap', extensions='.nii.gz')
-        base_temp_dir = os.path.dirname(fmap[0].path)
- 
-        # Check if fieldmaps are concatenated
-        print(fmap[0].path)
-        print("-both_" in fmap[0].path)
-        if "-both_" in fmap[0].path:
-            print("Running seperate_concatenate_fm")
-            seperate_concatenated_fm(layout, subject, sessions, fsl_dir)
-            # recreate layout with the additional SEFMS
-            layout = BIDSLayout(args.bids_dir)
+        if fmap:
+
+            # Check if fieldmaps are concatenated
+            base_temp_dir = os.path.dirname(fmap[0].path)
+            print(fmap[0].path)
+            print("-both_" in fmap[0].path)
+            if "-both_" in fmap[0].path:
+                print("Running seperate_concatenate_fm")
+                seperate_concatenated_fm(layout, subject, sessions, fsl_dir)
+                # recreate layout with the additional SEFMS
+                layout = BIDSLayout(args.bids_dir)
                 
-        # Return a list of each SEFM pos/neg pair
-        bes_pos, best_neg = sefm_select(layout, subject, sessions,
-                                        base_temp_dir, fsl_dir, args.mre_dir,
-                                        args.debug)
+            # Return a list of each SEFM pos/neg pair
+            bes_pos, best_neg = sefm_select(layout, subject, sessions,
+                                            base_temp_dir, fsl_dir,
+                                            args.mre_dir, args.debug)
 
         # Additional edits to the anat json sidecar
         anat = layout.get(subject=subject, session=sessions, datatype='anat', extensions='.nii.gz')
