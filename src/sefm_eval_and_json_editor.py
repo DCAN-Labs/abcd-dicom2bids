@@ -1,8 +1,10 @@
 #! /usr/bin/env python3
 
 import os, sys, glob, argparse, subprocess, socket, operator, shutil, json
-from bids.grabbids import BIDSLayout
+from bids.layout import BIDSLayout
 from itertools import product
+import nibabel as nib
+import numpy as np
 
 os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
 
@@ -51,6 +53,29 @@ def read_bids_layout(layout, subject_list=None, collect_on_subject=False):
     return subsess
 
 
+def eta_squared(inputIm, refIm):
+    # replace the matlab code - could be done
+    # with either fslstats, simpleitk, or nibabel
+    # nibabel is already in use, so stick with that
+    # Note that this gives a slightly different
+    # answer to eta_squared.m, at least on my
+    # matlab version. Difference is due to matlab
+    # using int16 arithmetic some of the time.
+    # comes out the same when forced to double.
+    im1 = nib.load(refIm)
+    im2 = nib.load(inputIm)
+    imdat1 = im1.get_fdata()
+    imdat2 = im2.get_fdata()
+
+    mn1 = imdat1.mean()
+    mn2 = imdat2.mean()
+    grandmean = (mn1 + mn2)/2
+    MWithin = (imdat1 + imdat2)/2
+    ssWithin = np.sum(np.square(imdat1 - MWithin)) + np.sum(np.square(imdat2 - MWithin))
+    ssTot =  np.sum(np.square(imdat1 - grandmean)) + np.sum(np.square(imdat2 - grandmean))
+    return 1-ssWithin/ssTot
+
+    
 def sefm_select(layout, subject, sessions, base_temp_dir, fsl_dir, mre_dir,
                 debug=False):
     pos = 'PA'
@@ -69,10 +94,10 @@ def sefm_select(layout, subject, sessions, base_temp_dir, fsl_dir, mre_dir,
         pass
 
     print("Pairing for subject " + subject + ": " + subject + ", " + sessions)
-    fmap = layout.get(subject=subject, session=sessions, modality='fmap', extensions='.nii.gz')
+    fmap = layout.get(subject=subject, session=sessions, datatype='fmap', extensions='.nii.gz')
     if len(fmap):
-        list_pos = [x.filename for i, x in enumerate(fmap) if 'dir-PA' in x.filename]
-        list_neg = [x.filename for i, x in enumerate(fmap) if 'dir-AP' in x.filename]
+        list_pos = [x.path for i, x in enumerate(fmap) if 'dir-PA' in x.filename]
+        list_neg = [x.path for i, x in enumerate(fmap) if 'dir-AP' in x.filename]
     
     try:
         len(list_pos) == len(list_neg)
@@ -119,9 +144,7 @@ def sefm_select(layout, subject, sessions, base_temp_dir, fsl_dir, mre_dir,
     for i, pair in enumerate(pairs):
         eta_list = []
         for pedir,image in [(pos,pair[0]),(neg,pair[1])]:
-            mat_cmd = [os.path.join(ETA_DIR,'run_eta_squared.sh'), mre_dir, os.path.join(temp_dir,'init_' + pedir + '_reg_' + str(i) + '.nii.gz'), os.path.join(temp_dir,pedir + '_mean.nii.gz')]
-            mat_stdout = subprocess.check_output(mat_cmd)
-            eta = float(mat_stdout.split()[-1])
+            eta = eta_squared(os.path.join(temp_dir,'init_' + pedir + '_reg_' + str(i) + '.nii.gz'), os.path.join(temp_dir,pedir + '_mean.nii.gz'))
             print(image + " eta value = " + str(eta))
             eta_list.append(eta)
         # instead of finding the average between eta values between pairs. Take the pair with the highest lowest eta value.
@@ -132,8 +155,8 @@ def sefm_select(layout, subject, sessions, base_temp_dir, fsl_dir, mre_dir,
     print(best_neg)
 
     # Add metadata
-    func_list = [x.filename for x in layout.get(subject=subject, session=sessions, modality='func', extensions='.nii.gz')]
-    anat_list = [x.filename for x in layout.get(subject=subject, session=sessions, modality='anat', extensions='.nii.gz')]
+    func_list = [x.path for x in layout.get(subject=subject, session=sessions, datatype='func', extensions='.nii.gz')]
+    anat_list = [x.path for x in layout.get(subject=subject, session=sessions, datatype='anat', extensions='.nii.gz')]
     for pair in pairs:
         pos_nifti = pair[0]
         neg_nifti = pair[1]
@@ -162,17 +185,19 @@ def sefm_select(layout, subject, sessions, base_temp_dir, fsl_dir, mre_dir,
 
 def seperate_concatenated_fm(bids_layout, subject, session, fsl_dir):
     print("actually running")
-    fmap = bids_layout.get(subject=subject, session=session, modality='fmap', extensions='.nii.gz')
+    fmap = bids_layout.get(subject=subject, session=session, datatype='fmap', extensions='.nii.gz')
     # use the first functional image as the reference for the nifti header after fslswapdim
-    func_ref = bids_layout.get(subject=subject, session=session, modality='func', extensions='.nii.gz')[0].filename
+    func_ref = bids_layout.get(subject=subject, session=session, datatype='func', extensions='.nii.gz')[0].path
     print("functional reference: {}".format(func_ref))
-    for FM in [x.filename for x in fmap]:
+
+    for FM in [x.path for x in fmap]:
         subject_dir = os.path.dirname(FM)
         if "-both_" in FM:
             print("Splitting up {}".format(FM))
             AP_filename = FM.replace("-both_", "-AP_")
             PA_filename = FM.replace("-both_", "-PA_")
             split = [fsl_dir + "/fslsplit", FM, subject_dir + "/vol" ,"-t"]
+            print(split)
             subprocess.run(split, env=os.environ)
             swap_dim = [fsl_dir + "/fslswapdim", subject_dir + "/vol0000.nii.gz" ,"x", "-y", "z", subject_dir + "/vol0000.nii.gz"]
             subprocess.run(swap_dim, env=os.environ)
@@ -279,26 +304,27 @@ def main(argv=sys.argv):
 
     for subject,sessions in subsess:
         # fmap directory = base dir
-        fmap = layout.get(subject=subject, session=sessions, modality='fmap', extensions='.nii.gz')
-        base_temp_dir = os.path.dirname(fmap[0].filename)
- 
-        # Check if fieldmaps are concatenated
-        print(fmap[0].filename)
-        print("-both_" in fmap[0].filename)
-        if "-both_" in fmap[0].filename:
-            print("Running seperate_concatenate_fm")
-            seperate_concatenated_fm(layout, subject, sessions, fsl_dir)
-            # recreate layout with the additional SEFMS
-            layout = BIDSLayout(args.bids_dir)
+        fmap = layout.get(subject=subject, session=sessions, datatype='fmap', extensions='.nii.gz')
+        if fmap:
+
+            # Check if fieldmaps are concatenated
+            base_temp_dir = os.path.dirname(fmap[0].path)
+            print(fmap[0].path)
+            print("-both_" in fmap[0].path)
+            if "-both_" in fmap[0].path:
+                print("Running seperate_concatenate_fm")
+                seperate_concatenated_fm(layout, subject, sessions, fsl_dir)
+                # recreate layout with the additional SEFMS
+                layout = BIDSLayout(args.bids_dir)
                 
-        # Return a list of each SEFM pos/neg pair
-        bes_pos, best_neg = sefm_select(layout, subject, sessions,
-                                        base_temp_dir, fsl_dir, args.mre_dir,
-                                        args.debug)
+            # Return a list of each SEFM pos/neg pair
+            bes_pos, best_neg = sefm_select(layout, subject, sessions,
+                                            base_temp_dir, fsl_dir,
+                                            args.mre_dir, args.debug)
 
         # Additional edits to the anat json sidecar
-        anat = layout.get(subject=subject, session=sessions, modality='anat', extensions='.nii.gz')
-        for TX in [x.filename for x in anat]:
+        anat = layout.get(subject=subject, session=sessions, datatype='anat', extensions='.nii.gz')
+        for TX in [x.path for x in anat]:
             TX_json = TX.replace('.nii.gz', '.json') 
             TX_metadata = layout.get_metadata(TX)
                 #if 'T1' in TX_metadata['SeriesDescription']:
@@ -311,8 +337,8 @@ def main(argv=sys.argv):
                 insert_edit_json(TX_json, 'DwellTime', 0.00051001152626)
         
         # add EffectiveEchoSpacing if it doesn't already exist
-        fmap = layout.get(subject=subject, session=sessions, modality='fmap', extensions='.nii.gz')
-        for sefm in [x.filename for x in fmap]:
+        fmap = layout.get(subject=subject, session=sessions, datatype='fmap', extensions='.nii.gz')
+        for sefm in [x.path for x in fmap]:
             sefm_json = sefm.replace('.nii.gz', '.json')
             sefm_metadata = layout.get_metadata(sefm)
 
@@ -324,8 +350,8 @@ def main(argv=sys.argv):
                 insert_edit_json(sefm_json, 'EffectiveEchoSpacing', 0.00051001152626)
 
         # PE direction vs axis
-        func = layout.get(subject=subject, session=sessions, modality='func', extensions='.nii.gz')
-        for task in [x.filename for x in func]:
+        func = layout.get(subject=subject, session=sessions, datatype='func', extensions='.nii.gz')
+        for task in [x.path for x in func]:
             task_json = task.replace('.nii.gz', '.json')
             task_metadata = layout.get_metadata(task)
             print('Inserting PE into func')
