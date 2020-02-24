@@ -15,8 +15,15 @@
 # run_order_fix.py (in this repo)
 # sefm_eval_and_json_editor.py (in this repo)
 
-# modified by Greg 2020-02-05 to run this script from any location
-ABCD2BIDS_DIR="$(readlink -f ${0}/../..)"
+# modified by Greg 2020-02-21
+SRC_DIR="$(dirname ${0})"
+if [ "$(basename ${SRC_DIR})" = "src" ]; then
+    ABCD2BIDS_DIR="$(dirname $SRC_DIR)"
+else
+    echo "Error: $(basename ${0}) must be kept in the 'src' directory."
+    exit
+fi
+
  
 # If output folder is given as a command line arg, get it; otherwise use
 # ./data as the default. Added by Greg 2019-06-06
@@ -86,6 +93,7 @@ done
 mkdir ${TempSubjectDir}/BIDS_unprocessed
 echo ${participant}
 echo `date`" :RUNNING dcm2bids"
+echo "ABCD2BIDS_DIR is ${ABCD2BIDS_DIR}"
 dcm2bids -d ${TempSubjectDir}/DCMs/${SUB} -p ${participant} -s ${session} -c ${ABCD2BIDS_DIR}/abcd_dcm2bids.conf -o ${TempSubjectDir}/BIDS_unprocessed --forceDcm2niix --clobber
 
 echo `date`" :CHECKING BIDS ORDERING OF EPIs"
@@ -105,7 +113,7 @@ fi
 echo `date`" :RUNNING SEFM SELECTION AND EDITING SIDECAR JSONS"
 if [ -d ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/fmap ]; then
     cp ${ROOT_BIDSINPUT}/dataset_description.json ${TempSubjectDir}/BIDS_unprocessed
-    ${ABCD2BIDS_DIR}/src/sefm_eval_and_json_editor.py ${TempSubjectDir}/BIDS_unprocessed/${SUB} ${FSL_DIR} ${MRE_DIR} --participant-label=${participant} --output_dir $ROOT_BIDSINPUT
+    ${ABCD2BIDS_DIR}/src/sefm_eval_and_json_editor.py ${TempSubjectDir}/BIDS_unprocessed/ ${FSL_DIR} ${MRE_DIR} --participant-label=${participant} --output_dir $ROOT_BIDSINPUT
 fi
 
 rm ${TempSubjectDir}/BIDS_unprocessed/${SUB}/ses-baselineYear1Arm1/fmap/*dir-both* 2> /dev/null || true
