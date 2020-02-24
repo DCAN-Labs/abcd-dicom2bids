@@ -51,7 +51,7 @@ DOWNLOAD_FOLDER = os.path.join(PWD, "raw")
 NDA_AWS_TOKEN_MAKER = os.path.join(PWD, "src", "nda_aws_token_maker.py")
 SERIES_TABLE_PARSER = os.path.join(PWD, "src", "good_bad_series_parser.py")
 SPREADSHEET_DOWNLOAD = os.path.join(PWD, "spreadsheets",
-                                    "small_good_bad_series_table.csv") # "ABCD_good_and_bad_series_table.csv") # TODO put the full table back
+                                    "ABCD_good_and_bad_series_table.csv")
 SPREADSHEET_QC = os.path.join(PWD, "spreadsheets", "abcd_fastqc01.txt")
 TEMP_FILES_DIR = os.path.join(PWD, "temp")
 UNPACK_AND_SETUP = os.path.join(PWD, "src", "unpack_and_setup.sh")
