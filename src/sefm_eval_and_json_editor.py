@@ -9,7 +9,7 @@ import numpy as np
 os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
 
 # Last modified
-last_modified = "Created by Anders Perrone 3/21/2017. Last modified by Greg Conan 11/11/2019"
+last_modified = "Created by Anders Perrone 3/21/2017. Last modified by Greg Conan 2/24/2020"
 
 # Program description
 prog_descrip =  """%(prog)s: sefm_eval pairs each of the pos/neg sefm and returns the pair that is most representative
@@ -280,7 +280,7 @@ def generate_parser(parser=None):
 
     # Added by Greg Conan 2019-11-04
     parser.add_argument(
-        '-o', '--output_dir', default='./data/',
+        '-o', '--output-dir', default='./data/',
         help=('Directory where necessary .json files live, including '
               'dataset_description.json')
     )
@@ -305,7 +305,7 @@ def main(argv=sys.argv):
     for subject,sessions in subsess:
         # fmap directory = base dir
         fmap = layout.get(subject=subject, session=sessions, datatype='fmap', extensions='.nii.gz')
-        if fmap:
+        if fmap:  # "if" added by Greg 2020-02-24 to prevent crashing if fmap is empty list
 
             # Check if fieldmaps are concatenated
             base_temp_dir = os.path.dirname(fmap[0].path)
