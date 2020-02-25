@@ -10,10 +10,11 @@ exe_dir=`dirname "$0"`
 # Added 2020-01-29 to ensure that $TMPDIR is nonempty and points to a real path
 if [ "x$TMPDIR" = "x" ]; then
     export TMPDIR=/tmp
-    if [ ! -d $TMPDIR ]; then
-        mkdir $TMPDIR;
-    fi
-fi 
+fi
+if [ ! -d $TMPDIR ]; then
+    mkdir $TMPDIR;
+fi
+ 
 if [ ! -d $TMPDIR/$USER ]; then
     mkdir $TMPDIR/$USER
 fi

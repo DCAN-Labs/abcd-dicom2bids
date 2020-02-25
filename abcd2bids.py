@@ -4,7 +4,7 @@
 ABCD to BIDS CLI Wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-05-29
-Updated 2020-01-30
+Updated 2020-02-25
 """
 
 ##################################
@@ -41,7 +41,7 @@ try:
     assert os.access(os.path.join(PWD, "abcd2bids.py"), os.R_OK)
 except (OSError, AssertionError):
     sys.exit("{} must get its own location to find the files it needs, "
-             "but it was unable to find itself.".format(__file__))
+             "but it could not find its location.".format(__file__))
 
 # Constants: Default paths to scripts to call from this wrapper, and default
 # paths to folders in which to manipulate data
