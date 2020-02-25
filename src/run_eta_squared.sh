@@ -12,7 +12,7 @@ if [ "x$TMPDIR" = "x" ]; then
     export TMPDIR=/tmp
 fi 
 if [ ! -d $TMPDIR ]; then
-    mkdir $TMPDIR;
+    mkdir -p $TMPDIR;
 fi
 
 if [ ! -d $TMPDIR/$USER ]; then
