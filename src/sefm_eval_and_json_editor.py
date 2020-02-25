@@ -94,7 +94,7 @@ def sefm_select(layout, subject, sessions, base_temp_dir, fsl_dir, mre_dir,
         pass
 
     print("Pairing for subject " + subject + ": " + subject + ", " + sessions)
-    fmap = layout.get(subject=subject, session=sessions, datatype='fmap', extensions='.nii.gz')
+    fmap = layout.get(subject=subject, session=sessions, datatype='fmap', extension='nii.gz')
     if len(fmap):
         list_pos = [x.path for i, x in enumerate(fmap) if 'dir-PA' in x.filename]
         list_neg = [x.path for i, x in enumerate(fmap) if 'dir-AP' in x.filename]
@@ -155,8 +155,8 @@ def sefm_select(layout, subject, sessions, base_temp_dir, fsl_dir, mre_dir,
     print(best_neg)
 
     # Add metadata
-    func_list = [x.path for x in layout.get(subject=subject, session=sessions, datatype='func', extensions='.nii.gz')]
-    anat_list = [x.path for x in layout.get(subject=subject, session=sessions, datatype='anat', extensions='.nii.gz')]
+    func_list = [x.path for x in layout.get(subject=subject, session=sessions, datatype='func', extension='nii.gz')]
+    anat_list = [x.path for x in layout.get(subject=subject, session=sessions, datatype='anat', extension='nii.gz')]
     for pair in pairs:
         pos_nifti = pair[0]
         neg_nifti = pair[1]
@@ -185,9 +185,9 @@ def sefm_select(layout, subject, sessions, base_temp_dir, fsl_dir, mre_dir,
 
 def seperate_concatenated_fm(bids_layout, subject, session, fsl_dir):
     print("actually running")
-    fmap = bids_layout.get(subject=subject, session=session, datatype='fmap', extensions='.nii.gz')
+    fmap = bids_layout.get(subject=subject, session=session, datatype='fmap', extension='nii.gz')
     # use the first functional image as the reference for the nifti header after fslswapdim
-    func_ref = bids_layout.get(subject=subject, session=session, datatype='func', extensions='.nii.gz')[0].path
+    func_ref = bids_layout.get(subject=subject, session=session, datatype='func', extension='nii.gz')[0].path
     print("functional reference: {}".format(func_ref))
 
     for FM in [x.path for x in fmap]:
@@ -304,7 +304,7 @@ def main(argv=sys.argv):
 
     for subject,sessions in subsess:
         # fmap directory = base dir
-        fmap = layout.get(subject=subject, session=sessions, datatype='fmap', extensions='.nii.gz')
+        fmap = layout.get(subject=subject, session=sessions, datatype='fmap', extension='nii.gz')
         if fmap:  # "if" added by Greg 2020-02-24 to prevent crashing if fmap is empty list
 
             # Check if fieldmaps are concatenated
@@ -323,7 +323,7 @@ def main(argv=sys.argv):
                                             args.mre_dir, args.debug)
 
         # Additional edits to the anat json sidecar
-        anat = layout.get(subject=subject, session=sessions, datatype='anat', extensions='.nii.gz')
+        anat = layout.get(subject=subject, session=sessions, datatype='anat', extension='nii.gz')
         for TX in [x.path for x in anat]:
             TX_json = TX.replace('.nii.gz', '.json') 
             TX_metadata = layout.get_metadata(TX)
@@ -337,7 +337,7 @@ def main(argv=sys.argv):
                 insert_edit_json(TX_json, 'DwellTime', 0.00051001152626)
         
         # add EffectiveEchoSpacing if it doesn't already exist
-        fmap = layout.get(subject=subject, session=sessions, datatype='fmap', extensions='.nii.gz')
+        fmap = layout.get(subject=subject, session=sessions, datatype='fmap', extension='nii.gz')
         for sefm in [x.path for x in fmap]:
             sefm_json = sefm.replace('.nii.gz', '.json')
             sefm_metadata = layout.get_metadata(sefm)
@@ -350,7 +350,7 @@ def main(argv=sys.argv):
                 insert_edit_json(sefm_json, 'EffectiveEchoSpacing', 0.00051001152626)
 
         # PE direction vs axis
-        func = layout.get(subject=subject, session=sessions, datatype='func', extensions='.nii.gz')
+        func = layout.get(subject=subject, session=sessions, datatype='func', extension='nii.gz')
         for task in [x.path for x in func]:
             task_json = task.replace('.nii.gz', '.json')
             task_metadata = layout.get_metadata(task)
