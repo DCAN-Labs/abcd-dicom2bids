@@ -45,18 +45,15 @@ except (OSError, AssertionError):
 # Constants: Default paths to scripts to call from this wrapper, and default
 # paths to folders in which to manipulate data
 CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".abcd2bids", "config.ini")
-#CORRECT_JSONS = os.path.join(PWD, "src", "correct_jsons.py")
-CORRECT_JSONS = "./src/correct_jsons.py"
+CORRECT_JSONS = os.path.join(PWD, "src", "correct_jsons.py")
 DOWNLOAD_FOLDER = os.path.join(PWD, "raw")
-#NDA_AWS_TOKEN_MAKER = os.path.join(PWD, "src", "nda_aws_token_maker.py")
-NDA_AWS_TOKEN_MAKER = "./src/nda_aws_token_maker.py"
+NDA_AWS_TOKEN_MAKER = os.path.join(PWD, "src", "nda_aws_token_maker.py")
 
-#SERIES_TABLE_PARSER = os.path.join(PWD, "src", "aws_downloader.py")
-SERIES_TABLE_PARSER = "./src/aws_downloader.py"
-SPREADSHEET_DOWNLOAD = "./spreadsheets/ABCD_good_and_bad_series_table.csv"
-SPREADSHEET_QC = "./spreadsheets/abcd_fastqc01.txt"
+SERIES_TABLE_PARSER = os.path.join(PWD, "src", "aws_downloader.py")
+SPREADSHEET_DOWNLOAD = os.path.join(PWD, "spreadsheets", "ABCD_good_and_bad_series_table.csv")
+SPREADSHEET_QC = os.path.join(PWD, "spreadsheets", "abcd_fastqc01.txt")
 TEMP_FILES_DIR = os.path.join(PWD, "temp")
-UNPACK_AND_SETUP = "./src/unpack_and_setup.sh"
+UNPACK_AND_SETUP = os.path.join(PWD, "src", "unpack_and_setup.sh")
 UNPACKED_FOLDER = os.path.join(PWD, "data")
 MODALITIES = ['anat', 'func', 'dwi']
 

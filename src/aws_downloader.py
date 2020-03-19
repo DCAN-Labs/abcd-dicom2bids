@@ -92,7 +92,7 @@ def main(argv=sys.argv):
         x = f.readlines()
         f.close
         subject_list = [sub.strip() for sub in x]
-        log = os.path.join(os.path.dirname(args.subject_list), os.path.splitext(os.path.basename(subject_list[0])) + "_download_log.csv")
+        log = os.path.join(os.path.dirname(args.subject_list), os.path.splitext(os.path.basename(args.subject_list))[0] + "_download_log.csv")
     year_list = args.year_list
     modalities = args.modalities
     if isinstance(modalities, str):
@@ -288,8 +288,11 @@ def add_dwi_paths(passed_QC_group, file_paths):
     if DTI_df.shape[0] >= 1:
         # If a DTI exists then download all passing DTI fieldmaps
         DTI_FM_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-Diffusion-FM']
+        DTI_FM_df = DTI_FM_df.tail(1)
         if DTI_FM_df.empty:
             DTI_FM_AP_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-Diffusion-FM-AP']
+            if DTI_FM_AP_df.empty:
+                return (file_paths, 0)
             DTI_FM_PA_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-Diffusion-FM-PA']
             DTI_FM_df = DTI_FM_AP_df.tail(1)
             DTI_FM_df = DTI_FM_df.append(DTI_FM_PA_df.tail(1))

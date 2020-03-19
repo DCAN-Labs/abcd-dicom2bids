@@ -222,13 +222,13 @@ def edit_dwi_jsons(layout, subject, sessions):
         insert_edit_json(dwi_fmap_PA_json_path, 'PhaseEncodingDirection', 'j')
 
     insert_edit_json(dwi_fmap_AP_json_path, 'IntendedFor',[dwi_rel_nii_path])
-    insert_edit_json(dwi_fmap_PA_json_path, 'PhaseEncodingDirection', 'j-')
+    insert_edit_json(dwi_fmap_AP_json_path, 'PhaseEncodingDirection', 'j-')
 
     dwi_metadata = layout.get_metadata(dwi_nii_path)
     for json_path in jsons_to_edit:
         if 'GE' in dwi_metadata['Manufacturer']:
             if 'DV26' in dwi_metadata['SoftwareVersions']:
-                insert_edit_json(json_path, 'EffectiveEchoSpacing', 0.000536)
+                insert_edit_json(json_path, 'EffectiveEchoSpacing', 0.000768)
                 insert_edit_json(json_path, 'TotalReadoutTime', 0.106752)
             if 'DV25' in dwi_metadata['SoftwareVersions']:
                 insert_edit_json(json_path, 'EffectiveEchoSpacing', 0.000752)
