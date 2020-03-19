@@ -112,13 +112,13 @@ if [ -e ${TempSubjectDir}/DCMs/${SUB}/${VISIT}/dwi ]; then
         fi
     elif [[ `dcmdump --search 0008,0070 ${first_dcm} 2>/dev/null` == *Philips* ]]; then
         software_version=`dcmdump --search 0018,1020 ${first_dcm} 2>/dev/null | awk '{print $3}'`
-        if [[ ${software_version} == *5.3.0* ]]; then
+        if [[ ${software_version} == *5.3* ]]; then
             echo "Replacing Philips s1 bvals and bvecs"
             cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Philips_bvals_s1.txt ${orig_bval}
             cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Philips_bvecs_s1.txt ${orig_bvec}
-        elif [[ ${software_version} == *5.3.1* ]]; then
+        elif [[ ${software_version} == *5.4* ]]; then
             echo "Replacing Philips s2 bvals and bvecs"
-            cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Philips_bvals_s1.txt ${orig_bval}
+            cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Philips_bvals_s2.txt ${orig_bval}
             cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Philips_bvecs_s2.txt ${orig_bvec}
         else
             echo "ERROR setting up DWI: Philips software version " ${software_version} " not recognized"
