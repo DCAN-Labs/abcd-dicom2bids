@@ -2,7 +2,7 @@
 
 Written by the OHSU ABCD site for selectively downloading ABCD Study imaging DICOM data QC'ed as good by the ABCD DAIC site, converting it to BIDS standard input data, selecting the best pair of spin echo field maps, and correcting the sidecar JSON files to meet the BIDS Validator specification.
 
-*Note: DWI has been added to the list of modalities that can be downloaded. This has resulted in a couple important changes to the scripts included here and the output BIDS data. Most notabaly fieldmaps now include an acquisition field in their filenames to differentiate those used for functional images and those used for DWI (e.g. ..._acq-func_... or ..._acq-dwi_...). Data uploaded to [Collection 3165](https://github.com/DCAN-Labs/nda-abcd-s3-downloader), which was created using this repository, does not contain this identifier.*
+*Note: DWI has been added to the list of modalities that can be downloaded. This has resulted in a couple important changes to the scripts included here and the output BIDS data. Most notabaly fieldmaps now include an acquisition field in their filenames to differentiate those used for functional images and those used for DWI (e.g. ..._acq-func_... or ..._acq-dwi_...). Data uploaded to [Collection 3165](https://github.com/ABCD-STUDY/nda-abcd-collection-3165), which was created using this repository, does not contain this identifier.*
 
 ## Installation
 
@@ -78,7 +78,7 @@ This wrapper will create a temporary folder (`temp/` by default) with hundreds o
 
 `--temp`: By default, the temporary files will be created in the `temp/` subdirectory of the clone of this repo. If the user wants to place the temporary files anywhere else, then they can do so using the optional `--temp` flag followed by the path at which to create the directory containing temp files, e.g. `--temp /usr/home/abcd2bids-temporary-folder`. A folder will be created at the given path if one does not already exist.
 
-`--subject-list`: By default, all subjects will be downloaded and converted. If only a subset of subjects are desired then specify a path to a .txt file containing a list of subjects (each on their own line) to download. If non is provided this script will attempt to download and convert every subject, which may take weeks to complete. It is recommended to run in parallel on batches of subjects.
+`--subject-list`: By default, all subjects will be downloaded and converted. If only a subset of subjects are desired then specify a path to a .txt file containing a list of subjects (each on their own line) to download. If none is provided this script will attempt to download and convert every subject, which may take weeks to complete. It is recommended to run in parallel on batches of subjects.
 
 `--modalities`: By default, the wrapper will download all modalities from each subject. This is equivalent to `--modalities ['anat', 'func', 'dwi']`. If only certain modalities should be downloaded for a subject then provide a list, e.g. `--modalities ['anat', 'func']`
 
