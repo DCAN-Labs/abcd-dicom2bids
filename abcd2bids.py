@@ -4,7 +4,7 @@
 ABCD to BIDS CLI Wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-05-29
-Updated 2020-02-25
+Updated 2020-05-19
 """
 
 ##################################
@@ -17,12 +17,11 @@ Updated 2020-02-25
 #    5. Runs BIDS validator on unpacked/setup data using Docker
 #
 ##################################
-
 import argparse
 import configparser
 from cryptography.fernet import Fernet
-import datetime
-import getpass
+from datetime import datetime
+from getpass import getpass
 import glob
 import os
 import pandas as pd
@@ -74,17 +73,16 @@ def main():
     # use them to make NDA token
     make_nda_token(cli_args)
 
-    # Run all steps sequentially, starting at the one specified by the user
-    started = False
-    for step in STEP_NAMES:
-        if step == cli_args.start_at:
-            started = True
-        if started:
-            get_and_print_timestamp_when("The {} step".format(step),
-                                         "started")
-            globals()[step](cli_args)
-            get_and_print_timestamp_when("The {} step".format(step),
-                                         "finished")
+    # Run steps sequentially, only including those specified by the user
+    step_ix = STEP_NAMES.index(cli_args.start_at)
+    stop_before = (STEP_NAMES.index(cli_args.stop_before)
+                   if cli_args.stop_before else len(STEP_NAMES))
+    while step_ix < stop_before:
+        step = STEP_NAMES[step_ix]
+        get_and_print_timestamp_when("The {} step".format(step), "started")
+        globals()[step](cli_args)
+        get_and_print_timestamp_when("The {} step".format(step), "finished")
+        step_ix += 1
     print(starting_timestamp)
     get_and_print_timestamp_when(sys.argv[0], "finished")
 
@@ -102,8 +100,7 @@ def get_and_print_timestamp_when(script, did_what):
     :return: String with a human-readable message showing when script did_what
     """
     timestamp = "\n{} {} at {}".format(
-        script, did_what,
-        datetime.datetime.now().strftime("%H:%M:%S on %b %d, %Y")
+        script, did_what, datetime.now().strftime("%H:%M:%S on %b %d, %Y")
     )
     print(timestamp)
     return timestamp
@@ -213,9 +210,17 @@ def get_cli_args():
         choices=STEP_NAMES,
         default=STEP_NAMES[0],
         help=("Give the name of the step in the wrapper to start "
-              "at, then run that step and every step after it. Here are the "
-              "names of all of the steps, in order from first to last: "
-              + ", ".join(STEP_NAMES))
+              "at, then run that step and the steps after it. All step names, "
+              "in order from first to last: " + ", ".join(STEP_NAMES))
+    )
+    
+    # Optional: Pick a step to stop before, then run the steps before it
+    parser.add_argument(
+        "-stop",
+        "--stop-before",
+        choices=STEP_NAMES,
+        help=("Give the name of the last step in the wrapper to run, "
+              "then run the steps before that one.")
     )
 
     # Optional: Get folder to place temp data into during unpacking
@@ -249,15 +254,17 @@ def get_cli_args():
 
 def validate_cli_args(cli_args, parser):
     """
-    Double-check that all command line arguments will allow this script to work.
+    Double-check that all command line arguments will allow this script to 
+    work. Validate/create config file parent dir, format output dir path
+    correctly, and ensure that --start-at is before --stop-before
     :param cli_args: argparse namespace with all command-line arguments
     :param parser: argparse ArgumentParser to raise error if anything's invalid
     :return: Validated command-line arguments argparse namespace
     """
-    # Validate and create config file's parent directory
     valid_dir_to_make(os.path.dirname(cli_args.config))
-
-    # Ensure that the output folder path is formatted correctly:
+    if (cli_args.stop_before and STEP_NAMES.index(cli_args.start_at)
+            >= STEP_NAMES.index(cli_args.stop_before)):
+        parser.error("--start-at step must precede --stop-before step")
     if cli_args.output[-1] != "/":
         cli_args.output += "/"
     return cli_args
@@ -350,8 +357,8 @@ def set_to_cleanup_on_crash(temp_dir):
     :return: N/A
     """
     # Use local function as an intermediate because the signal module does
-    # not allow the signal handler (the second parameter of signal.signal) to
-    # take the parameter (temp_dir) needed by the cleanup function. Run cleanup
+    # not let the signal handler (the second parameter of signal.signal) take
+    # the parameter (temp_dir) needed by the cleanup function. Run cleanup
     # function and exit with exit code 1 (failure)
     def call_cleanup_function(_signum, _frame):
         cleanup(temp_dir, 1)
@@ -401,15 +408,12 @@ def make_nda_token(cli_args):
     # overwriting the existing config file if user gave credentials as cli args
     else:
         username = get_NDA_credential(cli_args.username, "username", input)
-        password = get_NDA_credential(cli_args.password, "password",
-                                      getpass.getpass)
+        password = get_NDA_credential(cli_args.password, "password", getpass)
         make_config_file(cli_args.config, username, password)
 
     # Try to make NDA token
-    token_call_exit_code = subprocess.call(("python3",
-                                            NDA_AWS_TOKEN_MAKER,
-                                            username,
-                                            password))
+    token_call_exit_code = subprocess.call(("python3", NDA_AWS_TOKEN_MAKER,
+                                            username, password))
 
     # If NDA credentials are invalid, tell user so without printing password.
     # Manually catch error instead of using try-except to avoid trying to
@@ -444,14 +448,13 @@ def get_nda_credentials_from(config_file_path):
     config.read(config_file_path)
 
     # Get encrypted password and encryption key from config file
-    encryption_key = config["NDA"]["key"]
+    encrypt_key = config["NDA"]["key"]
     encrypted_password = config["NDA"]["encrypted_password"]
 
     # Decrypt password to get user's NDA credentials
     username = config["NDA"]["username"]
-    password = (Fernet(encryption_key.encode("UTF-8"))
-                .decrypt(token=encrypted_password.encode("UTF-8"))
-                .decode("UTF-8"))
+    password = (Fernet(encrypt_key.encode("UTF-8")).decrypt(token=
+                encrypted_password.encode("UTF-8")).decode("UTF-8"))
     return username, password
 
 
@@ -467,13 +470,12 @@ def make_config_file(config_filepath, username, password):
     config = configparser.ConfigParser()
 
     # Encrypt user's NDA password by making an encryption key
-    encryption_key = Fernet.generate_key()
-    encrypted_pass = Fernet(encryption_key).encrypt(password.encode("UTF-8"))
+    encrypt_key = Fernet.generate_key()
+    encrypted_pass = Fernet(encrypt_key).encrypt(password.encode("UTF-8"))
 
     # Save the encryption key and encrypted password to a new config file
-    config["NDA"] = {"username": username,
-                     "encrypted_password": encrypted_pass.decode("UTF-8"),
-                     "key": encryption_key.decode("UTF-8")}
+    config["NDA"] = {"username": username, "key": encrypt_key.decode("UTF-8"),
+                     "encrypted_password": encrypted_pass.decode("UTF-8")}
     with open(config_filepath, "w") as configfile:
         config.write(configfile)
 
@@ -487,8 +489,7 @@ def create_good_and_bad_series_table(cli_args):
     :param cli_args: argparse namespace containing all CLI arguments.
     :return: N/A
     """   
-    # Import QC data from .csv file
-    with open(cli_args.qc) as qc_file:
+    with open(cli_args.qc) as qc_file:  # Import QC data from .csv file
         all_qc_data = pd.read_csv(
             qc_file, encoding="utf-8-sig", sep=",|\t", engine="python",
             index_col=False, header=0, skiprows=[1]  # Skip row 2 (description)
@@ -507,7 +508,6 @@ def create_good_and_bad_series_table(cli_args):
         new_headers.append(header)     # Save the new strings without quotes
     all_qc_data.columns = new_headers  # Replace old headers with the new list
     print("Columns: {}".format(all_qc_data.columns))
-
     qc_data = fix_split_col(all_qc_data.loc[all_qc_data['ftq_usable'] == 1])
 
     def get_img_desc(row):
@@ -540,8 +540,7 @@ def fix_split_col(qc_df):
         """
         Local function to check for extra columns in a row, and fix them
         :param row: pandas.Series which is one row in the QC DataFrame
-        :param columns: List of strings where each is the name of a column in
-        the QC DataFrame, in order
+        :param columns: List of strings naming each column in the QC DataFrame
         :return: N/A
         """
         ix = int(row.name)

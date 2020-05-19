@@ -11,3 +11,5 @@ raw/*/
 data/*/
 *.pyc
 *.txt
+*delete*
+*.csv

@@ -96,12 +96,16 @@ dcm2bids -d ${TempSubjectDir}/DCMs/${SUB} -p ${participant} -s ${session} -c ${A
 
 echo `date`" :CHECKING BIDS ORDERING OF EPIs"
 if [[ -e ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/func ]]; then
-    if [[ `${ABCD2BIDS_DIR}/src/run_order_fix.py ${TempSubjectDir}/BIDS_unprocessed ${TempSubjectDir}/bids_order_error.json ${TempSubjectDir}/bids_order_map.json --all --subject ${SUB}` == ${SUB} ]]; then
-        echo BIDS correctly ordered
-    else
-        echo ERROR: BIDS incorrectly ordered even after running run_order_fix.py
-        exit
-    fi
+
+    # Keep looping until correctly ordered (added by Greg Conan 2020-04-09)
+    while 
+        sub_checked=`${ABCD2BIDS_DIR}/src/run_order_fix.py ${TempSubjectDir}/BIDS_unprocessed ${TempSubjectDir}/bids_order_error.json ${TempSubjectDir}/bids_order_map.json --all --subject ${SUB}`;
+        echo "Looping again unless $sub_checked == ${SUB}"
+        ((1 == $([[ $sub_checked == ${SUB} ]]; echo $?)))
+    do
+        continue
+    done
+    echo "BIDS correctly ordered";
 else
     echo "No functional images found for subject ${SUB}. Skipping sefm_eval_and_json_editor to copy and rename source data."
     exit

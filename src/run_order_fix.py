@@ -214,7 +214,6 @@ def swap_files(json_file):
             shutil.move(tmp, before)
             raise
         shutil.move(tmp, after)
-        print('swapped %s with %s' % (before, after))
         swapped.append(after)
 
 
