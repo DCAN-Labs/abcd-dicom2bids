@@ -88,50 +88,54 @@ echo `date`" :RUNNING dcm2bids"
 ABCD2BIDS_DIR="$(dirname `dirname $0`)"
 dcm2bids -d ${TempSubjectDir}/DCMs/${SUB} -p ${participant} -s ${session} -c ${ABCD2BIDS_DIR}/abcd_dcm2bids.conf -o ${TempSubjectDir}/BIDS_unprocessed --forceDcm2niix --clobber
 
+cp /home/exacloud/lustre1/fnl_lab/projects/ABCD/download/dti/abcd-dicom2bids/src/dataset_description.json ${TempSubjectDir}/BIDS_unprocessed/
 
 # replace bvals and bvecs with files supplied by the NDA
 if [ -e ${TempSubjectDir}/DCMs/${SUB}/${VISIT}/dwi ]; then
-    echo "Replacing bvals and bvecs with files supplied by the NDA"
-    orig_bval=${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/dwi/${SUB}_${VISIT}_dwi.bval
-    orig_bvec=${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/dwi/${SUB}_${VISIT}_dwi.bvec
     first_dcm=`ls ${TempSubjectDir}/DCMs/${SUB}/${VISIT}/dwi/*/*.dcm | head -n1`
-    if [[ `dcmdump --search 0008,0070 ${first_dcm} 2>/dev/null` == *GE* ]]; then 
-        if dcmdump --search 0018,1020 ${first_dcm} 2>/dev/null | grep -q DV25; then
-            echo "Replacing GE DV25 bvals and bvecs"
-            echo cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/GE_bvals_DV25.txt ${orig_bval}
-            cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/GE_bvals_DV25.txt ${orig_bval}
-            echo cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/GE_bvecs_DV25.txt ${orig_bvec}
-            cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/GE_bvecs_DV25.txt ${orig_bvec}
-        elif dcmdump --search 0018,1020 ${first_dcm} 2>/dev/null | grep -q DV26; then
-            echo "Replacing GE DV26 bvals and bvecs"
-            cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/GE_bvals_DV26.txt ${orig_bval}
-            cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/GE_bvecs_DV26.txt ${orig_bvec}
+    echo "Replacing bvals and bvecs with files supplied by the NDA"
+    for dwi in ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/dwi/${SUB}_${VISIT}*.nii.gz; do
+        orig_bval=`echo $dwi | sed 's|.nii.gz|.bval|'`
+        orig_bvec=`echo $dwi | sed 's|.nii.gz|.bvec|'`
+        
+        if [[ `dcmdump --search 0008,0070 ${first_dcm} 2>/dev/null` == *GE* ]]; then 
+            if dcmdump --search 0018,1020 ${first_dcm} 2>/dev/null | grep -q DV25; then
+                echo "Replacing GE DV25 bvals and bvecs"
+                echo cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/GE_bvals_DV25.txt ${orig_bval}
+                cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/GE_bvals_DV25.txt ${orig_bval}
+                echo cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/GE_bvecs_DV25.txt ${orig_bvec}
+                cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/GE_bvecs_DV25.txt ${orig_bvec}
+            elif dcmdump --search 0018,1020 ${first_dcm} 2>/dev/null | grep -q DV26; then
+                echo "Replacing GE DV26 bvals and bvecs"
+                cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/GE_bvals_DV26.txt ${orig_bval}
+                cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/GE_bvecs_DV26.txt ${orig_bvec}
+            else
+                echo "ERROR setting up DWI: GE software version not recognized"
+                exit
+            fi
+        elif [[ `dcmdump --search 0008,0070 ${first_dcm} 2>/dev/null` == *Philips* ]]; then
+            software_version=`dcmdump --search 0018,1020 ${first_dcm} 2>/dev/null | awk '{print $3}'`
+            if [[ ${software_version} == *5.3* ]]; then
+                echo "Replacing Philips s1 bvals and bvecs"
+                cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Philips_bvals_s1.txt ${orig_bval}
+                cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Philips_bvecs_s1.txt ${orig_bvec}
+            elif [[ ${software_version} == *5.4* ]]; then
+                echo "Replacing Philips s2 bvals and bvecs"
+                cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Philips_bvals_s2.txt ${orig_bval}
+                cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Philips_bvecs_s2.txt ${orig_bvec}
+            else
+                echo "ERROR setting up DWI: Philips software version " ${software_version} " not recognized"
+                exit
+            fi
+        elif [[ `dcmdump --search 0008,0070 ${first_dcm} 2>/dev/null` == *SIEMENS* ]]; then
+            echo "Replacing Siemens bvals and bvecs"
+            cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Siemens_bvals.txt ${orig_bval}
+            cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Siemens_bvecs.txt ${orig_bvec}
         else
-            echo "ERROR setting up DWI: GE software version not recognized"
+            echo "ERROR setting up DWI: Manufacturer not recognized"
             exit
         fi
-    elif [[ `dcmdump --search 0008,0070 ${first_dcm} 2>/dev/null` == *Philips* ]]; then
-        software_version=`dcmdump --search 0018,1020 ${first_dcm} 2>/dev/null | awk '{print $3}'`
-        if [[ ${software_version} == *5.3* ]]; then
-            echo "Replacing Philips s1 bvals and bvecs"
-            cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Philips_bvals_s1.txt ${orig_bval}
-            cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Philips_bvecs_s1.txt ${orig_bvec}
-        elif [[ ${software_version} == *5.4* ]]; then
-            echo "Replacing Philips s2 bvals and bvecs"
-            cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Philips_bvals_s2.txt ${orig_bval}
-            cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Philips_bvecs_s2.txt ${orig_bvec}
-        else
-            echo "ERROR setting up DWI: Philips software version " ${software_version} " not recognized"
-            exit
-        fi
-    elif [[ `dcmdump --search 0008,0070 ${first_dcm} 2>/dev/null` == *SIEMENS* ]]; then
-        echo "Replacing Siemens bvals and bvecs"
-        cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Siemens_bvals.txt ${orig_bval}
-        cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Siemens_bvecs.txt ${orig_bvec}
-    else
-        echo "ERROR setting up DWI: Manufacturer not recognized"
-        exit
-    fi
+    done
 fi
 
 
@@ -152,7 +156,7 @@ fi
 # select best fieldmap and update sidecar jsons
 echo `date`" :RUNNING SEFM SELECTION AND EDITING SIDECAR JSONS"
 if [ -d ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/fmap ]; then
-    ${ABCD2BIDS_DIR}/src/sefm_eval_and_json_editor.py ${TempSubjectDir}/BIDS_unprocessed/${SUB} ${FSL_DIR} ${MRE_DIR} --participant-label=${participant} --output_dir $ROOT_BIDSINPUT
+    ${ABCD2BIDS_DIR}/src/sefm_eval_and_json_editor.py ${TempSubjectDir}/BIDS_unprocessed ${FSL_DIR} ${MRE_DIR} --participant-label=${participant} --output_dir $ROOT_BIDSINPUT
 fi
 
 # Fix all json extra data errors
