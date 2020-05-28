@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
 import os, sys, glob, argparse, subprocess, socket, operator, shutil, json
-from bids.grabbids import BIDSLayout
+from bids import BIDSLayout
 from itertools import product
 
 os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
@@ -69,12 +69,12 @@ def sefm_select(layout, subject, sessions, base_temp_dir, fsl_dir, mre_dir,
         pass
 
     print("Pairing for subject " + subject + ": " + subject + ", " + sessions)
-    pos_func_fmaps = layout.get(subject=subject, session=sessions, modality='fmap', acquisition='func', dir=pos, extensions='.nii.gz')
-    neg_func_fmaps = layout.get(subject=subject, session=sessions, modality='fmap', acquisition='func', dir=neg, extensions='.nii.gz')
+    pos_func_fmaps = layout.get(subject=subject, session=sessions, datatype='fmap', acquisitionuisition='func', dir=pos, extension='.nii.gz')
+    neg_func_fmaps = layout.get(subject=subject, session=sessions, datatype='fmap', acquisitionuisition='func', dir=neg, extension='.nii.gz')
     list_pos = [x.filename for x in pos_func_fmaps]
     list_neg = [y.filename for y in neg_func_fmaps]
 
-#    fmap = layout.get(subject=subject, session=sessions, modality='fmap', acquisition='func', extensions='.nii.gz')
+#    fmap = layout.get(subject=subject, session=sessions, datatype='fmap', acquisitionuisition='func', extension='.nii.gz')
 #    if len(fmap):
 #        list_pos = [x.filename for i, x in enumerate(fmap) if 'dir-PA' in x.filename]
 #        list_neg = [x.filename for i, x in enumerate(fmap) if 'dir-AP' in x.filename]
@@ -137,8 +137,8 @@ def sefm_select(layout, subject, sessions, base_temp_dir, fsl_dir, mre_dir,
     print(best_neg)
 
     # Add metadata
-    func_list = [x.filename for x in layout.get(subject=subject, session=sessions, modality='func', extensions='.nii.gz')]
-    anat_list = [x.filename for x in layout.get(subject=subject, session=sessions, modality='anat', extensions='.nii.gz')]
+    func_list = [x.filename for x in layout.get(subject=subject, session=sessions, datatype='func', extension='.nii.gz')]
+    anat_list = [x.filename for x in layout.get(subject=subject, session=sessions, datatype='anat', extension='.nii.gz')]
     for pair in pairs:
         pos_nifti = pair[0]
         neg_nifti = pair[1]
@@ -165,9 +165,9 @@ def sefm_select(layout, subject, sessions, base_temp_dir, fsl_dir, mre_dir,
 
 
 def seperate_concatenated_fm(bids_layout, subject, session, fsl_dir):
-    fmap = bids_layout.get(subject=subject, session=session, modality='fmap', acquisition='func', dir='both', extensions='.nii.gz')
+    fmap = bids_layout.get(subject=subject, session=session, datatype='fmap', acquisitionuisition='func', dir='both', extension='.nii.gz')
     # use the first functional image as the reference for the nifti header after fslswapdim
-    func_ref = bids_layout.get(subject=subject, session=session, modality='func', extensions='.nii.gz')[0].filename
+    func_ref = bids_layout.get(subject=subject, session=session, datatype='func', extension='.nii.gz')[0].filename
     print("functional reference: {}".format(func_ref))
     for FM in [x.filename for x in fmap]:
         subject_dir = os.path.dirname(FM)
@@ -204,28 +204,41 @@ def seperate_concatenated_fm(bids_layout, subject, session, fsl_dir):
     return
 
 def edit_dwi_jsons(layout, subject, sessions):
-    dwi_nii = layout.get(subject=subject, session=sessions, modality='dwi', extensions='.nii.gz')
-    dwi_nii_path = dwi_nii[0].filename
-    dwi_rel_nii_path = "/".join(dwi_nii_path.split("/")[-4:])
-    dwi_json = layout.get(subject=subject, session=sessions, modality='dwi', extensions='.json')
-    dwi_json_path = dwi_json[0].filename
+    print('Editing DWI sidecar jsons')
 
-    dwi_fmap_AP_json = layout.get(subject=subject, session=sessions, modality='fmap', extensions='.json', dir='AP', acq='dwi')
-    dwi_fmap_AP_json_path = dwi_fmap_AP_json[0].filename
-    jsons_to_edit = [dwi_json_path, dwi_fmap_AP_json_path]
+    all_json_paths = []
+    # Get rel path of all dwi images
+    rel_dwi_paths = []
+    for dwi in layout.get(subject=subject, session=sessions, datatype='dwi', suffix='dwi', extension='.nii.gz'):
+        dwi_fn = dwi.filename
+        dwi_dir = dwi.dirname
+        dwi_json = dwi_fn.replace('.nii.gz', '.json')
+        all_json_paths += [os.path.join(dwi_dir, dwi_json)]
+        rel_path = "/".join(dwi_dir.split("/")[-3:] + [dwi_fn])
+        rel_dwi_paths += [rel_path]
 
-    dwi_fmap_PA_json = layout.get(subject=subject, session=sessions, modality='fmap', extensions='.json', dir='PA', acq='dwi')
-    if dwi_fmap_PA_json:
-        dwi_fmap_PA_json_path = dwi_fmap_PA_json[0].filename
-        jsons_to_edit.append(dwi_fmap_PA_json_path)
-        insert_edit_json(dwi_fmap_PA_json_path, 'IntendedFor',[])
-        insert_edit_json(dwi_fmap_PA_json_path, 'PhaseEncodingDirection', 'j')
+    # There should currently only be a single dwi fmap TODO: allow for multiple fmaps
+    AP = layout.get(subject=subject, session=sessions, datatype='fmap', acquisition='dwi', dir='AP', extension='.nii.gz')
+    AP_json = layout.get(subject=subject, session=sessions, datatype='fmap', acquisition='dwi', dir='AP', extension='.json')
+    assert(len(AP_json) == 1)
+    AP_json_path = "/".join([AP_json[0].dirname, AP_json[0].filename])
+    all_json_paths += [AP_json_path]
 
-    insert_edit_json(dwi_fmap_AP_json_path, 'IntendedFor',[dwi_rel_nii_path])
-    insert_edit_json(dwi_fmap_AP_json_path, 'PhaseEncodingDirection', 'j-')
+    insert_edit_json(AP_json_path, 'IntendedFor', rel_dwi_paths)
+    insert_edit_json(AP_json_path, 'PhaseEncodingDirection', 'j-')
+    
+    # We are not using the PA even if one is included
+    PA_json = layout.get(subject=subject, session=sessions, datatype='fmap', acquisition='dwi', dir='PA', extension='.json')
+    if PA_json:
+        PA_json_path = "/".join([PA_json[0].dirname, PA_json[0].filename])
+        all_json_paths += [PA_json_path]
+        insert_edit_json(PA_json_path, 'IntendedFor',[])
+        insert_edit_json(PA_json_path, 'PhaseEncodingDirection', 'j')
 
-    dwi_metadata = layout.get_metadata(dwi_nii_path)
-    for json_path in jsons_to_edit:
+    
+    for json_path in all_json_paths:
+        nii_path = json_path.replace('.json', '.nii.gz')
+        dwi_metadata = layout.get_metadata(nii_path)
         if 'GE' in dwi_metadata['Manufacturer']:
             if 'DV26' in dwi_metadata['SoftwareVersions']:
                 insert_edit_json(json_path, 'EffectiveEchoSpacing', 0.000768)
@@ -241,11 +254,9 @@ def edit_dwi_jsons(layout, subject, sessions):
             insert_edit_json(json_path, 'TotalReadoutTime', 0.0959097)
         else:
             print("ERROR: DWI manufacturer not recognized")
-    if "PhaseEncodingAxis" in dwi_metadata:
-        insert_edit_json(dwi_json_path, 'PhaseEncodingDirection', dwi_metadata['PhaseEncodingAxis'])
-    elif "PhaseEncodingDirection" in dwi_metadata:
-        insert_edit_json(dwi_json_path, 'PhaseEncodingAxis', dwi_metadata['PhaseEncodingDirection'].strip('-'))
-    
+
+    print('Done editing DWI sidecar jsons')
+
     return
     
 
@@ -328,22 +339,20 @@ def main(argv=sys.argv):
     subsess = read_bids_layout(layout, subject_list=args.subject_list, collect_on_subject=args.collect)
 
     for subject,sessions in subsess:
-        # fmap directory = base dir
-        fmap = layout.get(subject=subject, session=sessions, modality='fmap', extensions='.nii.gz')
-        base_temp_dir = os.path.dirname(fmap[0].filename)
  
         # Check if fieldmaps are concatenated
-        if layout.get(subject=subject, session=sessions, modality='fmap', extensions='.nii.gz', acq='func', dir='both'):
+        if layout.get(subject=subject, session=sessions, datatype='fmap', extension='.nii.gz', acquisition='func', dir='both'):
             print("Func fieldmaps are concatenated. Running seperate_concatenate_fm")
             seperate_concatenated_fm(layout, subject, sessions, fsl_dir)
             # recreate layout with the additional SEFMS
             layout = BIDSLayout(args.bids_dir)
         
 
-        fmap = layout.get(subject=subject, session=sessions, modality='fmap', extensions='.nii.gz', acq='func')        
+        fmap = layout.get(subject=subject, session=sessions, datatype='fmap', extension='.nii.gz', acquisition='func')        
         # Check if there are func fieldmaps and return a list of each SEFM pos/neg pair
         if fmap:
             print("Running SEFM select")
+            base_temp_dir = fmap[0].dirname
             bes_pos, best_neg = sefm_select(layout, subject, sessions,
                                             base_temp_dir, fsl_dir, args.mre_dir,
                                             args.debug)
@@ -359,14 +368,15 @@ def main(argv=sys.argv):
                     insert_edit_json(sefm_json, 'EffectiveEchoSpacing', 0.000510012)
 
         # Check if there are dwi fieldmaps and insert IntendedFor field accordingly
-        if layout.get(subject=subject, session=sessions, modality='fmap', extensions='.nii.gz', acq='dwi'):
+        print(layout.get(subject=subject, session=sessions, datatype='fmap', extension='.nii.gz', acquisition='dwi'))
+        if layout.get(subject=subject, session=sessions, datatype='fmap', extension='.nii.gz', acquisition='dwi'):
             print("Editing DWI jsons")
             edit_dwi_jsons(layout, subject, sessions)
                     
 
 
         # Additional edits to the anat json sidecar
-        anat = layout.get(subject=subject, session=sessions, modality='anat', extensions='.nii.gz')
+        anat = layout.get(subject=subject, session=sessions, datatype='anat', extension='.nii.gz')
         if anat:
             for TX in [x.filename for x in anat]:
                 TX_json = TX.replace('.nii.gz', '.json') 
@@ -383,7 +393,7 @@ def main(argv=sys.argv):
         # add EffectiveEchoSpacing if it doesn't already exist
 
         # PE direction vs axis
-        func = layout.get(subject=subject, session=sessions, modality='func', extensions='.nii.gz')
+        func = layout.get(subject=subject, session=sessions, datatype='func', extension='.nii.gz')
         if func:
             for task in [x.filename for x in func]:
                 task_json = task.replace('.nii.gz', '.json')
