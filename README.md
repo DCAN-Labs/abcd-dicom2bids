@@ -2,6 +2,8 @@
 
 Written by the OHSU ABCD site for selectively downloading ABCD Study imaging DICOM data QC'ed as good by the ABCD DAIC site, converting it to BIDS standard input data, selecting the best pair of spin echo field maps, and correcting the sidecar JSON files to meet the BIDS Validator specification.
 
+*Note: DWI has been added to the list of modalities that can be downloaded. This has resulted in a couple important changes to the scripts included here and the output BIDS data. Most notabaly fieldmaps now include an acquisition field in their filenames to differentiate those used for functional images and those used for DWI (e.g. ..._acq-func_... or ..._acq-dwi_...). Data uploaded to [Collection 3165](https://github.com/ABCD-STUDY/nda-abcd-collection-3165), which was created using this repository, does not contain this identifier.*
+
 ## Installation
 
 Clone this repository and save it somewhere on the Linux system you want to do ABCD DICOM downloads and conversions to BIDS on.
@@ -12,6 +14,7 @@ Clone this repository and save it somewhere on the Linux system you want to do A
 1. [MathWorks MATLAB Runtime Environment (MRE) version 9.1 (R2016b)](https://www.mathworks.com/products/compiler/matlab-runtime.html)
 1. [cbedetti Dcm2Bids](https://github.com/cbedetti/Dcm2Bids) (`export` into your BASH `PATH` variable)
 1. [Rorden Lab dcm2niix](https://github.com/rordenlab/dcm2niix) (`export` into your BASH `PATH` variable)
+1. [dcmdump](https://dicom.offis.de/dcmtk.php.en) (`export` into your BASH `PATH` variable)
 1. [zlib's pigz-2.4](https://zlib.net/pigz) (`export` into your BASH `PATH` variable)
 1. Docker (see documentation for [Docker Community Edition for Ubuntu](https://docs.docker.com/install/linux/docker-ce/ubuntu/))
 1. [FMRIB Software Library (FSL) v5.0](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
@@ -75,6 +78,10 @@ This wrapper will create a temporary folder (`temp/` by default) with hundreds o
 
 `--temp`: By default, the temporary files will be created in the `temp/` subdirectory of the clone of this repo. If the user wants to place the temporary files anywhere else, then they can do so using the optional `--temp` flag followed by the path at which to create the directory containing temp files, e.g. `--temp /usr/home/abcd2bids-temporary-folder`. A folder will be created at the given path if one does not already exist.
 
+`--subject-list`: By default, all subjects will be downloaded and converted. If only a subset of subjects are desired then specify a path to a .txt file containing a list of subjects (each on their own line) to download. If none is provided this script will attempt to download and convert every subject, which may take weeks to complete. It is recommended to run in parallel on batches of subjects.
+
+`--modalities`: By default, the wrapper will download all modalities from each subject. This is equivalent to `--modalities ['anat', 'func', 'dwi']`. If only certain modalities should be downloaded for a subject then provide a list, e.g. `--modalities ['anat', 'func']`
+
 `--download`: By default, the wrapper will download the ABCD data to the `raw/` subdirectory of the cloned folder. If the user wants to download the ABCD data to a different directory, they can use the `--download` flag, e.g. `--download ~/abcd-dicom2bids/ABCD-Data-Download`. A folder will be created at the given path if one does not already exist.
 
 `--qc`: Path to the Quality Control (QC) spreadsheet file downloaded from the NDA. By default, the wrapper will use the `abcd_fastqc01.txt` file in the `spreadsheets` directory.
@@ -112,11 +119,11 @@ Next, the wrapper will produce a download list for the Python & BASH portion to 
 
 **NOTE:** This step can take over two hours to complete.
 
-### 1. (Python) `good_bad_series_parser.py`
+### 1. (Python) `aws_downloader.py`
 
-Once `ABCD_good_and_bad_series_table.csv` is successfully created, the wrapper will run `src/good_bad_series_parser.py` with this repository's cloned folder as the present working directory to download the ABCD data from the NDA website. It requires the `ABCD_good_and_bad_series_table.csv` spreadsheet under a `spreadsheets` subdirectory of this repository's cloned folder.
+Once `ABCD_good_and_bad_series_table.csv` is successfully created, the wrapper will run `src/aws_downloader.py` with this repository's cloned folder as the present working directory to download the ABCD data from the NDA website. It requires the `ABCD_good_and_bad_series_table.csv` spreadsheet under a `spreadsheets` subdirectory of this repository's cloned folder.
 
-`src/good_bad_series_parser.py` also requires a valid NDA token in the `.aws/` folder in the user's `home/` directory. If successful, this will download the ABCD data from the NDA site into the `raw/` subdirectory of the clone of this repo. If the download crashes and shows errors about `awscli`, try making sure you have the [latest AWS CLI installed](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html), and that the [`aws` executable is in your BASH `PATH` variable](https://docs.aws.amazon.com/cli/latest/userguide/install-linux.html#install-linux-path).
+`src/aws_downloader.py` also requires a valid NDA token in the `.aws/` folder in the user's `home/` directory. If successful, this will download the ABCD data from the NDA site into the `raw/` subdirectory of the clone of this repo. If the download crashes and shows errors about `awscli`, try making sure you have the [latest AWS CLI installed](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html), and that the [`aws` executable is in your BASH `PATH` variable](https://docs.aws.amazon.com/cli/latest/userguide/install-linux.html#install-linux-path).
 
 ### 2. (BASH) `unpack_and_setup.sh`
 
@@ -167,6 +174,7 @@ This wrapper relies on the following other projects:
 - [zlib's pigz-2.4](https://zlib.net/pigz)
 - [Official BIDS validator](https://github.com/bids-standard/bids-validator) 
 - [NDA AWS token generator](https://github.com/NDAR/nda_aws_token_generator)
+- [dcmdump](https://dicom.offis.de/dcmtk.php.en)
 
 ## Meta
 

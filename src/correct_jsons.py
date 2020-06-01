@@ -77,6 +77,7 @@ def main(argv=sys.argv):
 
             if ext == '.json':
                 json_path = os.path.join(root, filename)
+                #print(json_path)
 
                 with open(json_path, 'r') as f:
                     data = json.load(f)
