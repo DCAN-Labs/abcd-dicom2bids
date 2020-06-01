@@ -48,13 +48,14 @@ CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".abcd2bids", "config.ini")
 CORRECT_JSONS = os.path.join(PWD, "src", "correct_jsons.py")
 DOWNLOAD_FOLDER = os.path.join(PWD, "raw")
 NDA_AWS_TOKEN_MAKER = os.path.join(PWD, "src", "nda_aws_token_maker.py")
-SERIES_TABLE_PARSER = os.path.join(PWD, "src", "good_bad_series_parser.py")
+SERIES_TABLE_PARSER = os.path.join(PWD, "src", "aws_downloader.py")
 SPREADSHEET_DOWNLOAD = os.path.join(PWD, "spreadsheets",
                                     "ABCD_good_and_bad_series_table.csv")
 SPREADSHEET_QC = os.path.join(PWD, "spreadsheets", "abcd_fastqc01.txt")
 TEMP_FILES_DIR = os.path.join(PWD, "temp")
 UNPACK_AND_SETUP = os.path.join(PWD, "src", "unpack_and_setup.sh")
 UNPACKED_FOLDER = os.path.join(PWD, "data")
+MODALITIES = ['anat', 'func', 'dwi']
 
 
 def main():
@@ -74,15 +75,10 @@ def main():
     make_nda_token(cli_args)
 
     # Run steps sequentially, only including those specified by the user
-    step_ix = STEP_NAMES.index(cli_args.start_at)
-    stop_before = (STEP_NAMES.index(cli_args.stop_before)
-                   if cli_args.stop_before else len(STEP_NAMES))
-    while step_ix < stop_before:
-        step = STEP_NAMES[step_ix]
+    for step in get_steps_to_run(cli_args):
         get_and_print_timestamp_when("The {} step".format(step), "started")
         globals()[step](cli_args)
         get_and_print_timestamp_when("The {} step".format(step), "finished")
-        step_ix += 1
     print(starting_timestamp)
     get_and_print_timestamp_when(sys.argv[0], "finished")
 
@@ -193,6 +189,27 @@ def get_cli_args():
               "spreadsheet.".format(SPREADSHEET_QC))
     )
 
+    # Optional: Subject list
+    parser.add_argument(
+        "-list",
+        "--subject-list",
+        type=valid_readable_file,
+        help=("Path to a .txt file containing a list of subjects to download. "
+              "The default is to download all available subjects.")
+    )
+
+    # Optional: Modalities
+    parser.add_argument(
+        "-mod",
+        "--modalities",
+        choices=MODALITIES,
+        nargs="+",
+        default=MODALITIES,
+        help=("List of the imaging modalities that should be downloaded for "
+              "each subject. The default is to download all modalities. "
+              "The possible selections are {}".format(MODALITIES))
+)    
+
     # Optional: During unpack_and_setup, remove unprocessed data
     parser.add_argument(
         "-rm",
@@ -210,7 +227,7 @@ def get_cli_args():
         choices=STEP_NAMES,
         default=STEP_NAMES[0],
         help=("Give the name of the step in the wrapper to start "
-              "at, then run that step and the steps after it. All step names, "
+              "at, then run that step and the ones after it. All step names, "
               "in order from first to last: " + ", ".join(STEP_NAMES))
     )
     
@@ -246,6 +263,14 @@ def get_cli_args():
               "file exists with the user's NDA credentials, the user will be "
               "prompted for them. If this is added and --password is not, "
               "then the user will be prompted for their NDA password.")
+    )
+
+    parser.add_argument(
+        "-docker",
+        "--docker-cmd",
+        help=("A necessary docker command replacement on HPCs like the "
+              "one at OHSU, which has it's own special wrapper for docker "
+              "for security reasons. Example: '/opt/acc/sbin/exadocker'")
     )
 
     # Parse, validate, and return all CLI args
@@ -423,17 +448,16 @@ def make_nda_token(cli_args):
                  "password from {}.".format(os.path.abspath(cli_args.config)))
 
 
-def get_NDA_credential(credential, cred_name, prompt_fn):
+def get_NDA_credential(cred, cred_name, prompt_fn):
     """
-    :param credential: String with the credential if the user gave it in the 
-                       command line arguments, or None if they didn't
+    :param cred: String with the credential if the user gave it in the 
+                 command line arguments, or None if they didn't
     :param cred_name: String naming which credential to get
     :param prompt_fn: Function to prompt the user to get the credential
     :return: String with the user's credential
     """
-    return credential if credential else prompt_fn(
-        "\nEnter your NIMH Data Archives {}: ".format(cred_name)
-    )
+    return cred if cred else prompt_fn("\nEnter your NIMH Data Archives {}: "
+                                       .format(cred_name))
 
 
 def get_nda_credentials_from(config_file_path):
@@ -456,6 +480,17 @@ def get_nda_credentials_from(config_file_path):
     password = (Fernet(encrypt_key.encode("UTF-8")).decrypt(token=
                 encrypted_password.encode("UTF-8")).decode("UTF-8"))
     return username, password
+
+
+def get_steps_to_run(cli_args):
+    """
+    :param cli_args: argparse namespace with all validated CLI arguments
+    :return: List with every step the user said to run and no others, in order
+    """
+    start = STEP_NAMES.index(cli_args.start_at)
+    stop = (STEP_NAMES.index(cli_args.stop_before)
+            if cli_args.stop_before else len(STEP_NAMES))
+    return [STEP_NAMES[i] for i in range(len(STEP_NAMES)) if start <= i < stop]
 
 
 def make_config_file(config_filepath, username, password):
@@ -490,11 +525,10 @@ def create_good_and_bad_series_table(cli_args):
     :return: N/A
     """   
     with open(cli_args.qc) as qc_file:  # Import QC data from .csv file
-        all_qc_data = pd.read_csv(
-            qc_file, encoding="utf-8-sig", sep=",|\t", engine="python",
-            index_col=False, header=0, skiprows=[1]  # Skip row 2 (description)
-        )
-    
+        all_qc_data = pd.read_csv(qc_file, encoding="utf-8-sig", sep=",|\t",
+                                  engine="python", index_col=False, header=0,
+                                  skiprows=[1])  # Skip row 2 (description)
+
     # Remove quotes from values and convert int-strings to ints
     all_qc_data = all_qc_data.applymap(
         lambda x: x.strip('"') if isinstance(x, str) and '"' in x else x
@@ -504,10 +538,8 @@ def create_good_and_bad_series_table(cli_args):
     # Remove quotes from headers
     new_headers = []
     for header in all_qc_data.columns: # data.columns is your list of headers
-        header = header.strip('"')     # Remove the quotes off each header
-        new_headers.append(header)     # Save the new strings without quotes
+        new_headers.append(header.strip('"')) # Save new headers without quotes
     all_qc_data.columns = new_headers  # Replace old headers with the new list
-    print("Columns: {}".format(all_qc_data.columns))
     qc_data = fix_split_col(all_qc_data.loc[all_qc_data['ftq_usable'] == 1])
 
     def get_img_desc(row):
@@ -521,12 +553,29 @@ def create_good_and_bad_series_table(cli_args):
     image_desc_col = qc_data.apply(get_img_desc, axis=1)
     qc_data = qc_data.assign(**{'image_description': image_desc_col.values})
 
+    # Save a new subject list text file if one is needed but was not given
+    if ("download_nda_data" in get_steps_to_run(cli_args)
+            and not cli_args.subject_list):
+        pd.Series(qc_data["subjectkey"].apply(
+            lambda x: "sub-" + "".join(x.split("_"))).unique()).to_csv(
+                sub_list_file(cli_args), header=False, index=False, mode="w+"
+            )
+
     # Change column names for good_bad_series_parser to use; then save to .csv
     qc_data.rename({
         "ftq_usable": "QC", "subjectkey": "pGUID", "visit": "EventName",
         "abcd_compliant": "ABCD_Compliant", "interview_age": "SeriesTime",
         "comments_misc": "SeriesDescription", "file_source": "image_file"
     }, axis="columns").to_csv(SPREADSHEET_DOWNLOAD, index=False)
+
+
+def sub_list_file(cli_args):
+    """
+    :param cli_args: argparse namespace containing all CLI arguments 
+    :return: String with the path to a subject list file
+    """
+    return (cli_args.subject_list if cli_args.subject_list else
+            os.path.join(PWD, "spreadsheets", "subject_list.txt"))
 
 
 def fix_split_col(qc_df):
@@ -540,7 +589,6 @@ def fix_split_col(qc_df):
         """
         Local function to check for extra columns in a row, and fix them
         :param row: pandas.Series which is one row in the QC DataFrame
-        :param columns: List of strings naming each column in the QC DataFrame
         :return: N/A
         """
         ix = int(row.name)
@@ -567,14 +615,15 @@ def download_nda_data(cli_args):
     """
     Call Python script to download NDA data by making NDA token and parsing the
     good_and_bad_series_table.csv spreadsheet.
-    :param cli_args: argparse namespace containing all CLI arguments. This
-    function only uses the --download argument, the path to the folder to fill
-    with downloaded NDA data.
+    :param cli_args: argparse namespace with all CLI arguments
     :return: N/A
     """
-    subprocess.check_call(("python3", SERIES_TABLE_PARSER, cli_args.download, 
-                           SPREADSHEET_DOWNLOAD))
-
+    subprocess.check_call(("python3", "--version"))
+    subprocess.check_call(("python3", SERIES_TABLE_PARSER,
+                           "--download-dir", cli_args.download,
+                           "--subject-list", sub_list_file(cli_args),
+                           "--modalities", ','.join(cli_args.modalities)),
+                           stdin=subprocess.PIPE)
 
 def unpack_and_setup(cli_args):
     """
@@ -585,33 +634,36 @@ def unpack_and_setup(cli_args):
     --output, --download, --temp, and --remove.
     :return: N/A
     """
-    for subject in os.scandir(cli_args.download):
-        if subject.is_dir():
-            for session_dir in os.scandir(subject.path):
+    if cli_args.subject_list:
+        with open(cli_args.subject_list, 'r') as sub_file:
+            subject_list = [s.strip() for s in sub_file]
+    else:
+        subject_list = [s.name.strip() for s in os.scandir(cli_args.download)]
+    for subject in subject_list:
+        subject_dir = os.path.join(cli_args.download, subject)
+        if os.path.isdir(subject_dir):
+            for session_dir in os.scandir(subject_dir):
                 if session_dir.is_dir():
                     for tgz in os.scandir(session_dir.path):
                         if tgz:
-
                             # Get session ID from some (arbitrary) .tgz file in
                             # session folder
                             session_name = tgz.name.split("_")[1]
 
                             # Unpack/setup the data for this subject/session
-                            subprocess.check_call((UNPACK_AND_SETUP,
-                                                   subject.name,
-                                                   "ses-" + session_name,
-                                                   session_dir.path,
-                                                   cli_args.output,
-                                                   cli_args.temp,
-                                                   cli_args.fsl_dir,
-                                                   cli_args.mre_dir))
+                            subprocess.check_call((
+                                UNPACK_AND_SETUP, subject,
+                                "ses-" + session_name, session_dir.path,
+                                cli_args.output, cli_args.temp,
+                                cli_args.fsl_dir, cli_args.mre_dir
+                            ))
 
                             # If user said to, delete all the raw downloaded
                             # files for each subject after that subject's data
                             # has been converted and copied
                             if cli_args.remove:
                                 shutil.rmtree(os.path.join(cli_args.download,
-                                                           subject.name))
+                                                            subject))
                             break
 
 
@@ -653,10 +705,12 @@ def validate_bids(cli_args):
     corrected NDA data to validate.
     :return: N/A
     """
+    cmd = ["sudo", cli_args.docker_cmd] if cli_args.docker_cmd else ["docker"]
     try:
-        subprocess.check_call(("docker", "run", "-ti", "--rm", "-v",
-                               cli_args.output + ":/data:ro", "bids/validator",
-                               "/data"))
+        subprocess.check_call(cmd + [
+            "run", "-ti", "--rm", "-v",
+            cli_args.output + ":/data:ro", "bids/validator", "/data"
+        ])
     except subprocess.CalledProcessError:
         print("Error: BIDS validation failed.")
 
