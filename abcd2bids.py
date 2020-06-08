@@ -4,7 +4,7 @@
 ABCD to BIDS CLI Wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-05-29
-Updated 2020-05-19
+Updated 2020-06-02
 """
 
 ##################################
@@ -624,6 +624,7 @@ def download_nda_data(cli_args):
                            "--subject-list", sub_list_file(cli_args),
                            "--modalities", ','.join(cli_args.modalities)),
                            stdin=subprocess.PIPE)
+
 
 def unpack_and_setup(cli_args):
     """
