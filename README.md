@@ -56,7 +56,7 @@ To download images for ABCD you must have the `abcd_fastqc01.csv` spreadsheet do
 
 The DICOM to BIDS process can be done by running the `abcd2bids.py` wrapper from within the directory cloned from this repo. `abcd2bids.py` requires two positional arguments and can take several optional arguments. Those positional arguments are file paths to the FSL directory and the MATLAB Runtime Environment. Here is an example of a valid call of this wrapper:
 
-```
+```sh
 python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory>
 ```
 
@@ -90,14 +90,22 @@ This wrapper will create a temporary folder (`temp/` by default) with hundreds o
 
 `--output`: By default, the wrapper will place the finished/converted data into the `data/` subdirectory of the cloned folder. If the user wants to put the finished data anywhere else, they can do so using the optional `--output` flag followed by the path at which to create the directory, e.g. `--output ~/abcd-dicom2bids/Finished-Data`. A folder will be created at the given path if one does not already exist.
 
-`--start_at`: By default, this wrapper will run every step listed under "Explanation of Process" below. Use this flag to start at one step and skip all of the previous ones. To do so, enter the name of the step, e.g. `--start_at correct_jsons` to skip every step before JSON correction.
+`--start-at`: By default, this wrapper will run every step listed below in that order. Use this flag to start at one step and skip all of the previous ones. To do so, enter the name of the step. E.g. `--start-at correct_jsons` will skip every step before JSON correction.
+
+1. create_good_and_bad_series_table
+2. download_nda_data
+3. unpack_and_setup
+4. correct_jsons
+5. validate_bids
+
+`--stop-before`: To run every step until a specific step, and skip every step after it, use this flag with the name of the first step to skip. E.g. `--stop-before unpack_and_setup` will only run the first two steps.
 
 For more information including the shorthand flags of each option, use the `--help` command: `python3 abcd2bids.py --help`.
 
 Here is the format for a call to the wrapper with more options added:
 
-```
-python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> --username <NDA username> --download <Folder to place raw data in> --output <Folder to place converted data in> --temp <Directory to hold temporary files> --remove 
+```sh
+python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> --username <NDA username> --download <Folder to place raw data in> --output <Folder to place converted data in> --temp <Directory to hold temporary files> --remove
 ```
 
 ## Explanation of Process
@@ -129,7 +137,7 @@ Once `ABCD_good_and_bad_series_table.csv` is successfully created, the wrapper w
 
 The wrapper will call `unpack_and_setup.sh` in a loop to do the DICOM to BIDS conversion and spin echo field map selection, taking seven arguments:
 
-```
+```sh
 SUB=$1 # Full BIDS formatted subject ID (sub-SUBJECTID)
 VISIT=$2 # Full BIDS formatted session ID (ses-SESSIONID)
 TGZDIR=$3 # Path to directory containing all TGZ files for SUB/VISIT
@@ -178,4 +186,4 @@ This wrapper relies on the following other projects:
 
 ## Meta
 
-Documentation last updated by Greg Conan on 2019-11-06.
+Documentation last updated by Greg Conan on 2020-06-29.
