@@ -11,6 +11,7 @@ Clone this repository and save it somewhere on the Linux system you want to do A
 ## Dependencies
 
 1. [Python 3.5.2](https://www.python.org/downloads/release/python-352/)
+1. [jq](https://stedolan.github.io/jq/download/) version 1.6 or higher
 1. [MathWorks MATLAB Runtime Environment (MRE) version 9.1 (R2016b)](https://www.mathworks.com/products/compiler/matlab-runtime.html)
 1. [cbedetti Dcm2Bids](https://github.com/cbedetti/Dcm2Bids) (`export` into your BASH `PATH` variable)
 1. [Rorden Lab dcm2niix](https://github.com/rordenlab/dcm2niix) (`export` into your BASH `PATH` variable)
