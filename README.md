@@ -23,6 +23,19 @@ Clone this repository and save it somewhere on the Linux system you want to do A
 1. Python [`pandas` package](https://pandas.pydata.org)
 1. [AWS CLI (Amazon Web Services Command Line Interface) v19.0.0](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
 
+We recommend creating a virtual environment for Python by running:
+
+```
+python3 -m venv env
+source env/bin/activate
+```
+
+Then install the specified versions of all required python packages by running:
+
+```
+pip install -r src/requirements.txt
+```
+
 ## Spreadsheet (not included)
 
 To download images for ABCD you must have the `abcd_fastqc01.csv` spreadsheet downloaded to this repository's `spreadsheets` folder. It can be downloaded from the [NIMH Data Archive (NDA)](https://nda.nih.gov/) with an ABCD Study Data Use Certification in place. `abcd_fastqc01.csv` contains operator QC information for each MRI series. If the image fails operator QC (a score of 0), then the image will not be downloaded.
@@ -80,6 +93,8 @@ This wrapper will create a temporary folder (`temp/` by default) with hundreds o
 `--temp`: By default, the temporary files will be created in the `temp/` subdirectory of the clone of this repo. If the user wants to place the temporary files anywhere else, then they can do so using the optional `--temp` flag followed by the path at which to create the directory containing temp files, e.g. `--temp /usr/home/abcd2bids-temporary-folder`. A folder will be created at the given path if one does not already exist.
 
 `--subject-list`: By default, all subjects will be downloaded and converted. If only a subset of subjects are desired then specify a path to a .txt file containing a list of subjects (each on their own line) to download. If none is provided this script will attempt to download and convert every subject, which may take weeks to complete. It is recommended to run in parallel on batches of subjects.
+
+`--sessions`: By default, the wrapper will download all sessions from each subject. This is equivalent to `--sessions ['baseline_year_1_arm_1', '2_year_follow_up_y_arm_1']`. If only a specific year should be download for a subject then specify the year within list format, e.g. `--sessions ['baseline_year_1_arm_1']` for just "year 1" data.
 
 `--modalities`: By default, the wrapper will download all modalities from each subject. This is equivalent to `--modalities ['anat', 'func', 'dwi']`. If only certain modalities should be downloaded for a subject then provide a list, e.g. `--modalities ['anat', 'func']`
 
