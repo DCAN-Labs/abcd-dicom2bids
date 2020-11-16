@@ -4,7 +4,7 @@
 ABCD to BIDS CLI Wrapper
 Greg Conan: conan@ohsu.edu
 Created 2019-05-29
-Updated 2020-06-02
+Updated 2020-01-15
 """
 
 ##################################
@@ -17,10 +17,11 @@ Updated 2020-06-02
 #    5. Runs BIDS validator on unpacked/setup data using Docker
 #
 ##################################
+
 import argparse
 import configparser
 from cryptography.fernet import Fernet
-from datetime import datetime
+import datetime
 from getpass import getpass
 import glob
 import os
@@ -34,13 +35,12 @@ import sys
 STEP_NAMES = ["create_good_and_bad_series_table", "download_nda_data",
               "unpack_and_setup", "correct_jsons", "validate_bids"]
 
-# Get path to directory containing this file
+# Get path to directory containing abcd2bids.py
 try:
     PWD = os.path.dirname(os.path.abspath(__file__))
     assert os.access(os.path.join(PWD, "abcd2bids.py"), os.R_OK)
 except (OSError, AssertionError):
-    sys.exit("{} must get its own location to find the files it needs, "
-             "but it could not find its location.".format(__file__))
+    PWD = os.getcwd()
 
 # Constants: Default paths to scripts to call from this wrapper, and default
 # paths to folders in which to manipulate data
@@ -48,14 +48,15 @@ CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".abcd2bids", "config.ini")
 CORRECT_JSONS = os.path.join(PWD, "src", "correct_jsons.py")
 DOWNLOAD_FOLDER = os.path.join(PWD, "raw")
 NDA_AWS_TOKEN_MAKER = os.path.join(PWD, "src", "nda_aws_token_maker.py")
+
 SERIES_TABLE_PARSER = os.path.join(PWD, "src", "aws_downloader.py")
-SPREADSHEET_DOWNLOAD = os.path.join(PWD, "spreadsheets",
-                                    "ABCD_good_and_bad_series_table.csv")
+SPREADSHEET_DOWNLOAD = os.path.join(PWD, "spreadsheets", "ABCD_good_and_bad_series_table.csv")
 SPREADSHEET_QC = os.path.join(PWD, "spreadsheets", "abcd_fastqc01.txt")
 TEMP_FILES_DIR = os.path.join(PWD, "temp")
 UNPACK_AND_SETUP = os.path.join(PWD, "src", "unpack_and_setup.sh")
 UNPACKED_FOLDER = os.path.join(PWD, "data")
 MODALITIES = ['anat', 'func', 'dwi']
+SESSIONS = ['baseline_year_1_arm_1', '2_year_follow_up_y_arm_1']
 
 
 def main():
@@ -74,11 +75,17 @@ def main():
     # use them to make NDA token
     make_nda_token(cli_args)
 
-    # Run steps sequentially, only including those specified by the user
-    for step in get_steps_to_run(cli_args):
-        get_and_print_timestamp_when("The {} step".format(step), "started")
-        globals()[step](cli_args)
-        get_and_print_timestamp_when("The {} step".format(step), "finished")
+    # Run all steps sequentially, starting at the one specified by the user
+    started = False
+    for step in STEP_NAMES:
+        if step == cli_args.start_at:
+            started = True
+        if started:
+            get_and_print_timestamp_when("The {} step".format(step),
+                                         "started")
+            globals()[step](cli_args)
+            get_and_print_timestamp_when("The {} step".format(step),
+                                         "finished")
     print(starting_timestamp)
     get_and_print_timestamp_when(sys.argv[0], "finished")
 
@@ -96,7 +103,8 @@ def get_and_print_timestamp_when(script, did_what):
     :return: String with a human-readable message showing when script did_what
     """
     timestamp = "\n{} {} at {}".format(
-        script, did_what, datetime.now().strftime("%H:%M:%S on %b %d, %Y")
+        script, did_what,
+        datetime.datetime.now().strftime("%H:%M:%S on %b %d, %Y")
     )
     print(timestamp)
     return timestamp
@@ -115,27 +123,26 @@ def get_cli_args():
     # Required: Get path to FSL directory
     parser.add_argument(
         "fsl_dir",
-        type=valid_readable_dir,
+        type=str,
         help=("Required: Path to FSL directory. This positional argument must "
-              "be a valid path to a real readable folder.")
+              "be a valid path to an existing folder.")
     )
 
     # Required: Get path to MRE / MCR root to run compiled MATLAB script
     parser.add_argument(
         "mre_dir",
-        type=valid_readable_dir,
+        type=str,
         help=("Required: Path to directory containing MATLAB Runtime "
               "Environment (MRE) version 9.1 or newer. This is used to run "
               "a compiled MATLAB script. This positional argument must be a "
-              "valid path to a real readable folder.")
+              "valid path to an existing folder.")
     )
 
     # Optional: Get path to already-existing config file with NDA credentials
     parser.add_argument(
-        "-config",
-        "--config-file",
+        "-c",
+        "--config",
         default=CONFIG_FILE,
-        dest="config",
         help=("Path to config file with NDA credentials. If no "
               "config file exists at this path yet, then one will be created. "
               "Unless this option or --username and --password is added, the "
@@ -145,11 +152,9 @@ def get_cli_args():
 
     # Optional: Get download folder path from user as CLI arg
     parser.add_argument(
-        "-download",
-        "--download-folder",
+        "-d",
+        "--download",
         default=DOWNLOAD_FOLDER,
-        dest="download",
-        type=lambda path: valid_dir_to_make(path, DOWNLOAD_FOLDER),
         help=("Path to folder which NDA data will be downloaded "
               "into. By default, data will be downloaded into the {} folder. "
               "A folder will be created at the given path if one does not "
@@ -158,18 +163,18 @@ def get_cli_args():
 
     # Optional: Get folder to unpack NDA data into from download folder
     parser.add_argument(
-        "-out",
+        "-o",
         "--output",
         default=UNPACKED_FOLDER,
-        type=lambda path: valid_dir_to_make(path, UNPACKED_FOLDER),
         help=("Folder path into which NDA data will be unpacked and "
               "setup once downloaded. By default, this script will put the "
               "data into the {} folder. A folder will be created at the given "
               "path if one does not already exist.".format(UNPACKED_FOLDER))
     )
     parser.add_argument(
-        "-pass",
+        "-p",
         "--password",
+        type=str,
         help=("NDA password. Adding this will create a new config "
               "file or overwrite an old one. Unless this is added or a config "
               "file exists with the user's NDA credentials, the user will be "
@@ -179,10 +184,9 @@ def get_cli_args():
 
     # Optional: Get QC spreadsheet
     parser.add_argument(
-        "-qc",
-        "--qc-spreadsheet",
-        type=valid_readable_file,
-        dest="qc",
+        "-q",
+        "--qc",
+        type=validate_readable_file,
         default=SPREADSHEET_QC,
         help=("Path to Quality Control (QC) spreadsheet file downloaded from "
               "the NDA. By default, this script will use {} as the QC "
@@ -191,28 +195,44 @@ def get_cli_args():
 
     # Optional: Subject list
     parser.add_argument(
-        "-list",
+        "-l",
         "--subject-list",
-        type=valid_readable_file,
+        dest="subject_list",
+        type=validate_readable_file,
+        required=True,
         help=("Path to a .txt file containing a list of subjects to download. "
               "The default is to download all available subjects.")
     )
 
+    # Optional: Sessions
+    parser.add_argument(
+        "-y",
+        "--sessions",
+        choices=SESSIONS,
+        nargs="+",
+        dest="sessions",
+        default=SESSIONS,
+        help=("List of sessions for each subject to download. The default is "
+             "to download all sessions for each subject. "
+             "The possible selections are {}".format(SESSIONS))
+)    
+
     # Optional: Modalities
     parser.add_argument(
-        "-mod",
+        "-m",
         "--modalities",
         choices=MODALITIES,
         nargs="+",
+        dest="modalities",
         default=MODALITIES,
         help=("List of the imaging modalities that should be downloaded for "
-              "each subject. The default is to download all modalities. "
-              "The possible selections are {}".format(MODALITIES))
+             "each subject. The default is to download all modalities. "
+             "The possible selections are {}".format(MODALITIES))
 )    
 
     # Optional: During unpack_and_setup, remove unprocessed data
     parser.add_argument(
-        "-rm",
+        "-r",
         "--remove",
         action="store_true",
         help=("After each subject's data has finished conversion, "
@@ -222,31 +242,21 @@ def get_cli_args():
     # Optional: Pick a step to start at, ignore previous ones, and then run
     # that function and all subsequent ones sequentially
     parser.add_argument(
-        "-at",
-        "--start-at",
+        "-s",
+        "--start_at",
         choices=STEP_NAMES,
         default=STEP_NAMES[0],
         help=("Give the name of the step in the wrapper to start "
-              "at, then run that step and the ones after it. All step names, "
-              "in order from first to last: " + ", ".join(STEP_NAMES))
-    )
-    
-    # Optional: Pick a step to stop before, then run the steps before it
-    parser.add_argument(
-        "-stop",
-        "--stop-before",
-        choices=STEP_NAMES,
-        help=("Give the name of the last step in the wrapper to run, "
-              "then run the steps before that one.")
+              "at, then run that step and every step after it. Here are the "
+              "names of all of the steps, in order from first to last: "
+              + ", ".join(STEP_NAMES))
     )
 
     # Optional: Get folder to place temp data into during unpacking
     parser.add_argument(
-        "-temp",
-        "--temp-dir",
+        "-t",
+        "--temp",
         default=TEMP_FILES_DIR,
-        dest="temp",
-        type=lambda path: valid_dir_to_make(path, TEMP_FILES_DIR),
         help=("Path to the directory to be created and filled with "
               "temporary files during unpacking and setup. By default, the "
               "folder will be created at {} and deleted once the script "
@@ -256,8 +266,9 @@ def get_cli_args():
 
     # Optional: Get NDA username and password
     parser.add_argument(
-        "-user",
+        "-u",
         "--username",
+        type=str,
         help=("NDA username. Adding this will create a new config "
               "file or overwrite an old one. Unless this is added or a config "
               "file exists with the user's NDA credentials, the user will be "
@@ -266,93 +277,81 @@ def get_cli_args():
     )
 
     parser.add_argument(
-        "-docker",
+        "-z",
         "--docker-cmd",
-        help=("A necessary docker command replacement on HPCs like the "
-              "one at OHSU, which has it's own special wrapper for docker "
-              "for security reasons. Example: '/opt/acc/sbin/exadocker'")
+        type=str,
+        dest="docker_cmd",
+        default=None,
+        help=("A necessary docker command replacement on HPCs like "
+              "the one at OHSU, which has it's own special wrapper for"
+              "docker for security reasons. Example: '/opt/acc/sbin/exadocker'")
     )
 
     # Parse, validate, and return all CLI args
     return validate_cli_args(parser.parse_args(), parser)
 
 
-def validate_cli_args(cli_args, parser):
+def validate_cli_args(args, parser):
     """
-    Double-check that all command line arguments will allow this script to 
-    work. Validate/create config file parent dir, format output dir path
-    correctly, and ensure that --start-at is before --stop-before
-    :param cli_args: argparse namespace with all command-line arguments
+    Check that all command line arguments will allow this script to work.
+    :param args: argparse namespace with all command-line arguments
     :param parser: argparse ArgumentParser to raise error if anything's invalid
     :return: Validated command-line arguments argparse namespace
     """
-    valid_dir_to_make(os.path.dirname(cli_args.config))
-    if (cli_args.stop_before and STEP_NAMES.index(cli_args.start_at)
-            >= STEP_NAMES.index(cli_args.stop_before)):
-        parser.error("--start-at step must precede --stop-before step")
-    if cli_args.output[-1] != "/":
-        cli_args.output += "/"
-    return cli_args
+    # Validate FSL and MRE directories
+    validate_dir_path(args.fsl_dir, parser)
+    validate_dir_path(args.mre_dir, parser)
+
+    # Validate and create config file's parent directory
+    try:
+        os.makedirs(os.path.dirname(args.config), exist_ok=True)
+    except (OSError, TypeError):
+        parser.error("Could not create folder to contain config file.")
+
+    # Validate other dirs: check if they exist; if not, try to create them; and
+    # move important files in the default dir(s) to the new dir(s)
+    try:
+        for cli_arg in ("download", "output", "temp"):
+            setattr(args, cli_arg, os.path.abspath(getattr(args, cli_arg)))
+    except OSError:
+        parser.error("Failed to convert {} to absolute path.".format(cli_arg))
+    try_to_create_and_prep_directory_at(args.download, DOWNLOAD_FOLDER, parser)
+    try_to_create_and_prep_directory_at(args.output, UNPACKED_FOLDER, parser)
+    try_to_create_and_prep_directory_at(args.temp, TEMP_FILES_DIR, parser)
+
+    # Ensure that the output folder path is formatted correctly:
+    if args.output[-1] != "/":
+        args.output += "/"
+
+    return args
 
 
-def valid_readable_file(path):
+def validate_dir_path(dir_path, parser):
     """
-    Throw exception unless path is a valid readable file path string. This
+    Validate that a given path refers to an existing directory; if it doesn't,
+    then raise an argparse error
+    :param dir_path: Path to validate
+    :param parser: argparse ArgumentParser to raise error if path is invalid
+    :return: N/A
+    """
+    if not os.path.isdir(dir_path):
+        parser.error(dir_path + " is not an existing directory.")
+
+
+def validate_readable_file(param):
+    """
+    Throw exception unless parameter is a valid readable filename string. This
     is used instead of argparse.FileType("r") because the latter leaves an open
     file handle, which has caused problems.
-    :param path: String to check if it represents a valid file path 
-    :return: String representing a valid file path
+    :param param: Parameter to check if it represents a valid filename
+    :return: A valid filename as a string
     """
-    return validate_path(path, (lambda x: os.access(x, os.R_OK)),
-                         os.path.abspath, "Cannot read file at {}")
+    if not os.access(param, os.R_OK):
+        raise argparse.ArgumentTypeError("Could not read file at " + param)
+    return os.path.abspath(param)
 
 
-def valid_dir_to_make(path, default=None):
-    """
-    :param path: String to check if it's a valid path to a directory that is
-                 real or can be created
-    :param default: String which is the default directory path
-    :return: path, but validated
-    """
-    return validate_path(path, (lambda x: os.path.isdir(x) and
-                                os.access(x, os.W_OK)), valid_readable_file,
-                         "Cannot create directory at {}",
-                         lambda x: make_and_prep_directory(x, default))
-
-
-def valid_readable_dir(path):
-    """
-    Validate that a given path refers to a real directory which can be read and
-    written to. If it doesn't, then raise an argparse error
-    :param path: String to check if it represents a valid directory path 
-    :return: String which is a valid path to a real, readable, and writeable
-             directory
-    """
-    return validate_path(path, os.path.isdir, valid_readable_file,
-                         "Cannot read directory at {}")
-
-
-def validate_path(path, is_real, make_valid, err_msg, prepare=None):
-    """
-    Parent/base function used by different type validation functions. Raises an
-    argparse.ArgumentTypeError if the input path is somehow invalid.
-    :param path: String to check if it represents a valid path 
-    :param is_real: Function which returns true if and only if path is real
-    :param make_valid: Function which returns a fully validated path
-    :param err_msg: String to show to user to tell them what is invalid
-    :param prepare: Function to create something at path before validation
-    :return: path, but fully validated as pointing to the right file or dir
-    """
-    try:
-        if prepare:
-            prepare(path)
-        assert is_real(path)
-        return make_valid(path)
-    except (OSError, TypeError, AssertionError, argparse.ArgumentTypeError):
-        raise argparse.ArgumentTypeError(err_msg.format(path))
-
-
-def make_and_prep_directory(folder_path, default_path=None):
+def try_to_create_and_prep_directory_at(folder_path, default_path, parser):
     """
     Validate file path of folder, and if it doesn't exist, create it. If a
     non-default path is given, then move the file(s) in the default folder(s)
@@ -360,18 +359,21 @@ def make_and_prep_directory(folder_path, default_path=None):
     :param folder_path: Path of folder that either exists or should be created
     :param default_path: The default value of folder_path. The folder here
     has some files which will be copied to the new directory at folder_path.
+    :param parser: argparse ArgumentParser to raise error if path is invalid
     :return: N/A
     """
-    os.makedirs(folder_path, exist_ok=True)
+    try:
+        os.makedirs(folder_path, exist_ok=True)
+    except (OSError, TypeError):
+        parser.error("Could not create folder at " + folder_path)
 
     # If user gave a different directory than the default, then copy the
-    # required files (and nothing else) into that directory
-    if default_path:
-        default = os.path.abspath(default_path)
-        if os.path.abspath(folder_path) != default:
-            for each_file in os.scandir(default):
-                if not each_file.is_dir():
-                    shutil.copy2(each_file.path, folder_path)
+    # required files into that directory and nothing else
+    default = os.path.abspath(default_path)
+    if os.path.abspath(folder_path) != default:
+        for each_file in os.scandir(default):
+            if not each_file.is_dir():
+                shutil.copy2(each_file.path, folder_path)
 
 
 def set_to_cleanup_on_crash(temp_dir):
@@ -382,8 +384,8 @@ def set_to_cleanup_on_crash(temp_dir):
     :return: N/A
     """
     # Use local function as an intermediate because the signal module does
-    # not let the signal handler (the second parameter of signal.signal) take
-    # the parameter (temp_dir) needed by the cleanup function. Run cleanup
+    # not allow the signal handler (the second parameter of signal.signal) to
+    # take the parameter (temp_dir) needed by the cleanup function. Run cleanup
     # function and exit with exit code 1 (failure)
     def call_cleanup_function(_signum, _frame):
         cleanup(temp_dir, 1)
@@ -414,50 +416,53 @@ def cleanup(temp_dir, exit_code):
     sys.exit(exit_code)
 
 
-def make_nda_token(cli_args):
+def make_nda_token(args):
     """
     Create NDA token by getting credentials from config file. If no config file
     exists yet, or user specified to make a new one by entering their NDA
     credentials as CLI args, then create one to store NDA credentials.
-    :param cli_args: argparse namespace containing all CLI arguments. The 
+    :param args: argparse namespace containing all CLI arguments. The specific
     arguments used by this function are --username, --password, and --config.
     :return: N/A
     """
     # If config file with NDA credentials exists, then get credentials from it,
     # unless user entered other credentials to make a new config file
-    if (not (cli_args.username or cli_args.password)
-            and os.access(cli_args.config, os.R_OK)):
-        username, password = get_nda_credentials_from(cli_args.config)
+    if not args.username and not args.password and os.path.exists(args.config):
+        username, password = get_nda_credentials_from(args.config)
 
     # Otherwise get NDA credentials from user & save them in a new config file,
     # overwriting the existing config file if user gave credentials as cli args
     else:
-        username = get_NDA_credential(cli_args.username, "username", input)
-        password = get_NDA_credential(cli_args.password, "password", getpass)
-        make_config_file(cli_args.config, username, password)
+
+        # If NDA username was a CLI arg, use it; otherwise prompt user for it
+        if args.username:
+            username = args.username
+        else:
+            username = input("\nEnter your NIMH Data Archives username: ")
+
+        # If NDA password was a CLI arg, use it; otherwise prompt user for it
+        if args.password:
+            password = args.password
+        else:
+            password = getpass("Enter your NIMH Data Archives password: ")
+            
+        make_config_file(args.config, username, password)
 
     # Try to make NDA token
-    token_call_exit_code = subprocess.call(("python3", NDA_AWS_TOKEN_MAKER,
-                                            username, password))
+    token_call_exit_code = subprocess.call((
+        "python3",
+        NDA_AWS_TOKEN_MAKER,
+        username,
+        password
+    ))
 
     # If NDA credentials are invalid, tell user so without printing password.
     # Manually catch error instead of using try-except to avoid trying to
     # catch another file's exception.
     if token_call_exit_code is not 0:
-        sys.exit("Failed to create NDA token using the username and decrypted "
-                 "password from {}.".format(os.path.abspath(cli_args.config)))
-
-
-def get_NDA_credential(cred, cred_name, prompt_fn):
-    """
-    :param cred: String with the credential if the user gave it in the 
-                 command line arguments, or None if they didn't
-    :param cred_name: String naming which credential to get
-    :param prompt_fn: Function to prompt the user to get the credential
-    :return: String with the user's credential
-    """
-    return cred if cred else prompt_fn("\nEnter your NIMH Data Archives {}: "
-                                       .format(cred_name))
+        print("Failed to create NDA token using the username and decrypted "
+              "password from {}.".format(os.path.abspath(args.config)))
+        sys.exit(1)
 
 
 def get_nda_credentials_from(config_file_path):
@@ -472,25 +477,18 @@ def get_nda_credentials_from(config_file_path):
     config.read(config_file_path)
 
     # Get encrypted password and encryption key from config file
-    encrypt_key = config["NDA"]["key"]
+    encryption_key = config["NDA"]["key"]
     encrypted_password = config["NDA"]["encrypted_password"]
 
     # Decrypt password to get user's NDA credentials
     username = config["NDA"]["username"]
-    password = (Fernet(encrypt_key.encode("UTF-8")).decrypt(token=
-                encrypted_password.encode("UTF-8")).decode("UTF-8"))
+    password = (
+        Fernet(encryption_key.encode("UTF-8"))
+        .decrypt(token=encrypted_password.encode("UTF-8"))
+        .decode("UTF-8")
+    )
+
     return username, password
-
-
-def get_steps_to_run(cli_args):
-    """
-    :param cli_args: argparse namespace with all validated CLI arguments
-    :return: List with every step the user said to run and no others, in order
-    """
-    start = STEP_NAMES.index(cli_args.start_at)
-    stop = (STEP_NAMES.index(cli_args.stop_before)
-            if cli_args.stop_before else len(STEP_NAMES))
-    return [STEP_NAMES[i] for i in range(len(STEP_NAMES)) if start <= i < stop]
 
 
 def make_config_file(config_filepath, username, password):
@@ -505,12 +503,15 @@ def make_config_file(config_filepath, username, password):
     config = configparser.ConfigParser()
 
     # Encrypt user's NDA password by making an encryption key
-    encrypt_key = Fernet.generate_key()
-    encrypted_pass = Fernet(encrypt_key).encrypt(password.encode("UTF-8"))
+    encryption_key = Fernet.generate_key()
+    encrypted_pass = Fernet(encryption_key).encrypt(password.encode("UTF-8"))
 
     # Save the encryption key and encrypted password to a new config file
-    config["NDA"] = {"username": username, "key": encrypt_key.decode("UTF-8"),
-                     "encrypted_password": encrypted_pass.decode("UTF-8")}
+    config["NDA"] = {
+        "username": username,
+        "encrypted_password": encrypted_pass.decode("UTF-8"),
+        "key": encryption_key.decode("UTF-8")
+    }
     with open(config_filepath, "w") as configfile:
         config.write(configfile)
 
@@ -524,22 +525,26 @@ def create_good_and_bad_series_table(cli_args):
     :param cli_args: argparse namespace containing all CLI arguments.
     :return: N/A
     """   
-    with open(cli_args.qc) as qc_file:  # Import QC data from .csv file
-        all_qc_data = pd.read_csv(qc_file, encoding="utf-8-sig", sep=",|\t",
-                                  engine="python", index_col=False, header=0,
-                                  skiprows=[1])  # Skip row 2 (description)
-
+    # Import QC data from .csv file
+    with open(cli_args.qc) as qc_file:
+        all_qc_data = pd.read_csv(
+            qc_file, encoding="utf-8-sig", sep=",|\t", engine="python",
+            index_col=False, header=0, skiprows=[1] # Skip row 2 (description)
+        )
+    
     # Remove quotes from values and convert int-strings to ints
-    all_qc_data = all_qc_data.applymap(
-        lambda x: x.strip('"') if isinstance(x, str) and '"' in x else x
-    ).apply(lambda x: x.apply(lambda y: int(y) if isinstance(y, str)
-                              and y.isnumeric() else y))
+    all_qc_data = all_qc_data.applymap(lambda x: x.strip('"')).apply(
+        lambda x: x.apply(lambda y: int(y) if y.isnumeric() else y)
+    )
     
     # Remove quotes from headers
     new_headers = []
     for header in all_qc_data.columns: # data.columns is your list of headers
-        new_headers.append(header.strip('"')) # Save new headers without quotes
-    all_qc_data.columns = new_headers  # Replace old headers with the new list
+        header = header.strip('"') # Remove the quotes off each header
+        new_headers.append(header) # Save the new strings without the quotes
+    all_qc_data.columns = new_headers # Replace the old headers with the new list
+    print(all_qc_data.columns)
+
     qc_data = fix_split_col(all_qc_data.loc[all_qc_data['ftq_usable'] == 1])
 
     def get_img_desc(row):
@@ -551,15 +556,8 @@ def create_good_and_bad_series_table(cli_args):
 
     # Add missing column by splitting data from other column
     image_desc_col = qc_data.apply(get_img_desc, axis=1)
+    
     qc_data = qc_data.assign(**{'image_description': image_desc_col.values})
-
-    # Save a new subject list text file if one is needed but was not given
-    if ("download_nda_data" in get_steps_to_run(cli_args)
-            and not cli_args.subject_list):
-        pd.Series(qc_data["subjectkey"].apply(
-            lambda x: "sub-" + "".join(x.split("_"))).unique()).to_csv(
-                sub_list_file(cli_args), header=False, index=False, mode="w+"
-            )
 
     # Change column names for good_bad_series_parser to use; then save to .csv
     qc_data.rename({
@@ -567,15 +565,6 @@ def create_good_and_bad_series_table(cli_args):
         "abcd_compliant": "ABCD_Compliant", "interview_age": "SeriesTime",
         "comments_misc": "SeriesDescription", "file_source": "image_file"
     }, axis="columns").to_csv(SPREADSHEET_DOWNLOAD, index=False)
-
-
-def sub_list_file(cli_args):
-    """
-    :param cli_args: argparse namespace containing all CLI arguments 
-    :return: String with the path to a subject list file
-    """
-    return (cli_args.subject_list if cli_args.subject_list else
-            os.path.join(PWD, "spreadsheets", "subject_list.txt"))
 
 
 def fix_split_col(qc_df):
@@ -589,13 +578,13 @@ def fix_split_col(qc_df):
         """
         Local function to check for extra columns in a row, and fix them
         :param row: pandas.Series which is one row in the QC DataFrame
+        :param columns: List of strings where each is the name of a column in
+        the QC DataFrame, in order
         :return: N/A
         """
         ix = int(row.name)
         if not pd.isna(qc_df.at[ix, columns[-1]]):
-            qc_df.at[ix, columns[-3]] = "{} {}".format(
-                qc_df.at[ix, columns[-3]], qc_df.at[ix, columns[-2]]
-            )
+            qc_df.at[ix, columns[-3]] += " " + qc_df.at[ix, columns[-2]]
             qc_df.at[ix, columns[-2]] = qc_df.at[ix, columns[-1]]
 
     # Keep checking and dropping the last column of qc_df until it's valid
@@ -603,8 +592,7 @@ def fix_split_col(qc_df):
     last_col = columns[-1]
     while any(qc_df[last_col].isna()):
         qc_df.apply(trim_end_columns, axis="columns")
-        print("Merging {0} column with column to its left because {0} has "
-              "NaNs.".format(last_col))
+        print("Dropping '{}' column because it has NaNs".format(last_col))
         qc_df = qc_df.drop(last_col, axis="columns")
         columns = qc_df.columns.values.tolist()
         last_col = columns[-1]
@@ -615,57 +603,98 @@ def download_nda_data(cli_args):
     """
     Call Python script to download NDA data by making NDA token and parsing the
     good_and_bad_series_table.csv spreadsheet.
-    :param cli_args: argparse namespace with all CLI arguments
+    :param cli_args: argparse namespace containing all CLI arguments. This
+    function only uses the --download argument, the path to the folder to fill
+    with downloaded NDA data.
     :return: N/A
     """
     subprocess.check_call(("python3", "--version"))
-    subprocess.check_call(("python3", SERIES_TABLE_PARSER,
-                           "--download-dir", cli_args.download,
-                           "--subject-list", sub_list_file(cli_args),
-                           "--modalities", ','.join(cli_args.modalities)),
-                           stdin=subprocess.PIPE)
+    print(cli_args.modalities)
+    subprocess.check_call(("python3", 
+                            SERIES_TABLE_PARSER,
+                            "--download-dir", cli_args.download, 
+                            "--subject-list", cli_args.subject_list,
+                            "--sessions", ','.join(cli_args.sessions),
+                            "--modalities", ','.join(cli_args.modalities)))
 
 
-def unpack_and_setup(cli_args):
+def unpack_and_setup(args):
     """
     Run unpack_and_setup.sh script repeatedly to unpack and setup the newly
     downloaded NDA data files (every .tgz file descendant of the NDA data dir)
-    :param cli_args: All arguments entered by the user from the command line.
-    The specific arguments used by this function are fsl_dir, mre_dir,
-    --output, --download, --temp, and --remove.
+    :param args: All arguments entered by the user from the command line. The
+    specific arguments used by this function are fsl_dir, mre_dir, --output,
+    --download, --temp, and --remove.
     :return: N/A
     """
-    if cli_args.subject_list:
-        with open(cli_args.subject_list, 'r') as sub_file:
-            subject_list = [s.strip() for s in sub_file]
+
+    if args.subject_list:
+        f = open(args.subject_list, 'r')
+        x = f.readlines()
+        f.close
+        subject_list = [sub.strip() for sub in x]
+        for subject in subject_list:
+            subject_dir = os.path.join(args.download, subject)
+            if os.path.isdir(subject_dir):
+                for session_dir in os.scandir(subject_dir):
+                    if session_dir.is_dir():
+                        for tgz in os.scandir(session_dir.path):
+                            if tgz:
+
+                                # Get session ID from some (arbitrary) .tgz file in
+                                # session folder
+                                session_name = tgz.name.split("_")[1]
+
+                                # Unpack/setup the data for this subject/session
+                                subprocess.check_call((
+                                    UNPACK_AND_SETUP,
+                                    subject,
+                                    "ses-" + session_name,
+                                    session_dir.path,
+                                    args.output,
+                                    args.temp,
+                                    args.fsl_dir,
+                                    args.mre_dir
+                                ))
+
+                                # If user said to, delete all the raw downloaded
+                                # files for each subject after that subject's data
+                                # has been converted and copied
+                                if args.remove:
+                                    shutil.rmtree(os.path.join(args.download,
+                                                               subject))
+                                break
     else:
-        subject_list = [s.name.strip() for s in os.scandir(cli_args.download)]
-    for subject in subject_list:
-        subject_dir = os.path.join(cli_args.download, subject)
-        if os.path.isdir(subject_dir):
-            for session_dir in os.scandir(subject_dir):
-                if session_dir.is_dir():
-                    for tgz in os.scandir(session_dir.path):
-                        if tgz:
-                            # Get session ID from some (arbitrary) .tgz file in
-                            # session folder
-                            session_name = tgz.name.split("_")[1]
+        for subject in os.scandir(args.download):
+            if subject.is_dir():
+                for session_dir in os.scandir(subject.path):
+                    if session_dir.is_dir():
+                        for tgz in os.scandir(session_dir.path):
+                            if tgz:
 
-                            # Unpack/setup the data for this subject/session
-                            subprocess.check_call((
-                                UNPACK_AND_SETUP, subject,
-                                "ses-" + session_name, session_dir.path,
-                                cli_args.output, cli_args.temp,
-                                cli_args.fsl_dir, cli_args.mre_dir
-                            ))
+                                # Get session ID from some (arbitrary) .tgz file in
+                                # session folder
+                                session_name = tgz.name.split("_")[1]
 
-                            # If user said to, delete all the raw downloaded
-                            # files for each subject after that subject's data
-                            # has been converted and copied
-                            if cli_args.remove:
-                                shutil.rmtree(os.path.join(cli_args.download,
-                                                            subject))
-                            break
+                                # Unpack/setup the data for this subject/session
+                                subprocess.check_call((
+                                    UNPACK_AND_SETUP,
+                                    subject.name,
+                                    "ses-" + session_name,
+                                    session_dir.path,
+                                    args.output,
+                                    args.temp,
+                                    args.fsl_dir,
+                                    args.mre_dir
+                                ))
+
+                                # If user said to, delete all the raw downloaded
+                                # files for each subject after that subject's data
+                                # has been converted and copied
+                                if args.remove:
+                                    shutil.rmtree(os.path.join(args.download,
+                                                               subject.name))
+                                break
 
 
 def correct_jsons(cli_args):
@@ -681,21 +710,13 @@ def correct_jsons(cli_args):
     # Remove the .json files added to each subject's output directory by
     # sefm_eval_and_json_editor.py, and the vol*.nii.gz files
     sub_dirs = os.path.join(cli_args.output, "sub*")
-    remove_excess_subject_files_from(sub_dirs, ["*.json"])
-    remove_excess_subject_files_from(sub_dirs, ["ses*", "fmap", "vol*.nii.gz"])
-
-
-def remove_excess_subject_files_from(subject_dirs, subdirectories):
-    """
-    :subject_dirs: String which is an incomplete path to several directories,
-                   with '*' placeholders standing for their differences
-    :subdirectories: List of strings which are like subject_dirs, except
-                     incomplete paths to files to remove instead of directories
-    :return N/A:
-    """
-    for file_path in glob.iglob(os.path.join(subject_dirs, *subdirectories)):
-        print("Removing {} file: {}".format(subdirectories[-1], file_path))
-        os.remove(file_path)
+    for json_path in glob.iglob(os.path.join(sub_dirs, "*.json")):
+        print("Removing .JSON file: {}".format(json_path))
+        os.remove(json_path)
+    for vol_file in glob.iglob(os.path.join(sub_dirs, "ses*", 
+                          "fmap", "vol*.nii.gz")):
+        print("Removing 'vol' file: {}".format(vol_file))
+        os.remove(vol_file)
 
 
 def validate_bids(cli_args):
@@ -706,15 +727,18 @@ def validate_bids(cli_args):
     corrected NDA data to validate.
     :return: N/A
     """
-    cmd = ["sudo", cli_args.docker_cmd] if cli_args.docker_cmd else ["docker"]
     try:
-        subprocess.check_call(cmd + [
-            "run", "-ti", "--rm", "-v",
-            cli_args.output + ":/data:ro", "bids/validator", "/data"
-        ])
+        if cli_args.docker_cmd:
+            subprocess.check_call(('sudo', cli_args.docker_cmd, "run", "-ti", "--rm", "-v",
+                                   cli_args.output + ":/data:ro", "bids/validator",
+                                   "/data"))
+        else:    
+            subprocess.check_call(("docker", "run", "-ti", "--rm", "-v",
+                                   cli_args.output + ":/data:ro", "bids/validator",
+                                   "/data"))
     except subprocess.CalledProcessError:
         print("Error: BIDS validation failed.")
 
-
 if __name__ == '__main__':
     main()
+
