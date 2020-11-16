@@ -6,19 +6,10 @@
 #
 exe_name=$0
 exe_dir=`dirname "$0"`
-
-# Added 2020-01-28 to ensure that $TMPDIR is nonempty and points to a real path
-if [ "x$TMPDIR" = "x" ]; then
-    export TMPDIR=/tmp
-fi 
-if [ ! -d $TMPDIR ]; then
-    mkdir -p $TMPDIR;
+if [ ! -d $HOME/$USER ]; then
+    mkdir $HOME/$USER
 fi
-
-if [ ! -d $TMPDIR/$USER ]; then
-    mkdir $TMPDIR/$USER
-fi
-export MCR_CACHE_ROOT=$TMPDIR/$USER
+export MCR_CACHE_ROOT=$HOME/$USER
 echo "------------------------------------------"
 if [ "x$1" = "x" ]; then
   echo Usage:
@@ -35,7 +26,7 @@ else
   echo LD_LIBRARY_PATH is ${LD_LIBRARY_PATH};
   shift 1
   RANDHASH=`cat /dev/urandom | tr -cd "a-f0-9" | head -c 8`
-  export MCR_CACHE_ROOT=$TMPDIR/$USER/$RANDHASH
+  export MCR_CACHE_ROOT=$HOME/$USER/$RANDHASH
   mkdir -p $MCR_CACHE_ROOT
   args=
   while [ $# -gt 0 ]; do
