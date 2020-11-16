@@ -1,0 +1,40 @@
+{
+    "Name": "OHSU DCAN Labs ABCD-BIDS MRI processing pipeline inputs and derivatives",
+    "BIDSVersion": "1.2.0",
+    "Authors": [
+        "Eric Earl",
+        "Anders Perrone",
+        "Darrick Sturgeon",
+        "Kathy Snider",
+        "Anthony Galassi",
+        "Damien A. Fair, Ph.D.",
+        "Hauke Bartsch, Ph.D.",
+        "Donald J. Hagler, Ph.D.",
+        "Feng Xue, Ph.D.",
+        "Octavio Ruiz, Ph.D."
+    ],
+    "Acknowledgements": "The Developmental Cognition and Neuroimaging (DCAN) Labs who developed the ABCD-BIDS MRI processing pipeline (DOI: 10.5281/zenodo.2587210; https://github.com/DCAN-Labs; Damien A. Fair, Ph.D., Eric Earl, Anders Perrone, Darrick Sturgeon, Kathy Snider, Anthony Galassi), and the many other ABCD Study researchers who helped acquire and prepare this data (full site listing here: https://abcdstudy.org/study-sites/).",
+    "HowToAcknowledge": "Please cite the processing pipeline's DOI (10.5281/zenodo.2587210) and the References in ReferencesAndLinks below.",
+    "Funding": [
+        "K01 DA037819 (MTS)",
+        "NSF Graduate Research Fellowship (AOC)",
+        "R00 MH091238 (DAF)",
+        "R01 MH096773 (DAF)",
+        "R01 MH115357 (DAF, JTN)",
+        "U01 DA041106 (MMH, MES)",
+        "U01 DA041120 (MTB, DMB, JMB, MH, NUFD, NKS, KMT)",
+        "U01 DA041148 (HG, RW, DAF, BN, SFE)",
+        "U01 DA041156 (ASD, MCR, ARL)",
+        "U01 DA041174 (BJC, TC, DVD, MIC, MR, TT, TDW)",
+        "U24 DA041123 (BJC, MDC, ASD, HB, DJH, JMK, JRP, CSS, DAF)",
+        "U24 DA041147 (HG, MHM)"
+    ],
+    "ReferencesAndLinks": [
+        "The Adolescent Brain Cognitive Development (ABCD) study: Imaging acquisition across 21 sites. Casey BJ, Cannonier T, Conley MI, Cohen AO, Barch DM, Heitzeg MM, Soules ME, Teslovich T, Dellarco DV, Garavan H, Orr CA, Wager TD, Banich MT, Speer NK, Sutherland MT, Riedel MC, Dick AS, Bjork JM, Thomas KM, Chaarani B, Mejia MH, Hagler DJ Jr, Daniela Cornejo M, Sicat CS, Harms MP, Dosenbach NUF, Rosenberg M, Earl E, Bartsch H, Watts R, Polimeni JR, Kuperman JM, Fair DA, Dale AM, ABCD Imaging Acquisition Workgroup. Dev Cogn Neurosci. 2018 Aug. doi: 10.1016/j.dcn.2018.03.001. Epub 2018 Mar 14. Review. PMID: 29567376.",
+        "Heritability of the human connectome: A connectotyping study. Miranda-Dominguez O, Feczko E, Grayson DS, Walum H, Nigg JT, Fair DA. Netw Neurosci. 2018 Jun 1. doi: 10.1162/netn_a_00029. eCollection 2018. PMID: 30215032.",
+        "ADHD and attentional control: Impaired segregation of task positive and task negative brain networks. Mills BD, Miranda-Dominguez O, Mills KL, Earl E, Cordova M, Painter J, Karalunas SL, Nigg JT, Fair DA. Netw Neurosci. 2018 Jun 1. doi: 10.1162/netn_a_00034. eCollection 2018. PMID: 30215033.",
+        "Individual differences in functional brain connectivity predict temporal discounting preference in the transition to adolescence. Anandakumar J, Mills KL, Earl EA, Irwin L, Miranda-Dominguez O, Demeter DV, Walton-Weston A, Karalunas S, Nigg J, Fair DA. Dev Cogn Neurosci. 2018 Nov. doi: 10.1016/j.dcn.2018.07.003. Epub 2018 Jul 30. PMID: 30121543.",
+        "Fair, Damien A; Miranda-Dominguez, Oscar; Snyder, Abraham Z; Perrone, Anders A; Earl, Eric A; Van, Andrew N; Koller, Jonathan M; Feczko, Eric; Klein, Rachel L; Mirro, Amy E. Correction of respiratory artifacts in MRI head motion estimates. bioRxiv. 2018.",
+        "https://abcdstudy.org/publications/"
+    ]
+}
