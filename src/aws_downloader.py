@@ -53,10 +53,8 @@ def generate_parser(parser=None):
     parser.add_argument(
         '-y', 
         '--sessions', 
-        choices=YEARS,
-        nargs='+',
         dest='year_list',
-        default=['baseline_year_1_arm_1'],
+        default=YEARS,
         help='List the years that images should be downloaded from'
 )
     parser.add_argument(
@@ -94,16 +92,18 @@ def main(argv=sys.argv):
         subject_list = [sub.strip() for sub in x]
         log = os.path.join(os.path.dirname(args.subject_list), os.path.splitext(os.path.basename(args.subject_list))[0] + "_download_log.csv")
     year_list = args.year_list
+    if isinstance(year_list, str):
+        year_list = year_list.split(',')
     modalities = args.modalities
     if isinstance(modalities, str):
         modalities = modalities.split(',')
     download_dir = args.download_dir
 
     print("aws_downloader.py command line arguments:")    
-    print("     QC spreadsheet: {}".format(series_csv))
-    print("     Subject List  : {}".format(subject_list))
-    print("     Year          : {}".format(year_list))
-    print("     Modalities    : {}".format(modalities))
+    print("     QC spreadsheet      : {}".format(series_csv))
+    print("     Number of Subjects  : {}".format(len(subject_list)))
+    print("     Year                : {}".format(year_list))
+    print("     Modalities          : {}".format(modalities))
 
     with open(log, 'w') as f:
         writer = csv.writer(f)
