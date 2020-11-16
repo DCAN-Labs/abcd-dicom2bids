@@ -15,19 +15,10 @@
 # run_order_fix.py (in this repo)
 # sefm_eval_and_json_editor.py (in this repo)
 
-# modified by Greg 2020-02-21
-SRC_DIR="$(dirname ${0})"
-if [ "$(basename ${SRC_DIR})" = "src" ]; then
-    ABCD2BIDS_DIR="$(dirname $SRC_DIR)"
-else
-    echo "Error: $(basename ${0}) must be kept in the 'src' directory."
-    exit
-fi
- 
 # If output folder is given as a command line arg, get it; otherwise use
 # ./data as the default. Added by Greg 2019-06-06
 if [ "x$4" = "x" ]; then
-    ROOT_BIDSINPUT=${ABCD2BIDS_DIR}/data
+    ROOT_BIDSINPUT=./data
 else
     ROOT_BIDSINPUT=$4
 fi
@@ -35,7 +26,7 @@ fi
 # If temp files folder is given as a command line arg, get it; otherwise use
 # ./temp as the default. Added by Greg 2019-06-07
 if [ "x$5" = "x" ]; then
-    ScratchSpaceDir=${ABCD2BIDS_DIR}/temp
+    ScratchSpaceDir=./temp
 else
     ScratchSpaceDir=$5
 fi
@@ -50,6 +41,8 @@ fi
 SUB=$1 # Full BIDS formatted subject ID (sub-SUBJECTID)
 VISIT=$2 # Full BIDS formatted session ID (ses-SESSIONID)
 TGZDIR=$3 # Path to directory containing all .tgz for this subject's session
+
+ABCD2BIDS_DIR="$(dirname `dirname $0`)"
 
 participant=`echo ${SUB} | sed 's|sub-||'`
 session=`echo ${VISIT} | sed 's|ses-||'`
@@ -81,7 +74,9 @@ for tgz in ${TempSubjectDir}/*.tgz; do
     tar -xzf ${tgz} -C ${TempSubjectDir}/DCMs
 done
 
-
+if [ -e ${TempSubjectDir}/DCMs/${SUB}/${VISIT}/func ]; then
+    ${ABCD2BIDS_DIR}/src/remove_RawDataStorage_dcms.py ${TempSubjectDir}/DCMs/${SUB}/${VISIT}/func
+fi
 
 
 # # IMPORTANT PATH DEPENDENCY VARIABLES AT OHSU IN SLURM CLUSTER
@@ -92,9 +87,11 @@ done
 
 # convert DCM to BIDS and move to ABCD directory
 mkdir ${TempSubjectDir}/BIDS_unprocessed
+cp ${ABCD2BIDS_DIR}/dataset_description.json ${TempSubjectDir}/BIDS_unprocessed/
 echo ${participant}
 echo `date`" :RUNNING dcm2bids"
 dcm2bids -d ${TempSubjectDir}/DCMs/${SUB} -p ${participant} -s ${session} -c ${ABCD2BIDS_DIR}/abcd_dcm2bids.conf -o ${TempSubjectDir}/BIDS_unprocessed --forceDcm2niix --clobber
+
 
 # replace bvals and bvecs with files supplied by the NDA
 if [ -e ${TempSubjectDir}/DCMs/${SUB}/${VISIT}/dwi ]; then
@@ -144,6 +141,7 @@ if [ -e ${TempSubjectDir}/DCMs/${SUB}/${VISIT}/dwi ]; then
     done
 fi
 
+
 if [[ -e ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/func ]]; then
     echo `date`" :CHECKING BIDS ORDERING OF EPIs"
     i=0
@@ -158,12 +156,10 @@ if [[ -e ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/func ]]; then
         exit
     fi
 fi
-
 # select best fieldmap and update sidecar jsons
 echo `date`" :RUNNING SEFM SELECTION AND EDITING SIDECAR JSONS"
 if [ -d ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/fmap ]; then
-    cp ${ROOT_BIDSINPUT}/dataset_description.json ${TempSubjectDir}/BIDS_unprocessed
-    ${ABCD2BIDS_DIR}/src/sefm_eval_and_json_editor.py ${TempSubjectDir}/BIDS_unprocessed/ ${FSL_DIR} ${MRE_DIR} --participant-label=${participant} --output-dir $ROOT_BIDSINPUT
+    ${ABCD2BIDS_DIR}/src/sefm_eval_and_json_editor.py ${TempSubjectDir}/BIDS_unprocessed ${FSL_DIR} ${MRE_DIR} --participant-label=${participant} --output_dir $ROOT_BIDSINPUT
 fi
 
 # Fix all json extra data errors
