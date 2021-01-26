@@ -286,6 +286,14 @@ def get_cli_args():
               "the one at OHSU, which has it's own special wrapper for"
               "docker for security reasons. Example: '/opt/acc/sbin/exadocker'")
     )
+    parser.add_argument(
+        "-x",
+        "--singularity",
+        type=str,
+        dest="sif_path",
+        default=None,
+        help=("Use singularity and path the .sif file")
+    )
 
     # Parse, validate, and return all CLI args
     return validate_cli_args(parser.parse_args(), parser)
@@ -728,14 +736,18 @@ def validate_bids(cli_args):
     :return: N/A
     """
     try:
-        if cli_args.docker_cmd:
-            subprocess.check_call(('sudo', cli_args.docker_cmd, "run", "-ti", "--rm", "-v",
-                                   cli_args.output + ":/data:ro", "bids/validator",
-                                   "/data"))
-        else:    
-            subprocess.check_call(("docker", "run", "-ti", "--rm", "-v",
-                                   cli_args.output + ":/data:ro", "bids/validator",
-                                   "/data"))
+        if cli_args.sif_path:
+            subprocess.check_call(("singularity", "run", "-B", cli_args.output, 
+                                   cli_args.sif_path, "/data"))
+        else:
+            if cli_args.docker_cmd:
+                subprocess.check_call(('sudo', cli_args.docker_cmd, "run", "-ti", "--rm", "-v",
+                                       cli_args.output + ":/data:ro", "bids/validator",
+                                       "/data"))
+            else:    
+                subprocess.check_call(("docker", "run", "-ti", "--rm", "-v",
+                                       cli_args.output + ":/data:ro", "bids/validator",
+                                       "/data"))
     except subprocess.CalledProcessError:
         print("Error: BIDS validation failed.")
 
