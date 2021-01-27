@@ -20,7 +20,7 @@ else:
 
 # Try to get NDA credentials from command line args passed in; if there are no
 # args, then prompt user for credentials
-if len(sys.argv) is 3:  # [0] is self, [1] is username, [2] is password, so 3
+if len(sys.argv) == 3:  # [0] is self, [1] is username, [2] is password, so 3
     username = sys.argv[1]
     password = sys.argv[2]
 else:

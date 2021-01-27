@@ -57,7 +57,7 @@ def sefm_select(layout, subject, sessions, base_temp_dir, fsl_dir, mre_dir,
     neg = 'AP'
 
     # Add trailing slash to fsl_dir variable if it's not present
-    if fsl_dir[-1] is not "/":
+    if fsl_dir[-1] != "/":
         fsl_dir += "/"
 
     # Make a temporary working directory
