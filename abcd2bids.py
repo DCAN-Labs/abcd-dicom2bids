@@ -69,7 +69,8 @@ def main():
     starting_timestamp = get_and_print_timestamp_when(sys.argv[0], "started")
 
     # Set cleanup function to delete all temporary files if script crashes
-    set_to_cleanup_on_crash(cli_args.temp)
+    if cli_args.remove:
+        set_to_cleanup_on_crash(cli_args.temp)
 
     # Before running any different scripts, validate user's NDA credentials and
     # use them to make NDA token
@@ -737,7 +738,7 @@ def validate_bids(cli_args):
     """
     try:
         if cli_args.sif_path:
-            subprocess.check_call(("singularity", "run", "-B", cli_args.output, 
+            subprocess.check_call(("singularity", "run", "-B", cli_args.output + ":/data", 
                                    cli_args.sif_path, "/data"))
         else:
             if cli_args.docker_cmd:
