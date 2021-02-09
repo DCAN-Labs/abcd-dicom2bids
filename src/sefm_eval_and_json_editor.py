@@ -427,5 +427,4 @@ def main(argv=sys.argv):
 
 if __name__ == "__main__":
     sys.exit(main())
-#! /usr/bin/env python3
 
