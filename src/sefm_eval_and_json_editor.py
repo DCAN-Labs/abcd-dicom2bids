@@ -261,6 +261,7 @@ def edit_dwi_jsons(layout, subject, sessions):
         elif 'Philips' in dwi_metadata['Manufacturer']:
             insert_edit_json(json_path, 'EffectiveEchoSpacing', 0.00062771)
             insert_edit_json(json_path, 'TotalReadoutTime', 0.08976)
+            insert_edit_json(json_path, 'PhaseEncodingDirection', 'j')
         elif 'Siemens' in dwi_metadata['Manufacturer']:
             insert_edit_json(json_path, 'EffectiveEchoSpacing', 0.000689998)
             insert_edit_json(json_path, 'TotalReadoutTime', 0.0959097)
@@ -427,5 +428,4 @@ def main(argv=sys.argv):
 
 if __name__ == "__main__":
     sys.exit(main())
-#! /usr/bin/env python3
 
