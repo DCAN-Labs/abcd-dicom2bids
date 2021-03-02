@@ -21,6 +21,8 @@ Clone this repository and save it somewhere on the Linux system you want to do A
 1. [FMRIB Software Library (FSL) v5.0](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
 1. Python [`cryptography` package](https://cryptography.io/en/latest/)
 1. Python [`pandas` package](https://pandas.pydata.org)
+1. Python [`pybids` package](https://github.com/bids-standard/pybids)
+1. Python [`importlib_resources` package](https://pypi.org/project/importlib-resources/)
 1. [AWS CLI (Amazon Web Services Command Line Interface) v19.0.0](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
 
 We recommend creating a virtual environment for Python by running:
