@@ -70,10 +70,10 @@ To download images for ABCD you must have the `abcd_fastqc01.csv` spreadsheet do
 
 ## Usage
 
-The DICOM to BIDS process can be done by running the `abcd2bids.py` wrapper from within the directory cloned from this repo. `abcd2bids.py` requires two positional arguments and can take several optional arguments. Those positional arguments are file paths to the FSL directory and the MATLAB Runtime Environment. Here is an example of a valid call of this wrapper:
+The DICOM to BIDS process can be done by running the `abcd2bids.py` wrapper from within the directory cloned from this repo. `abcd2bids.py` requires two positional arguments and can take several optional arguments. Those positional arguments are file paths to the FSL directory and the MATLAB Runtime Environment. The MATLAB Runtime Envinronment path should point to the directory which contains the `runtime` directory, not the `runtime` directory itself. Here is an example of a valid call of this wrapper:
 
 ```sh
-python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory>
+python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler directory>
 ```
 
 The first time that a user uses this wrapper, the user will have to enter their NDA credentials. If the user does not include them as command-line arguments, then the wrapper will prompt the user to enter them. The wrapper will then create a `config.ini` file with the user's username and (encrypted) password, so the user will not have to enter their NDA credentials any subsequent times running this wrapper.
@@ -123,7 +123,7 @@ For more information including the shorthand flags of each option, use the `--he
 Here is the format for a call to the wrapper with more options added:
 
 ```sh
-python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> --username <NDA username> --download <Folder to place raw data in> --output <Folder to place converted data in> --temp <Directory to hold temporary files> --remove
+python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler directory> --username <NDA username> --download <Folder to place raw data in> --output <Folder to place converted data in> --temp <Directory to hold temporary files> --remove
 ```
 
 ## Explanation of Process
