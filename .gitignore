@@ -13,3 +13,8 @@ data/*/
 *.txt
 *delete*
 *.csv
+
+
+
+sbatch_abcd2bids.sh
+validator_latest.sif
