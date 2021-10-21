@@ -199,8 +199,8 @@ def get_cli_args():
         "-l",
         "--subject-list",
         dest="subject_list",
-        type=validate_readable_file,
-        required=True,
+        type=valid_readable_file,
+        required=False,
         help=("Path to a .txt file containing a list of subjects to download. "
               "The default is to download all available subjects.")
     )
@@ -637,13 +637,13 @@ def unpack_and_setup(args):
     :return: N/A
     """
 
-    if args.subject_list:
-        f = open(args.subject_list, 'r')
+    if cli_args.subject_list:
+        f = open(cli_args.subject_list, 'r')
         x = f.readlines()
         f.close
         subject_list = [sub.strip() for sub in x]
         for subject in subject_list:
-            subject_dir = os.path.join(args.download, subject)
+            subject_dir = os.path.join(cli_args.download, subject)
             if os.path.isdir(subject_dir):
                 for session_dir in os.scandir(subject_dir):
                     if session_dir.is_dir():
@@ -660,21 +660,21 @@ def unpack_and_setup(args):
                                     subject,
                                     "ses-" + session_name,
                                     session_dir.path,
-                                    args.output,
-                                    args.temp,
-                                    args.fsl_dir,
-                                    args.mre_dir
+                                    cli_args.output,
+                                    cli_args.temp,
+                                    cli_args.fsl_dir,
+                                    cli_args.mre_dir
                                 ))
 
                                 # If user said to, delete all the raw downloaded
                                 # files for each subject after that subject's data
                                 # has been converted and copied
-                                if args.remove:
-                                    shutil.rmtree(os.path.join(args.download,
+                                if cli_args.remove:
+                                    shutil.rmtree(os.path.join(cli_args.download,
                                                                subject))
                                 break
     else:
-        for subject in os.scandir(args.download):
+        for subject in os.scandir(cli_args.download):
             if subject.is_dir():
                 for session_dir in os.scandir(subject.path):
                     if session_dir.is_dir():
@@ -691,17 +691,17 @@ def unpack_and_setup(args):
                                     subject.name,
                                     "ses-" + session_name,
                                     session_dir.path,
-                                    args.output,
-                                    args.temp,
-                                    args.fsl_dir,
-                                    args.mre_dir
+                                    cli_args.output,
+                                    cli_args.temp,
+                                    cli_args.fsl_dir,
+                                    cli_args.mre_dir
                                 ))
 
                                 # If user said to, delete all the raw downloaded
                                 # files for each subject after that subject's data
                                 # has been converted and copied
-                                if args.remove:
-                                    shutil.rmtree(os.path.join(args.download,
+                                if cli_args.remove:
+                                    shutil.rmtree(os.path.join(cli_args.download,
                                                                subject.name))
                                 break
 
