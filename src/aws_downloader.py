@@ -178,9 +178,9 @@ def main(argv=sys.argv):
                         print("{} already exists".format(tgz_path))
                         continue
                     else:
-                        aws_cmd = ["aws", "s3", "cp", i, tgz_dir + "/", "--profile", "NDA"]
-                        print(aws_cmd)
-                        subprocess.call(aws_cmd)
+                        aws_cmd = ["s3cmd", "--config", os.path.join(os.path.expanduser("~"), ".s3cfg-ndar"), "get", i, tgz_dir + "/"]
+                        print("Downloading {} to {}".format(i, tgz_dir))
+                        subprocess.run(aws_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
     print("There are %s subject visits" % num_sub_visits)
