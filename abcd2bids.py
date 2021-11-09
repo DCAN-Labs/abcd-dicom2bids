@@ -47,7 +47,8 @@ except (OSError, AssertionError):
 CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".abcd2bids", "config.ini")
 CORRECT_JSONS = os.path.join(PWD, "src", "correct_jsons.py")
 DOWNLOAD_FOLDER = os.path.join(PWD, "raw")
-NDA_AWS_TOKEN_MAKER = os.path.join(PWD, "src", "nda_aws_token_maker.py")
+#NDA_AWS_TOKEN_MAKER = os.path.join(PWD, "src", "nda_aws_token_maker.py")
+NDA_AWS_TOKEN_MAKER = os.path.join(PWD, "src", "ndar_update_keys.py")
 
 SERIES_TABLE_PARSER = os.path.join(PWD, "src", "aws_downloader.py")
 SPREADSHEET_DOWNLOAD = os.path.join(PWD, "spreadsheets", "ABCD_good_and_bad_series_table.csv")
@@ -382,7 +383,8 @@ def try_to_create_and_prep_directory_at(folder_path, default_path, parser):
     if os.path.abspath(folder_path) != default:
         for each_file in os.scandir(default):
             if not each_file.is_dir():
-                shutil.copy2(each_file.path, folder_path)
+                #shutil.copy2(each_file.path, folder_path)
+                shutil.copy(each_file.path, folder_path)
 
 
 def set_to_cleanup_on_crash(temp_dir):
