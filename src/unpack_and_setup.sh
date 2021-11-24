@@ -50,6 +50,7 @@ session=`echo ${VISIT} | sed 's|ses-||'`
 date
 hostname
 echo ${SLURM_JOB_ID}
+echo Running under group: `id -g`
 
 # Setup scratch space directory
 if [ ! -d ${ScratchSpaceDir} ]; then
@@ -171,37 +172,37 @@ for j in ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/*/*.json; do
 done
 
 
-rm ${TempSubjectDir}/BIDS_unprocessed/${SUB}/ses-baselineYear1Arm1/fmap/*dir-both* 2> /dev/null || true
+rm ${TempSubjectDir}/BIDS_unprocessed/${SUB}/${VISIT}/fmap/*dir-both* 2> /dev/null || true
 
 # rename EventRelatedInformation
-srcdata_dir=${TempSubjectDir}/BIDS_unprocessed/sourcedata/${SUB}/ses-baselineYear1Arm1/func
-if ls ${TempSubjectDir}/DCMs/${SUB}/ses-baselineYear1Arm1/func/*EventRelatedInformation.txt > /dev/null 2>&1; then
+srcdata_dir=${TempSubjectDir}/BIDS_unprocessed/sourcedata/${SUB}/${VISIT}/func
+if ls ${TempSubjectDir}/DCMs/${SUB}/${VISIT}/func/*EventRelatedInformation.txt > /dev/null 2>&1; then
     echo `date`" :COPY AND RENAME SOURCE DATA"
     mkdir -p ${srcdata_dir}
-    MID_evs=`ls ${TempSubjectDir}/DCMs/${SUB}/ses-baselineYear1Arm1/func/*MID*EventRelatedInformation.txt 2>/dev/null`
-    SST_evs=`ls ${TempSubjectDir}/DCMs/${SUB}/ses-baselineYear1Arm1/func/*SST*EventRelatedInformation.txt 2>/dev/null`
-    nBack_evs=`ls ${TempSubjectDir}/DCMs/${SUB}/ses-baselineYear1Arm1/func/*nBack*EventRelatedInformation.txt 2>/dev/null`
+    MID_evs=`ls ${TempSubjectDir}/DCMs/${SUB}/${VISIT}/func/*MID*EventRelatedInformation.txt 2>/dev/null`
+    SST_evs=`ls ${TempSubjectDir}/DCMs/${SUB}/${VISIT}/func/*SST*EventRelatedInformation.txt 2>/dev/null`
+    nBack_evs=`ls ${TempSubjectDir}/DCMs/${SUB}/${VISIT}/func/*nBack*EventRelatedInformation.txt 2>/dev/null`
     echo ${MID_evs}
     echo ${SST_evs}
     echo ${nBack_evs}
     if [ `echo ${MID_evs} | wc -w` -eq 2 ]; then
         i=1
         for ev in ${MID_evs}; do
-            cp ${ev} ${srcdata_dir}/${SUB}_ses-baselineYear1Arm1_task-MID_run-0${i}_bold_EventRelatedInformation.txt
+            cp ${ev} ${srcdata_dir}/${SUB}_${VISIT}_task-MID_run-0${i}_bold_EventRelatedInformation.txt
             ((i++))
         done
     fi
     if [ `echo ${SST_evs} | wc -w` -eq 2 ]; then
         i=1
         for ev in ${SST_evs}; do
-            cp ${ev} ${srcdata_dir}/${SUB}_ses-baselineYear1Arm1_task-SST_run-0${i}_bold_EventRelatedInformation.txt
+            cp ${ev} ${srcdata_dir}/${SUB}_${VISIT}_task-SST_run-0${i}_bold_EventRelatedInformation.txt
             ((i++))
         done
     fi
     if [ `echo ${nBack_evs} | wc -w` -eq 2 ]; then
         i=1
         for ev in ${nBack_evs}; do
-            cp ${ev} ${srcdata_dir}/${SUB}_ses-baselineYear1Arm1_task-nback_run-0${i}_bold_EventRelatedInformation.txt
+            cp ${ev} ${srcdata_dir}/${SUB}_${VISIT}_task-nback_run-0${i}_bold_EventRelatedInformation.txt
             ((i++))
         done
     fi
