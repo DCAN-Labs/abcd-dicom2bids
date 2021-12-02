@@ -66,6 +66,12 @@ def generate_parser(parser=None):
         default=MODALITIES,
         help="List the modalities that should be downloaded. Default: ['anat', 'func', 'dwi']"
 )
+    parser.add_argument(
+        '-c',
+        '--config-dir',
+        default=os.path.expanduser('~'),
+        help="Directory containing a .s3cfg-ndar for the NDA. Default: home directory (~)"
+)
 
     return parser
 
@@ -178,9 +184,9 @@ def main(argv=sys.argv):
                         print("{} already exists".format(tgz_path))
                         continue
                     else:
-                        aws_cmd = ["s3cmd", "--config", os.path.join(os.path.expanduser("~"), ".s3cfg-ndar"), "get", i, tgz_dir + "/"]
+                        aws_cmd = ["s3cmd", "--config", os.path.join(args.config_dir, ".s3cfg-ndar"), "get", i, tgz_dir + "/"]
                         print("Downloading {} to {}".format(i, tgz_dir))
-                        subprocess.run(aws_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        subprocess.run(aws_cmd)
 
 
     print("There are %s subject visits" % num_sub_visits)
