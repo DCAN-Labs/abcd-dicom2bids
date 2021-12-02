@@ -641,77 +641,58 @@ def unpack_and_setup(args):
     :return: N/A
     """
 
+    # Create list of all subject directories for setup
+    subject_dir_paths = []
     if args.subject_list:
         f = open(args.subject_list, 'r')
         x = f.readlines()
         f.close
         subject_list = [sub.strip() for sub in x]
         for subject in subject_list:
-            subject_dir = os.path.join(args.download, subject)
-            print(subject_dir)
+            uid_start = "INV"
+            uid = subject.split(uid_start, 1)[1]
+            bids_pid = 'sub-NDARINV' + ''.join(uid)
+            subject_dir = os.path.join(args.download, bids_pid)
             if os.path.isdir(subject_dir):
-                for session_dir in os.scandir(subject_dir):
-                    print(session_dir)
-                    if session_dir.is_dir():
-                        for tgz in os.scandir(session_dir.path):
-                            print(tgz)
-                            if tgz:
-
-                                # Get session ID from some (arbitrary) .tgz file in
-                                # session folder
-                                session_name = tgz.name.split("_")[1]
-                                print(UNPACK_AND_SETUP, subject, "ses-" + session_name, session_dir.path, args.output, args.temp, args.fsl_dir, args.mre_dir)
-
-                                # Unpack/setup the data for this subject/session
-                                subprocess.check_call((
-                                    UNPACK_AND_SETUP,
-                                    subject,
-                                    "ses-" + session_name,
-                                    session_dir.path,
-                                    args.output,
-                                    args.temp,
-                                    args.fsl_dir,
-                                    args.mre_dir
-                                ))
-
-                                # If user said to, delete all the raw downloaded
-                                # files for each subject after that subject's data
-                                # has been converted and copied
-                                if args.remove:
-                                    shutil.rmtree(os.path.join(args.download,
-                                                               subject))
-                                break
+                subject_dir_paths.append(subject_dir)
     else:
         for subject in os.scandir(args.download):
             if subject.is_dir():
-                for session_dir in os.scandir(subject.path):
-                    if session_dir.is_dir():
-                        for tgz in os.scandir(session_dir.path):
-                            if tgz:
+                subject_dir_paths.append(subject.path)
 
-                                # Get session ID from some (arbitrary) .tgz file in
-                                # session folder
-                                session_name = tgz.name.split("_")[1]
+    # Loop through each subject and setup all sessions for that subject
+    for subject_dir in subject_dir_paths:
+        print(subject_dir)
+        for session_dir in os.scandir(subject_dir):
+            print(session_dir)
+            if session_dir.is_dir():
+                for tgz in os.scandir(session_dir.path):
+                    print(tgz)
+                    if tgz:
+                        # Get session ID from some (arbitrary) .tgz file in
+                        # session folder
+                        session_name = tgz.name.split("_")[1]
+                        print(UNPACK_AND_SETUP, subject, "ses-" + session_name, session_dir.path, args.output, args.temp, args.fsl_dir, args.mre_dir)
 
-                                # Unpack/setup the data for this subject/session
-                                subprocess.check_call((
-                                    UNPACK_AND_SETUP,
-                                    subject.name,
-                                    "ses-" + session_name,
-                                    session_dir.path,
-                                    args.output,
-                                    args.temp,
-                                    args.fsl_dir,
-                                    args.mre_dir
-                                ))
+                        # Unpack/setup the data for this subject/session
+                        subprocess.check_call((
+                            UNPACK_AND_SETUP,
+                            subject,
+                            "ses-" + session_name,
+                            session_dir.path,
+                            args.output,
+                            args.temp,
+                            args.fsl_dir,
+                            args.mre_dir
+                        ))
 
-                                # If user said to, delete all the raw downloaded
-                                # files for each subject after that subject's data
-                                # has been converted and copied
-                                if args.remove:
-                                    shutil.rmtree(os.path.join(args.download,
-                                                               subject.name))
-                                break
+                        # If user said to, delete all the raw downloaded
+                        # files for each subject after that subject's data
+                        # has been converted and copied
+                        if args.remove:
+                            shutil.rmtree(os.path.join(args.download,
+                                                       subject))
+                        # remove "break"
 
 
 def correct_jsons(cli_args):
