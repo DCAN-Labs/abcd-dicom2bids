@@ -463,8 +463,9 @@ def make_nda_token(args):
     token_call_exit_code = subprocess.call((
         "python3",
         NDA_AWS_TOKEN_MAKER,
-        username,
-        password
+        "--username", username,
+        "--password", password,
+        "--config-dir", args.temp
     ))
 
     # If NDA credentials are invalid, tell user so without printing password.
@@ -626,7 +627,8 @@ def download_nda_data(cli_args):
                             "--download-dir", cli_args.download, 
                             "--subject-list", cli_args.subject_list,
                             "--sessions", ','.join(cli_args.sessions),
-                            "--modalities", ','.join(cli_args.modalities)))
+                            "--modalities", ','.join(cli_args.modalities),
+                            "--config-dir", cli_args.temp))
 
 
 def unpack_and_setup(args):
@@ -646,15 +648,19 @@ def unpack_and_setup(args):
         subject_list = [sub.strip() for sub in x]
         for subject in subject_list:
             subject_dir = os.path.join(args.download, subject)
+            print(subject_dir)
             if os.path.isdir(subject_dir):
                 for session_dir in os.scandir(subject_dir):
+                    print(session_dir)
                     if session_dir.is_dir():
                         for tgz in os.scandir(session_dir.path):
+                            print(tgz)
                             if tgz:
 
                                 # Get session ID from some (arbitrary) .tgz file in
                                 # session folder
                                 session_name = tgz.name.split("_")[1]
+                                print(UNPACK_AND_SETUP, subject, "ses-" + session_name, session_dir.path, args.output, args.temp, args.fsl_dir, args.mre_dir)
 
                                 # Unpack/setup the data for this subject/session
                                 subprocess.check_call((

@@ -27,6 +27,7 @@ NOTES:
 """  
 from os.path import expanduser 
 import sys
+import argparse
 import stat
 import fileinput
 import getpass
@@ -43,16 +44,16 @@ except ImportError:
 import zipfile
 import tarfile
 
-# Default home directory, set this to the home folder for the user you plan to use, (i.e., ec2-uesr, ubuntu, etc.)
-#home = '/home/ec2-user'
-#home = '/home/ubuntu'
-#home = '/home/elisonj/perr0372/Projects'
-home = os.path.expanduser('~')
+# Default config_dir directory, set this to the config_dir folder for the user you plan to use, (i.e., ec2-uesr, ubuntu, etc.)
+#config_dir = '/config_dir/ec2-user'
+#config_dir = '/config_dir/ubuntu'
+#config_dir = '/config_dir/elisonj/perr0372/Projects'
+#config_dir = os.path.expanduser('~')
 src_path = os.path.abspath(os.path.dirname(__file__))
 
 
-#home = expanduser("~")
-print ('Home is %s' %home) 
+#config_dir = expanduser("~")
+#print ('Home is %s' %config_dir) 
 def download_file( url, dest ):
     print('Downloading {} to {}'.format(url, dest))
     if sys.version_info[0] < 3:    
@@ -72,24 +73,24 @@ def unzip_file( filename ):
     z.close()
     os.remove( filename )
 
-def shell_source(script):
-   f = open (os.path.normpath( home + '/ndar_toolkit/ndar_update_keys.sh'), 'r')
+def shell_source(script, config_dir):
+   f = open (os.path.normpath( config_dir + '/ndar_toolkit/ndar_update_keys.sh'), 'r')
    line = f.readline()
    ndar_username = line.split("=",1)[1]
    line = f.readline()
    ndar_password = line.split("=",1)[1]
    return ndar_username.strip(), ndar_password.strip()  
 
-def create_default_config(home, config_file):
-    f = open (os.path.normpath(home + config_file), 'wt')
+def create_default_config(config_dir, config_file):
+    f = open (os.path.normpath(config_dir + config_file), 'wt')
     f.write('[NDAR]\n')
     f.close()
 
-def write_aws_config(home, config_file, profile):
+def write_aws_config(config_dir, config_file, profile):
     config_aws_cli = ConfigParser.ConfigParser()
     # If a config file already exists read profiles from there and update
-    if (os.path.isfile(os.path.normpath(home + config_file))):
-        config_aws_cli.read(os.path.normpath(home + config_file))
+    if (os.path.isfile(os.path.normpath(config_dir + config_file))):
+        config_aws_cli.read(os.path.normpath(config_dir + config_file))
     # if the profile doesn't exist create it
     if not config_aws_cli.has_section(profile):
         config_aws_cli.add_section(profile)
@@ -98,17 +99,17 @@ def write_aws_config(home, config_file, profile):
     config_aws_cli.set(profile, 'aws_session_token', myvars["sessionToken"])
     config_aws_cli.set(profile, 'region', 'us-east-1')
 
-    with open(os.path.normpath(home + config_file), 'wt') as configfile:
+    with open(os.path.normpath(config_dir + config_file), 'wt') as configfile:
         config_aws_cli.write(configfile)
 
-def write_s3cmd_config(home, config_file):
+def write_s3cmd_config(config_dir, config_file):
     config_s3cmd = ConfigParser.ConfigParser()
 
-    if (os.path.isfile( os.path.normpath(home + config_file ))):
-        config_s3cmd.read(os.path.normpath(home + config_file))
+    if (os.path.isfile( os.path.normpath(config_dir + config_file ))):
+        config_s3cmd.read(os.path.normpath(config_dir + config_file))
     if not config_s3cmd.has_section('default'):
         config_s3cmd.add_section('default')
-    print('Updating access keys and token for {} profile in {}'.format('default', os.path.normpath(home + config_file)))
+    print('Updating access keys and token for {} profile in {}'.format('default', os.path.normpath(config_dir + config_file)))
 
     s3cmd_info = {
         'access_key': myvars["accessKey"],
@@ -160,8 +161,32 @@ def write_s3cmd_config(home, config_file):
     #config_s3cmd.add_section('default')
     for key in s3cmd_info.keys():
         config_s3cmd.set('default', key, s3cmd_info[key])
-    with open( os.path.normpath(home + config_file), 'wt') as configfile:
+    with open( os.path.normpath(config_dir + config_file), 'wt') as configfile:
         config_s3cmd.write(configfile)
+
+
+def generate_parser(parser=None):
+    """
+    generates argument parser for this prgoram.
+    """
+    parser = argparse.ArgumentParser(
+        prog='ndar_update_keys',
+        description='   1) Downloads and installs NDA downloadmanager.jar and s3cmd. ' \
+                    '   2) Generates an aws credentials file and an s3cmd config for the ABCD NDA bucket. ' \
+                    '   3) Generates a temporary NDA token for downloading.'
+    )
+    parser.add_argument(
+        '-u', '--username', required=False, default=None, help='NDA username'
+    )
+    parser.add_argument(
+        '-p', '--password', required=False, default=None, help='NDA encrypted password'
+    )
+    parser.add_argument(
+        '-c', '--config-dir', required=False, default=os.path.expanduser('~'), help='Temporary directory to for the s3 config file. Default: config_dir directory (~)'
+    )
+
+    return parser
+    
 
 if __name__ == '__main__':
 
@@ -169,19 +194,25 @@ if __name__ == '__main__':
     if not os.path.exists (os.path.normpath(src_path + "/ndar_toolkit")):
         os.makedirs (os.path.normpath(src_path + "/ndar_toolkit"))
 
+
     # Try to get NDA credentials from command line args passed in; if there are no
     # args, then prompt user for credentials
-    if len(sys.argv) == 3:  # [0] is self, [1] is username, [2] is password, so 3
-        ndar_username = sys.argv[1]
-        ndar_password = sys.argv[2]
+    parser = generate_parser()
+    args = parser.parse_args()
+    
+    if args.username is not None and args.password is not None:
+        ndar_username = args.username
+        ndar_password = args.password
     else:
         ndar_username = input('Enter your NIMH Data Archives username: ')
         ndar_password = getpass.getpass('Enter your NIMH Data Archives password: ')
+
+    config_dir = args.config_dir
     
     
     # Creates location for aws credentials files
-    if not os.path.exists ( os.path.normpath(home + '/.aws/')):
-        os.makedirs ( os.path.normpath(home + '/.aws/'))
+    if not os.path.exists ( os.path.normpath(config_dir + '/.aws/')):
+        os.makedirs ( os.path.normpath(config_dir + '/.aws/'))
         #os.makedirs ( '/root/.aws/' )
     
     if not (os.path.isfile( os.path.normpath(src_path + '/ndar_toolkit/downloadmanager.jar' ))):
@@ -209,12 +240,12 @@ if __name__ == '__main__':
     devnull = open(os.devnull, 'w')
     print ("Generating new keys and updating config files")
     os.chdir( os.path.normpath(src_path + "/ndar_toolkit"))
-    status=call(['java', '-jar', os.path.normpath(src_path + '/ndar_toolkit/downloadmanager.jar'), '--generate', os.path.normpath(home + '/.aws/ndar_awskeys.txt'), '--username', ndar_username, '--password', ndar_password], stdout=devnull, stderr=devnull)
+    status=call(['java', '-jar', os.path.normpath(src_path + '/ndar_toolkit/downloadmanager.jar'), '--generate', os.path.normpath(config_dir + '/.aws/ndar_awskeys.txt'), '--username', ndar_username, '--password', ndar_password], stdout=devnull, stderr=devnull)
                 #shell=True)
                 #shell=True, stdout=devnull, stderr=devnull)
 
     myvars={}
-    with open (os.path.normpath(home + "/.aws/ndar_awskeys.txt")) as keysfile:
+    with open (os.path.normpath(config_dir + "/.aws/ndar_awskeys.txt")) as keysfile:
     	for line in keysfile:
             #line = line.replace(r'\r', '')
             name, var = line.partition("=")[::2]
@@ -225,7 +256,7 @@ if __name__ == '__main__':
     os.environ["AWS_SECRET_ACCESS_KEY"] = myvars["secretKey"]
     os.environ["AWS_SESSION_TOKEN"] = myvars["sessionToken"]
 
-    #Additional entries may be necessary depending on environment, to write configuration file to home directory
-    write_aws_config( home, '/.aws/credentials', 'NDAR')
-    write_aws_config( home, '/.aws/config', 'profile NDAR')
-    write_s3cmd_config( home, '/.s3cfg-ndar')
+    #Additional entries may be necessary depending on environment, to write configuration file to config_dir directory
+    write_aws_config( config_dir, '/.aws/credentials', 'NDAR')
+    write_aws_config( config_dir, '/.aws/config', 'profile NDAR')
+    write_s3cmd_config( config_dir, '/.s3cfg-ndar')
