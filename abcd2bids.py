@@ -554,7 +554,8 @@ def create_good_and_bad_series_table(cli_args):
     all_qc_data.columns = new_headers # Replace the old headers with the new list
     print(all_qc_data.columns)
 
-    qc_data = fix_split_col(all_qc_data.loc[all_qc_data['ftq_usable'] == 1])
+    # select all QC data, not just those with ftq_usable == 1
+    qc_data = fix_split_col(all_qc_data)
 
     def get_img_desc(row):
         """
@@ -684,7 +685,7 @@ def unpack_and_setup(args):
                                 # Get session ID from some (arbitrary) .tgz file in
                                 # session folder
                                 session_name = tgz.name.split("_")[1]
-
+				
                                 # Unpack/setup the data for this subject/session
                                 subprocess.check_call((
                                     UNPACK_AND_SETUP,
