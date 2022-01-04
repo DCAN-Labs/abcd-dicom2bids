@@ -126,7 +126,7 @@ def main(argv=sys.argv):
             subject_df = series_df[series_df['pGUID'] == pguid]
             for year in year_list:
                 sub_ses_df = subject_df[subject_df['EventName'] == year]
-                sub_pass_QC_df = sub_ses_df[sub_ses_df['QC'] == 1.0]
+                sub_pass_QC_df = sub_ses_df # changed to include all data, not just data with QC == 1.0
                 file_paths = []
                 ### Logging information
                 # initialize logging variables
@@ -195,35 +195,35 @@ def main(argv=sys.argv):
 
 
 def add_anat_paths(passed_QC_group, file_paths):
-    ## Check if T1_NORM exists and download that instead of just T1
-    #   If there is a T1_NORM in the df of good T1s then use it. Else just use good T1
-    T1_df = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-T1-NORM']
+    ##  Download both T1_NORM and T1
+    T1_df = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-T1']
     if T1_df.empty:
-        T1_df = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-T1']
-        if T1_df.empty:
-            has_t1 = 0 # No T1s. Invalid subject
-        else:
-            for file_path in T1_df['image_file']:
-                file_paths += [file_path]
-            has_t1 = T1_df.shape[0]
+        has_t1 = 0 # No T1s. Invalid subject
     else:
         for file_path in T1_df['image_file']:
             file_paths += [file_path]
         has_t1 = T1_df.shape[0]
 
-    T2_df = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-T2-NORM']
+    T1_df_norm = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-T1-NORM']
+    if not T1_df_norm.empty:
+        for file_path in T1_df_norm['image_file']:
+            file_paths += [file_path]
+        has_t1 += T1_df_norm.shape[0]
+
+    T2_df = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-T2']
     if T2_df.empty:
-        T2_df = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-T2']
-        if T2_df.empty:
-            has_t2 = 0 # No T2s
-        else:
-            for file_path in T2_df['image_file']:
-                file_paths += [file_path]
-            has_t2 = T2_df.shape[0]
+        has_t2 = 0 # No T2s
     else:
         for file_path in T2_df['image_file']:
             file_paths += [file_path]
         has_t2 = T2_df.shape[0]
+
+    T2_df_norm = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-T2-NORM']
+    if not T2_df_norm.empty:
+        for file_path in T2_df_norm['image_file']:
+            file_paths += [file_path]
+        has_t2 += T2_df_norm.shape[0]
+
     return (file_paths, has_t1, has_t2)
 
 def add_func_paths(passed_QC_group, file_paths):
@@ -257,28 +257,22 @@ def add_func_paths(passed_QC_group, file_paths):
             file_paths += [file_path]
         has_rsfmri = RS_df.shape[0]
 
-    ## List only download task iff their is a pair of scans for the task that passed QC
+    ## List only download task if and only if there is a pair of scans for the task that passed QC
     MID_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-MID-fMRI']
-    if MID_df.shape[0] != 2:
-        has_mid = MID_df.shape[0]
-    else:
-        for file_path in MID_df['image_file']:
-            file_paths += [file_path]
-        has_mid = MID_df.shape[0]
+
+    for file_path in MID_df['image_file']:
+        file_paths += [file_path]
+    has_mid = MID_df.shape[0]
     SST_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-SST-fMRI']
-    if SST_df.shape[0] != 2:
-        has_sst = SST_df.shape[0]
-    else:
-        for file_path in SST_df['image_file']:
-            file_paths += [file_path]
-        has_sst = SST_df.shape[0]
+
+    for file_path in SST_df['image_file']:
+        file_paths += [file_path]
+    has_sst = SST_df.shape[0]
     nBack_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-nBack-fMRI']
-    if nBack_df.shape[0] != 2:
-        has_nback = nBack_df.shape[0]
-    else:
-        for file_path in nBack_df['image_file']:
-            file_paths += [file_path]
-        has_nback = nBack_df.shape[0]
+
+    for file_path in nBack_df['image_file']:
+        file_paths += [file_path]
+    has_nback = nBack_df.shape[0]
 
     return (file_paths, has_sefm, has_rsfmri, has_mid, has_sst, has_nback)
 
