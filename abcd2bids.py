@@ -564,17 +564,35 @@ def create_good_and_bad_series_table(cli_args):
         """
         return row.ftq_series_id.split("_")[2]
 
-    # Add missing column by splitting data from other column
+    # Add extra column by splitting data from other column
     image_desc_col = qc_data.apply(get_img_desc, axis=1)
-    
     qc_data = qc_data.assign(**{'image_description': image_desc_col.values})
+
+    def get_img_timestamp(row):
+        """
+        :param row: pandas.Series with a column called "ftq_series_id"
+        :return: String with the image_description of that row
+        """
+        return row.ftq_series_id.split("_")[3]
+
+    # Add extra column by splitting data from other column
+    image_timestamp_col = qc_data.apply(get_img_timestamp, axis=1)
+    qc_data = qc_data.assign(**{'image_timestamp': image_timestamp_col.values})
+
+    # remove "Replaced" rows from download list
+    qc_data = qc_data[qc_data['ftq_recall_reason'] != 'Replaced']
 
     # Change column names for good_bad_series_parser to use; then save to .csv
     qc_data.rename({
         "ftq_usable": "QC", "subjectkey": "pGUID", "visit": "EventName",
         "abcd_compliant": "ABCD_Compliant", "interview_age": "SeriesTime",
         "comments_misc": "SeriesDescription", "file_source": "image_file"
-    }, axis="columns").to_csv(SPREADSHEET_DOWNLOAD, index=False)
+    }, axis="columns").sort_values([
+        'pGUID',
+        'EventName',
+        'image_description',
+        'image_timestamp'
+    ]).to_csv(SPREADSHEET_DOWNLOAD, index=False)
 
 
 def fix_split_col(qc_df):
