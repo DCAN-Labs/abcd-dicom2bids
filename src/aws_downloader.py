@@ -15,11 +15,11 @@ import argparse
 #
 #######################################
 
-prog_descrip='test downloader'
+prog_descrip='AWS downloader'
 
 QC_CSV = os.path.join(os.path.dirname(os.path.dirname(
                     os.path.abspath(__file__))), "spreadsheets",
-                    "ABCD_good_and_bad_series_table.csv") 
+                    "abcd_fastqc01_reformatted.csv") 
 YEARS = ['baseline_year_1_arm_1', '2_year_follow_up_y_arm_1']
 MODALITIES = ['anat', 'func', 'dwi']
 
@@ -65,6 +65,12 @@ def generate_parser(parser=None):
         dest='modalities',
         default=MODALITIES,
         help="List the modalities that should be downloaded. Default: ['anat', 'func', 'dwi']"
+)
+    parser.add_argument(
+        '-c',
+        '--config-dir',
+        default=os.path.expanduser('~'),
+        help="Directory containing a .s3cfg-ndar for the NDA. Default: home directory (~)"
 )
 
     return parser
@@ -179,9 +185,9 @@ def main(argv=sys.argv):
                         print("{} already exists".format(tgz_path))
                         continue
                     else:
-                        aws_cmd = ["aws", "s3", "cp", i, tgz_dir + "/", "--profile", "NDA"]
-                        print(aws_cmd)
-                        subprocess.call(aws_cmd)
+                        aws_cmd = ["s3cmd", "--config", os.path.join(args.config_dir, ".s3cfg-ndar"), "get", i, tgz_dir + "/"]
+                        print("Downloading {} to {}".format(i, tgz_dir))
+                        subprocess.run(aws_cmd)
 
 
     print("There are %s subject visits" % num_sub_visits)
