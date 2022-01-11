@@ -10,8 +10,8 @@ Updated 2020-01-15
 ##################################
 #
 # Wrapper for ABCD DICOM to BIDS pipeline that can be run from the command line
-#    1. Imports data, QC's it, and exports ABCD_good_and_bad_series_table.csv
-#    2. Runs good_bad_series_parser.py to download ABCD data using .csv table
+#    1. Imports data, QC's it, and exports abcd_fastqc01_reformatted.csv
+#    2. Runs aws_downloader.py to download ABCD data using .csv table
 #    3. Runs unpack_and_setup.sh to unpack/setup the downloaded ABCD data
 #    4. Runs correct_jsons.py to conform data to official BIDS standards
 #    5. Runs BIDS validator on unpacked/setup data using Docker
@@ -32,7 +32,7 @@ import subprocess
 import sys
 
 # Constant: List of function names of steps 1-5 in the list above
-STEP_NAMES = ["create_good_and_bad_series_table", "download_nda_data",
+STEP_NAMES = ["reformat_fastqc_spreadsheet", "download_nda_data",
               "unpack_and_setup", "correct_jsons", "validate_bids"]
 
 # Get path to directory containing abcd2bids.py
@@ -51,7 +51,7 @@ DOWNLOAD_FOLDER = os.path.join(PWD, "raw")
 NDA_AWS_TOKEN_MAKER = os.path.join(PWD, "src", "ndar_update_keys.py")
 
 SERIES_TABLE_PARSER = os.path.join(PWD, "src", "aws_downloader.py")
-SPREADSHEET_DOWNLOAD = os.path.join(PWD, "spreadsheets", "ABCD_good_and_bad_series_table.csv")
+SPREADSHEET_DOWNLOAD = os.path.join(PWD, "temp", "abcd_fastqc01_reformatted.csv")
 SPREADSHEET_QC = os.path.join(PWD, "spreadsheets", "abcd_fastqc01.txt")
 TEMP_FILES_DIR = os.path.join(PWD, "temp")
 UNPACK_AND_SETUP = os.path.join(PWD, "src", "unpack_and_setup.sh")
@@ -384,7 +384,7 @@ def try_to_create_and_prep_directory_at(folder_path, default_path, parser):
         for each_file in os.scandir(default):
             if not each_file.is_dir():
                 #shutil.copy2(each_file.path, folder_path)
-                shutil.copy(each_file.path, folder_path)
+                shutil.copyfile(each_file.path, os.path.join(folder_path, each_file.name))
 
 
 def set_to_cleanup_on_crash(temp_dir):
@@ -531,9 +531,9 @@ def make_config_file(config_filepath, username, password):
     subprocess.check_call(("chmod", "700", config_filepath))
 
 
-def create_good_and_bad_series_table(cli_args):
+def reformat_fastqc_spreadsheet(cli_args):
     """
-    Create good_and_bad_series_table.csv by merging imaging data with QC data
+    Create abcd_fastqc01_reformatted.csv by reformatting the original fastqc01.txt spreadsheet.
     :param cli_args: argparse namespace containing all CLI arguments.
     :return: N/A
     """   
@@ -576,7 +576,7 @@ def create_good_and_bad_series_table(cli_args):
         "ftq_usable": "QC", "subjectkey": "pGUID", "visit": "EventName",
         "abcd_compliant": "ABCD_Compliant", "interview_age": "SeriesTime",
         "comments_misc": "SeriesDescription", "file_source": "image_file"
-    }, axis="columns").to_csv(SPREADSHEET_DOWNLOAD, index=False)
+    }, axis="columns").to_csv(os.path.join(cli_args.temp, os.path.basename(SPREADSHEET_DOWNLOAD)), index=False)
 
 
 def fix_split_col(qc_df):
@@ -642,7 +642,7 @@ def unpack_and_setup(args):
     """
 
     # Create list of all subject directories for setup
-    subject_dir_paths = []
+    subject_dir_paths = {}
     if args.subject_list:
         f = open(args.subject_list, 'r')
         x = f.readlines()
@@ -654,25 +654,23 @@ def unpack_and_setup(args):
             bids_pid = 'sub-NDARINV' + ''.join(uid)
             subject_dir = os.path.join(args.download, bids_pid)
             if os.path.isdir(subject_dir):
-                subject_dir_paths.append(subject_dir)
+                subject_dir_paths[bids_pid] = subject_dir
     else:
         for subject in os.scandir(args.download):
             if subject.is_dir():
-                subject_dir_paths.append(subject.path)
+                subject_dir_paths[subject.name] = subject.path
 
     # Loop through each subject and setup all sessions for that subject
-    for subject_dir in subject_dir_paths:
-        print(subject_dir)
+    for subject, subject_dir in subject_dir_paths.items():
         for session_dir in os.scandir(subject_dir):
-            print(session_dir)
             if session_dir.is_dir():
                 for tgz in os.scandir(session_dir.path):
-                    print(tgz)
                     if tgz:
                         # Get session ID from some (arbitrary) .tgz file in
                         # session folder
                         session_name = tgz.name.split("_")[1]
-                        print(UNPACK_AND_SETUP, subject, "ses-" + session_name, session_dir.path, args.output, args.temp, args.fsl_dir, args.mre_dir)
+                        print('Unpacking and setting up tgzs for {} {} located here: {}'.format(subject, session_name, session_dir.path))
+                        print("Running: ", UNPACK_AND_SETUP, subject, "ses-" + session_name, session_dir.path, args.output, args.temp, args.fsl_dir, args.mre_dir)
 
                         # Unpack/setup the data for this subject/session
                         subprocess.check_call((
@@ -692,7 +690,7 @@ def unpack_and_setup(args):
                         if args.remove:
                             shutil.rmtree(os.path.join(args.download,
                                                        subject))
-                        # remove "break"
+                        break
 
 
 def correct_jsons(cli_args):

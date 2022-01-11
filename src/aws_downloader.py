@@ -15,11 +15,11 @@ import argparse
 #
 #######################################
 
-prog_descrip='test downloader'
+prog_descrip='AWS downloader'
 
 QC_CSV = os.path.join(os.path.dirname(os.path.dirname(
                     os.path.abspath(__file__))), "spreadsheets",
-                    "ABCD_good_and_bad_series_table.csv") 
+                    "abcd_fastqc01_reformatted.csv") 
 YEARS = ['baseline_year_1_arm_1', '2_year_follow_up_y_arm_1']
 MODALITIES = ['anat', 'func', 'dwi']
 
