@@ -6,10 +6,10 @@
 #
 exe_name=$0
 exe_dir=`dirname "$0"`
-if [ ! -d $HOME/$USER ]; then
-    mkdir $HOME/$USER
+if [ ! -d $TMPDIR/$USER ]; then
+    mkdir $TMPDIR/$USER
 fi
-export MCR_CACHE_ROOT=$HOME/$USER
+export MCR_CACHE_ROOT=$TMPDIR/$USER
 echo "------------------------------------------"
 if [ "x$1" = "x" ]; then
   echo Usage:
@@ -26,7 +26,7 @@ else
   echo LD_LIBRARY_PATH is ${LD_LIBRARY_PATH};
   shift 1
   RANDHASH=`cat /dev/urandom | tr -cd "a-f0-9" | head -c 8`
-  export MCR_CACHE_ROOT=$HOME/$USER/$RANDHASH
+  export MCR_CACHE_ROOT=$TMPDIR/$USER/$RANDHASH
   mkdir -p $MCR_CACHE_ROOT
   args=
   while [ $# -gt 0 ]; do
