@@ -384,7 +384,23 @@ def try_to_create_and_prep_directory_at(folder_path, default_path, parser):
         for each_file in os.scandir(default):
             if not each_file.is_dir():
                 #shutil.copy2(each_file.path, folder_path)
-                shutil.copyfile(each_file.path, os.path.join(folder_path, each_file.name))
+                try:
+                    shutil.copyfile(each_file.path, os.path.join(folder_path, each_file.name))
+                # If source and destination are same
+                except shutil.SameFileError:
+                    print("Source and destination represents the same file.")
+                 
+                # If destination is a directory.
+                except IsADirectoryError:
+                    print("Destination is a directory.")
+                 
+                # If there is any permission issue
+                except PermissionError:
+                    print("Permission denied.")
+                 
+                # For other errors
+                except:
+                    print("Error occurred while copying file.")
 
 
 def set_to_cleanup_on_crash(temp_dir):
@@ -624,6 +640,7 @@ def download_nda_data(cli_args):
     print(cli_args.modalities)
     subprocess.check_call(("python3", 
                             SERIES_TABLE_PARSER,
+                            "--qc-csv", os.path.join(cli_args.temp, os.path.basename(SPREADSHEET_DOWNLOAD)),
                             "--download-dir", cli_args.download, 
                             "--subject-list", cli_args.subject_list,
                             "--sessions", ','.join(cli_args.sessions),
