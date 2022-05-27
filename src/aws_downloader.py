@@ -266,22 +266,22 @@ def add_func_paths(passed_QC_group, file_paths):
 
     ## List only download task iff their is a pair of scans for the task that passed QC
     MID_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-MID-fMRI']
-    if MID_df.shape[0] != 2:
-        has_mid = MID_df.shape[0]
+    if MID_df.empty:
+        has_mid = 0
     else:
         for file_path in MID_df['image_file']:
             file_paths += [file_path]
         has_mid = MID_df.shape[0]
     SST_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-SST-fMRI']
-    if SST_df.shape[0] != 2:
-        has_sst = SST_df.shape[0]
+    if SST_df.empty:
+        has_sst = 0
     else:
         for file_path in SST_df['image_file']:
             file_paths += [file_path]
         has_sst = SST_df.shape[0]
     nBack_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-nBack-fMRI']
-    if nBack_df.shape[0] != 2:
-        has_nback = nBack_df.shape[0]
+    if nBack_df.empty:
+        has_nback = 0
     else:
         for file_path in nBack_df['image_file']:
             file_paths += [file_path]
