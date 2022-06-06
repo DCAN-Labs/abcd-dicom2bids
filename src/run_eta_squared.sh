@@ -35,7 +35,7 @@ else
       shift
   done
   eval "\"${exe_dir}/eta_squared\"" $args
-  rm -rf ${MDR_CACHE_ROOT}
+  rm -rf ${MCR_CACHE_ROOT}
 fi
 exit
 
