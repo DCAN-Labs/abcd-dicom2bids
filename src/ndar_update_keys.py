@@ -33,6 +33,10 @@ import fileinput
 import getpass
 from subprocess import call
 try:
+    from nda_aws_token_generator import *
+except ImportError:
+    from src.nda_aws_token_generator import *
+try:
     import ConfigParser
 except ImportError:
     import configparser as ConfigParser
@@ -85,6 +89,16 @@ def create_default_config(config_dir, config_file):
     f = open (os.path.normpath(config_dir + config_file), 'wt')
     f.write('[NDAR]\n')
     f.close()
+
+def make_aws_tokens(username, password):
+    web_service_url = 'https://nda.nih.gov/DataManager/dataManager'
+    generator = NDATokenGenerator(web_service_url)
+    try:
+        token = generator.generate_token(username, password)
+    except Exception as e:
+        print("Failed to create NDAR token.")
+        sys.exit(1)
+    return token
 
 def write_aws_config(config_dir, config_file, profile):
     config_aws_cli = ConfigParser.ConfigParser()
@@ -214,10 +228,7 @@ if __name__ == '__main__':
     if not os.path.exists ( os.path.normpath(config_dir + '/.aws/')):
         os.makedirs ( os.path.normpath(config_dir + '/.aws/'))
         #os.makedirs ( '/root/.aws/' )
-    
-    if not (os.path.isfile( os.path.normpath(src_path + '/ndar_toolkit/downloadmanager.jar' ))):
-        download_file("https://ndar.nih.gov/jnlps/download_manager_client/downloadmanager.zip", os.path.normpath(src_path + '/ndar_toolkit/downloadmanager.zip'))
-        unzip_file( os.path.normpath(src_path + "/ndar_toolkit/downloadmanager.zip" ))
+
     
     if not (os.path.isfile( os.path.normpath(src_path + '/ndar_toolkit/s3cmd-master/s3cmd' ))):
         download_file("https://github.com/s3tools/s3cmd/archive/master.zip", src_path + '/s3cmd-master.zip')
@@ -237,20 +248,14 @@ if __name__ == '__main__':
             os.symlink(os.path.normpath(src_path + '/ndar_toolkit/s3cmd-master/s3cmd'), src_path + '/bin/s3cmd')
         except:
             pass
-    devnull = open(os.devnull, 'w')
+
     print ("Generating new keys and updating config files")
-    os.chdir( os.path.normpath(src_path + "/ndar_toolkit"))
-    status=call(['java', '-jar', os.path.normpath(src_path + '/ndar_toolkit/downloadmanager.jar'), '--generate', os.path.normpath(config_dir + '/.aws/ndar_awskeys.txt'), '--username', ndar_username, '--password', ndar_password], stdout=devnull, stderr=devnull)
-                #shell=True)
-                #shell=True, stdout=devnull, stderr=devnull)
+    token = make_aws_tokens(ndar_username, ndar_password)
 
     myvars={}
-    with open (os.path.normpath(config_dir + "/.aws/ndar_awskeys.txt")) as keysfile:
-    	for line in keysfile:
-            #line = line.replace(r'\r', '')
-            name, var = line.partition("=")[::2]
-            var = var.replace('\r', '')
-            myvars[name.strip()] = str(var)
+    myvars["accessKey"] = token.access_key
+    myvars["secretKey"] = token.secret_key
+    myvars["sessionToken"] = token.session
     
     os.environ["AWS_ACCESS_KEY_ID"] = myvars["accessKey"]
     os.environ["AWS_SECRET_ACCESS_KEY"] = myvars["secretKey"]
