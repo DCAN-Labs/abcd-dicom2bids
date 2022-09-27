@@ -49,6 +49,7 @@ CORRECT_JSONS = os.path.join(PWD, "src", "correct_jsons.py")
 DOWNLOAD_FOLDER = os.path.join(PWD, "raw")
 #NDA_AWS_TOKEN_MAKER = os.path.join(PWD, "src", "nda_aws_token_maker.py")
 NDA_AWS_TOKEN_MAKER = os.path.join(PWD, "src", "ndar_update_keys.py")
+DOWNLOAD_CMD_PATH = os.path.join(os.path.expanduser("~"), ".local", "bin", "downloadcmd")
 
 SERIES_TABLE_PARSER = os.path.join(PWD, "src", "aws_downloader.py")
 SPREADSHEET_DOWNLOAD = os.path.join(PWD, "temp", "abcd_fastqc01_reformatted.csv")
@@ -173,16 +174,6 @@ def get_cli_args():
               "data into the {} folder. A folder will be created at the given "
               "path if one does not already exist.".format(UNPACKED_FOLDER))
     )
-    parser.add_argument(
-        "-p",
-        "--password",
-        type=str,
-        help=("NDA password. Adding this will create a new config "
-              "file or overwrite an old one. Unless this is added or a config "
-              "file exists with the user's NDA credentials, the user will be "
-              "prompted for them. If this is added and --username is not, "
-              "then the user will be prompted for their NDA username.")
-    )
 
     # Optional: Get QC spreadsheet
     parser.add_argument(
@@ -193,6 +184,17 @@ def get_cli_args():
         help=("Path to Quality Control (QC) spreadsheet file downloaded from "
               "the NDA. By default, this script will use {} as the QC "
               "spreadsheet.".format(SPREADSHEET_QC))
+    )
+    parser.add_argument(
+        "-p",
+        "--package_id",
+        required=True
+        help=("ID of the data package that is created via the NDA")
+    )
+    parser.add_argument(
+        "--downloadcmd",
+        default=DOWNLOAD_CMD_PATH
+        help=("Path to downloadcmd executable")
     )
 
     # Optional: Subject list
@@ -454,7 +456,7 @@ def make_nda_token(args):
     """
     # If config file with NDA credentials exists, then get credentials from it,
     # unless user entered other credentials to make a new config file
-    if not args.username and not args.password and os.path.exists(args.config):
+    if not args.username and os.path.exists(args.config):
         username, password = get_nda_credentials_from(args.config)
 
     # Otherwise get NDA credentials from user & save them in a new config file,
@@ -468,10 +470,7 @@ def make_nda_token(args):
             username = input("\nEnter your NIMH Data Archives username: ")
 
         # If NDA password was a CLI arg, use it; otherwise prompt user for it
-        if args.password:
-            password = args.password
-        else:
-            password = getpass("Enter your NIMH Data Archives password: ")
+        password = getpass("Enter your NIMH Data Archives password: ")
             
         make_config_file(args.config, username, password)
 
@@ -645,7 +644,8 @@ def download_nda_data(cli_args):
                             "--subject-list", cli_args.subject_list,
                             "--sessions", ','.join(cli_args.sessions),
                             "--modalities", ','.join(cli_args.modalities),
-                            "--config-dir", cli_args.temp))
+                            "--downloadcmd", cli_args.downloadcmd,
+                            "--package-id", cli_args.package_id)
 
 
 def unpack_and_setup(args):
