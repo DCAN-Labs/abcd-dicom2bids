@@ -76,7 +76,7 @@ def main():
 
     # Before running any different scripts, validate user's NDA credentials and
     # use them to make NDA token
-    make_nda_token(cli_args)
+    #make_nda_token(cli_args)
 
     # Run all steps sequentially, starting at the one specified by the user
     started = False
@@ -188,12 +188,12 @@ def get_cli_args():
     parser.add_argument(
         "-p",
         "--package_id",
-        required=True
+        required=True,
         help=("ID of the data package that is created via the NDA")
     )
     parser.add_argument(
         "--downloadcmd",
-        default=DOWNLOAD_CMD_PATH
+        default=DOWNLOAD_CMD_PATH,
         help=("Path to downloadcmd executable")
     )
 
@@ -645,7 +645,7 @@ def download_nda_data(cli_args):
                             "--sessions", ','.join(cli_args.sessions),
                             "--modalities", ','.join(cli_args.modalities),
                             "--downloadcmd", cli_args.downloadcmd,
-                            "--package-id", cli_args.package_id)
+                            "--package-id", cli_args.package_id))
 
 
 def unpack_and_setup(args):
@@ -681,12 +681,13 @@ def unpack_and_setup(args):
     for subject, subject_dir in subject_dir_paths.items():
         for session_dir in os.scandir(subject_dir):
             if session_dir.is_dir():
-                for tgz in os.scandir(session_dir.path):
+                tgz_dir = os.path.join(session_dir.path, 'image03')
+                for tgz in os.scandir(tgz_dir):
                     if tgz:
                         # Get session ID from some (arbitrary) .tgz file in
                         # session folder
                         session_name = tgz.name.split("_")[1]
-                        print('Unpacking and setting up tgzs for {} {} located here: {}'.format(subject, session_name, session_dir.path))
+                        print('Unpacking and setting up tgzs for {} {} located here: {}'.format(subject, session_name, tgz_dir))
                         print("Running: ", UNPACK_AND_SETUP, subject, "ses-" + session_name, session_dir.path, args.output, args.temp, args.fsl_dir, args.mre_dir)
 
                         # Unpack/setup the data for this subject/session
