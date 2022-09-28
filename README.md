@@ -51,7 +51,7 @@ To download images for ABCD you must have the `abcd_fastqc01.csv` spreadsheet do
 1. At the top-right corner of the page under `logout` is a small icon. Click on it to open the `Selected Filters Workspace`.
 1. Click `Submit to Filter Cart` at the bottom of the workspace.
 1. Wait until the `Filter Cart` window at the top-right no longer says `Updating Filter Cart`. 
-1. Once the Filter Cart is updated, click `Package/Add to Study` in the `Filter Cart` window.
+1. Once the Filter Cart is updated, click `Create Data Package/Add to Study` in the `Filter Cart` window.
 1. Click one of the buttons that says `Create Package`
     - Name each package something like **abcdQC**.
     - Select Only **Include documentation**.
@@ -65,6 +65,30 @@ To download images for ABCD you must have the `abcd_fastqc01.csv` spreadsheet do
 1. Once the `Status` column of your package says `Ready to Download`, click `Start Downloads` at the bottom of the page to begin the download.
     - To track your download's progress at any given point, click the `Refresh Queue` button at the top of the window.  
 1. Once the `Status` column of your file says `Download Complete`, your file is ready.
+
+## Data Packages
+
+### How to Create an NDA Data Package
+
+1. Login to the [NIMH Data Archive](https://nda.nih.gov/).
+1. From the homepage, click the button labeled `GET DATA`.
+1. Select `Data Structures` from left hand menu.
+1. In the `Text Search` window enter `image03` and click `Apply`.
+    - You should see a single result with the heading `Image`.
+1. Click on the `Image` heading.
+1. At the bottom of the page click `Add to Filter Cart`.
+1. Wait until the `Filter Cart` window at the top-right no longer says `Updating Filter Cart`. 
+1. Once the Filter Cart is updated, click `Create Data Package/Add to Study` in the `Filter Cart` window.
+1. In the left hand box titled `Collections by Permission Group` click `Deselect All`.
+1. Search for `fasttrack` using find (e.g. Ctrl-F or Cmd-F)
+1. Select the box next to `[2573] Adolescent Brain Cognitive Development Study (ABCD)`
+1. Scroll to the bottom of the page and click `Create Data Package`
+1. Name the Package something informative and make sure to check the box that says `Include Associated Data Files`
+1. Finally click `Create Data Package`
+
+This fasttrack data package is roughly 71TB in size and may take up to a day to be created. You can check the status of this package by navigating to the `Data Packages` tab within your profile. You should see your newly created package at the top of the table with a status of `Creating Package`. Wait until the status changes to `Ready to Download` before proceeding with next steps.
+
+Make note of the Package ID number (found in the `Data Packages` table). You will need to input this in the run command.
 
 ## Usage
 
