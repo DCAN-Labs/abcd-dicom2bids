@@ -59,7 +59,9 @@ To download images for ABCD you must have the `abcd_fastqc01.csv` spreadsheet do
 
 #### Downloading Data Packages
 
-There are two methods of downloading data packages from the NDA. They can be downloaded through a GUI found (here)[https://nda.nih.gov/nda/nda-tools.html#download-manager-beta] or from the command line using `downloadcmd`, which can be installed with (nda-tools)[https://github.com/NDAR/nda-tools]. Follow instructions provided by the NDA depending on your preferred method to download the ABCD Fasttrack QC.
+There are two methods of downloading data packages from the NDA. They can be downloaded through a GUI found [here](https://nda.nih.gov/nda/nda-tools.html#download-manager-beta) or from the command line using `downloadcmd`, which can be installed with [nda-tools](https://github.com/NDAR/nda-tools). Follow instructions provided by the NDA depending on your preferred method to download the ABCD Fasttrack QC.
+
+Note: if using `downloadcmd` option, the "Updating Stored Passwords with keyring" step on the [nda-tools](https://github.com/NDAR/nda-tools) ReadMe will still be necessary because if you want to download a specific subject from the package you will need to use both nda-tools and keyring. If downloading every subject all at once, then just using the download manager will suffice. 
 
 The contents of the data package after it has been downloaded should look like this:
 
