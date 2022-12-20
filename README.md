@@ -2,26 +2,25 @@
 
 Written by the OHSU ABCD site for selectively downloading ABCD Study imaging DICOM data QC'ed as good by the ABCD DAIC site, converting it to BIDS standard input data, selecting the best pair of spin echo field maps, and correcting the sidecar JSON files to meet the BIDS Validator specification.
 
-*Note: DWI has been added to the list of modalities that can be downloaded. This has resulted in a couple important changes to the scripts included here and the output BIDS data. Most notably, fieldmaps now include an acquisition field in their filenames to differentiate those used for functional images and those used for DWI (e.g. ..._acq-func_... or ..._acq-dwi_...). Data uploaded to [Collection 3165](https://github.com/ABCD-STUDY/nda-abcd-collection-3165), which was created using this repository, does not contain this identifier.*
+
 
 ## Installation
 
-Clone this repository and save it somewhere on the Linux system you want to do ABCD DICOM downloads and conversions to BIDS on.
+Clone this repository, install requirements listed in `src/requirements.txt` and the dependencies listed below.
+
+TODO: Make requirements.txt
 
 ## Dependencies
 
 1. [Python 3.5.2](https://www.python.org/downloads/release/python-352/)
 1. [jq](https://stedolan.github.io/jq/download/) version 1.6 or higher
 1. [MathWorks MATLAB Runtime Environment (MRE) version 9.1 (R2016b)](https://www.mathworks.com/products/compiler/matlab-runtime.html)
-1. [cbedetti Dcm2Bids](https://github.com/cbedetti/Dcm2Bids) (`export` into your BASH `PATH` variable)
-1. [Rorden Lab dcm2niix](https://github.com/rordenlab/dcm2niix) (`export` into your BASH `PATH` variable) version v1.0.20201102 (WARNING: older versions of dcm2niix have failed to properly convert DICOMs)
-1. [dcmdump](https://dicom.offis.de/dcmtk.php.en) (`export` into your BASH `PATH` variable)
+1. [cbedetti Dcm2Bids version X](https://github.com/cbedetti/Dcm2Bids) (`export` into your BASH `PATH` variable)
+1. [Rorden Lab dcm2niix version X](https://github.com/rordenlab/dcm2niix) (`export` into your BASH `PATH` variable) version v1.0.20201102 (WARNING: older versions of dcm2niix have failed to properly convert DICOMs)
+1. [dcmdump version X](https://dicom.offis.de/dcmtk.php.en) (`export` into your BASH `PATH` variable)
 1. [zlib's pigz-2.4](https://zlib.net/pigz) (`export` into your BASH `PATH` variable)
-1. Docker (see documentation for [Docker Community Edition for Ubuntu](https://docs.docker.com/install/linux/docker-ce/ubuntu/))
+1. Singularity or Docker (see documentation for [Docker Community Edition for Ubuntu](https://docs.docker.com/install/linux/docker-ce/ubuntu/))
 1. [FMRIB Software Library (FSL) v5.0](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
-1. Python [`cryptography` package](https://cryptography.io/en/latest/)
-1. Python [`pandas` package](https://pandas.pydata.org)
-1. [AWS CLI (Amazon Web Services Command Line Interface) v19.0.0](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
 
 We recommend creating a virtual environment for Python by running:
 
@@ -36,35 +35,45 @@ Then install the specified versions of all required python packages by running:
 pip install -r src/requirements.txt
 ```
 
-## Spreadsheet (not included)
+## NDA QC Spreadsheet (not included)
 
 To download images for ABCD you must have the `abcd_fastqc01.csv` spreadsheet downloaded to this repository's `spreadsheets` folder. It can be downloaded from the [NIMH Data Archive (NDA)](https://nda.nih.gov/) with an ABCD Study Data Use Certification in place. `abcd_fastqc01.csv` contains operator QC information for each MRI series. If the image fails operator QC (a score of 0), then the image will not be downloaded.
 
 ### How to Download `abcd_fastqc01.csv`
 
+#### Creating Data Packages
+
 1. Login to the [NIMH Data Archive](https://nda.nih.gov/).
-1. From the homepage, click the button labeled `GET DATA` to go to `Featured Datasets`.
-1. Under the `Data Dictionary` heading in the sidebar, click `Data Structures`.
-1. Add `abcd_fastqc01.csv` to the Filter Cart.
-    1. Enter the spreadsheet file name into the `Text Search` box to find `ABCD Fasttrack QC Instrument`, then click its checkbox to select it.
-    1. At the bottom of the page, click the `Add to Workspace` button.
-1. At the top-right corner of the page under `logout` is a small icon. Click on it to open the `Selected Filters Workspace`.
-1. Click `Submit to Filter Cart` at the bottom of the workspace.
-1. Wait until the `Filter Cart` window at the top-right no longer says `Updating Filter Cart`. 
-1. Once the Filter Cart is updated, click `Create Data Package/Add to Study` in the `Filter Cart` window.
-1. Click one of the buttons that says `Create Package`
-    - Name each package something like **abcdQC**.
+2. From the homepage, click `Get Data`
+3. Under the `Data Dictionary` heading in the sidebar, click `Data Structures`.
+4. Enter `ABCD Fasttrack QC Instrument` into the `Text Search` box then select `ABCD Fasttrack QC Instrument`
+5. At the bottom of the page, click the `Add to Workspace` button.
+6. Your `Filter Cart` should appear at the top-right corner of the page (it will take a minute to load). Click on `Create Data Package/Add Data to Study` once it has finished loading.
+7. Make sure that the ABCD Dataset and ABCD Fasttrack QC Instrument checkboxes are selected (they should be by default)
+8. Click `Create Data Package`
+    - Name the package something informative like **abcdQC** (note: special characters are not allowed).
     - Select Only **Include documentation**.
-    - Click **Create Package**.
-1. From your NDA dashboard, click `Packages`.
-1. Click the `Download Manager` button to download an executable `.jnlp` file. Once it downloads, run it to install the NDA Download Manager on your local machine.
-1. Enter your NDA username and password in the window that pops up.
-1. Accept the terms and conditions.
-1. Click the checkbox at the left side of the window next to the file that you downloaded (e.g. `abcdQC`).
-    - If you want to save the file to a different location than your home directory, click the `Browse` button at the top of the window.
-1. Once the `Status` column of your package says `Ready to Download`, click `Start Downloads` at the bottom of the page to begin the download.
-    - To track your download's progress at any given point, click the `Refresh Queue` button at the top of the window.  
-1. Once the `Status` column of your file says `Download Complete`, your file is ready.
+    - Click **Create Data Package**.
+9. Navigate to your NDA dashboard and from your NDA dashboard, click `DataPackages`. You should see the data package that you just created with a status of "Creating Package". It takes roughly 10 minutes for the NDA to create this package.
+10. When the Data package is ready to download the status will change to "Ready to Download"
+
+#### Downloading Data Packages
+
+There are two methods of downloading data packages from the NDA. They can be downloaded through a GUI found [here](https://nda.nih.gov/nda/nda-tools.html#download-manager-beta) or from the command line using `downloadcmd`, which can be installed with [nda-tools](https://github.com/NDAR/nda-tools). Follow instructions provided by the NDA depending on your preferred method to download the ABCD Fasttrack QC.
+
+Note: if using `downloadcmd` option, the "Updating Stored Passwords with keyring" step on the [nda-tools](https://github.com/NDAR/nda-tools) ReadMe will still be necessary because if you want to download a specific subject from the package you will need to use both nda-tools and keyring. If downloading every subject all at once, then just using the download manager will suffice. 
+
+The contents of the data package after it has been downloaded should look like this:
+
+```
+.
+├── abcd_fastqc01.txt
+├── dataset_collection.txt
+├── guid_pseudoguid.txt
+├── package_info.txt
+└── README.pdf
+```
+
 
 ## Data Packages
 
@@ -91,6 +100,101 @@ This fasttrack data package is roughly 71TB in size and may take up to a day to 
 Make note of the Package ID number (found in the `Data Packages` table). You will need to input this in the run command.
 
 ## Usage
+```
+usage: abcd2bids.py [-h] [-c CONFIG] [-d DOWNLOAD] [-o OUTPUT] [-p PASSWORD]
+                    [-q QC] -l SUBJECT_LIST
+                    [-y {baseline_year_1_arm_1,2_year_follow_up_y_arm_1} [{baseline_year_1_arm_1,2_year_follow_up_y_arm_1} ...]]
+                    [-m {anat,func,dwi} [{anat,func,dwi} ...]] [-r]
+                    [-s {reformat_fastqc_spreadsheet,download_nda_data,unpack_and_setup,correct_jsons,validate_bids}]
+                    [-t TEMP] [-u USERNAME] [-z DOCKER_CMD] [-x SIF_PATH]
+                    fsl_dir mre_dir
+
+Wrapper to download, parse, and validate QC'd ABCD data.
+
+positional arguments:
+  fsl_dir               Required: Path to FSL directory. This positional
+                        argument must be a valid path to an existing folder.
+  mre_dir               Required: Path to directory containing MATLAB Runtime
+                        Environment (MRE) version 9.1 or newer. This is used
+                        to run a compiled MATLAB script. This positional
+                        argument must be a valid path to an existing folder.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -c CONFIG, --config CONFIG
+                        Path to config file with NDA credentials. If no config
+                        file exists at this path yet, then one will be
+                        created. Unless this option or --username and
+                        --password is added, the user will be prompted for
+                        their NDA username and password. By default, the
+                        config file will be located at
+                        ~/.abcd2bids/config.ini
+  -d DOWNLOAD, --download DOWNLOAD
+                        Path to folder which NDA data will be downloaded into.
+                        By default, data will be downloaded into the
+                        ~/abcd-dicom2bids/raw folder. A folder will be created 
+                        at the given path if one does not already exist.
+  -o OUTPUT, --output OUTPUT
+                        Folder path into which NDA data will be unpacked and
+                        setup once downloaded. By default, this script will
+                        put the data into the ~/abcd-dicom2bids/data folder. 
+                        A folder will be created at the given path if one does 
+                        not already exist.
+  -p PASSWORD, --password PASSWORD
+                        NDA password. Adding this will create a new config
+                        file or overwrite an old one. Unless this is added or
+                        a config file exists with the user's NDA credentials,
+                        the user will be prompted for them. If this is added
+                        and --username is not, then the user will be prompted
+                        for their NDA username.
+  -q QC, --qc QC        Path to Quality Control (QC) spreadsheet file
+                        downloaded from the NDA. By default, this script will
+                        use ~/abcd-dicom2bids/spreadsheets/abcd_fastqc01.txt 
+                        as the QC spreadsheet.
+  -l SUBJECT_LIST, --subject-list SUBJECT_LIST
+                        Path to a .txt file containing a list of subjects to
+                        download. The default is to download all available
+                        subjects.
+  -y {baseline_year_1_arm_1,2_year_follow_up_y_arm_1} [{baseline_year_1_arm_1,2_year_follow_up_y_arm_1} ...], --sessions {baseline_year_1_arm_1,2_year_follow_up_y_arm_1} [{baseline_year_1_arm_1,2_year_follow_up_y_arm_1} ...]
+                        List of sessions for each subject to download. The
+                        default is to download all sessions for each subject.
+                        The possible selections are ['baseline_year_1_arm_1',
+                        '2_year_follow_up_y_arm_1']
+  -m {anat,func,dwi} [{anat,func,dwi} ...], --modalities {anat,func,dwi} [{anat,func,dwi} ...]
+                        List of the imaging modalities that should be
+                        downloaded for each subject. The default is to
+                        download all modalities. The possible selections are
+                        ['anat', 'func', 'dwi']
+  -r, --remove          After each subject's data has finished conversion,
+                        removed that subject's unprocessed data.
+  -s {reformat_fastqc_spreadsheet,download_nda_data,unpack_and_setup,correct_jsons,validate_bids}, --start_at {reformat_fastqc_spreadsheet,download_nda_data,unpack_and_setup,correct_jsons,validate_bids}
+                        Give the name of the step in the wrapper to start at,
+                        then run that step and every step after it. Here are
+                        the names of all of the steps, in order from first to
+                        last: reformat_fastqc_spreadsheet, download_nda_data,
+                        unpack_and_setup, correct_jsons, validate_bids
+  -t TEMP, --temp TEMP  Path to the directory to be created and filled with
+                        temporary files during unpacking and setup. By
+                        default, the folder will be created at
+                        ~/abcd-dicom2bids/temp and deleted once the script finishes.
+                        A folder will be created at the given path if one
+                        doesn't already exist.
+  -u USERNAME, --username USERNAME
+                        NDA username. Adding this will create a new config
+                        file or overwrite an old one. Unless this is added or
+                        a config file exists with the user's NDA credentials,
+                        the user will be prompted for them. If this is added
+                        and --password is not, then the user will be prompted
+                        for their NDA password.
+  -z DOCKER_CMD, --docker-cmd DOCKER_CMD
+                        A necessary docker command replacement on HPCs like
+                        the one at OHSU, which has it's own special wrapper
+                        fordocker for security reasons. Example:
+                        '/opt/acc/sbin/exadocker'
+  -x SIF_PATH, --singularity SIF_PATH
+                        Use singularity and path the .sif file
+                        ```
+
 
 The DICOM to BIDS process can be done by running the `abcd2bids.py` wrapper from within the directory cloned from this repo. `abcd2bids.py` requires two positional arguments and can take several optional arguments. Those positional arguments are file paths to the FSL directory and the MATLAB Runtime Environment. Here is an example of a valid call of this wrapper:
 
@@ -147,6 +251,8 @@ Here is the format for a call to the wrapper with more options added:
 ```sh
 python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> --username <NDA username> --download <Folder to place raw data in> --output <Folder to place converted data in> --temp <Directory to hold temporary files> --remove
 ```
+
+*Note: DWI has been added to the list of modalities that can be downloaded. This has resulted in a couple important changes to the scripts included here and the output BIDS data. Most notably, fieldmaps now include an acquisition field in their filenames to differentiate those used for functional images and those used for DWI (e.g. ..._acq-func_... or ..._acq-dwi_...). Data uploaded to [Collection 3165](https://github.com/ABCD-STUDY/nda-abcd-collection-3165), which was created using this repository, does not contain this identifier.*
 
 ## Explanation of Process
 
