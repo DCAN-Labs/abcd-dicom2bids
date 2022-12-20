@@ -12,7 +12,7 @@ TODO: Make requirements.txt
 
 ## Dependencies
 
-1. [Python 3.5.2](https://www.python.org/downloads/release/python-352/)
+1. [Python 3.6.8](https://www.python.org/downloads/release/python-368/)+
 1. [jq](https://stedolan.github.io/jq/download/) version 1.6 or higher
 1. [MathWorks MATLAB Runtime Environment (MRE) version 9.1 (R2016b)](https://www.mathworks.com/products/compiler/matlab-runtime.html)
 1. [cbedetti Dcm2Bids version X](https://github.com/cbedetti/Dcm2Bids) (`export` into your BASH `PATH` variable)

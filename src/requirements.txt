@@ -7,7 +7,7 @@ docopt==0.6.2
 future==0.18.2
 nibabel==3.0.2
 num2words==0.5.10
-numpy==1.18.5
+numpy==1.22.0
 pandas==0.24.2
 patsy==0.5.1
 pybids==0.12.4
