@@ -3,7 +3,6 @@
 Written by the OHSU ABCD site for selectively downloading ABCD Study imaging DICOM data QC'ed as good by the ABCD DAIC site, converting it to BIDS standard input data, selecting the best pair of spin echo field maps, and correcting the sidecar JSON files to meet the BIDS Validator specification.
 
 
-
 ## Installation
 
 Clone this repository, install requirements listed in `src/requirements.txt` and the dependencies listed below.
@@ -35,13 +34,21 @@ Then install the specified versions of all required python packages by running:
 pip install -r src/requirements.txt
 ```
 
-## NDA QC Spreadsheet (not included)
+If encountering errors during the package download process, try running `pip install --upgrade setuptools`
+
+## Downloading Data Packages
+
+There are two methods of downloading data packages from the NDA. They can be downloaded through a GUI found [here](https://nda.nih.gov/nda/nda-tools.html#download-manager-beta) or from the command line using `downloadcmd`, which can be installed with [nda-tools](https://github.com/NDAR/nda-tools). Follow instructions provided by the NDA depending on your preferred method to download the ABCD Fasttrack QC.
+
+Note: if using `downloadcmd` option, the "Updating Stored Passwords with keyring" step on the [nda-tools](https://github.com/NDAR/nda-tools) ReadMe will still be necessary because if you want to download a specific subject from the package you will need to use both nda-tools and keyring. If downloading every subject all at once, then just using the download manager will suffice. 
+
+## Data Packages
+
+### NDA QC Spreadsheet (not included)
 
 To download images for ABCD you must have the `abcd_fastqc01.csv` spreadsheet downloaded to this repository's `spreadsheets` folder. It can be downloaded from the [NIMH Data Archive (NDA)](https://nda.nih.gov/) with an ABCD Study Data Use Certification in place. `abcd_fastqc01.csv` contains operator QC information for each MRI series. If the image fails operator QC (a score of 0), then the image will not be downloaded.
 
-### How to Download `abcd_fastqc01.csv`
-
-#### Creating Data Packages
+#### How to Download `abcd_fastqc01.csv`
 
 1. Login to the [NIMH Data Archive](https://nda.nih.gov/).
 2. From the homepage, click `Get Data`
@@ -57,12 +64,6 @@ To download images for ABCD you must have the `abcd_fastqc01.csv` spreadsheet do
 9. Navigate to your NDA dashboard and from your NDA dashboard, click `DataPackages`. You should see the data package that you just created with a status of "Creating Package". It takes roughly 10 minutes for the NDA to create this package.
 10. When the Data package is ready to download the status will change to "Ready to Download"
 
-#### Downloading Data Packages
-
-There are two methods of downloading data packages from the NDA. They can be downloaded through a GUI found [here](https://nda.nih.gov/nda/nda-tools.html#download-manager-beta) or from the command line using `downloadcmd`, which can be installed with [nda-tools](https://github.com/NDAR/nda-tools). Follow instructions provided by the NDA depending on your preferred method to download the ABCD Fasttrack QC.
-
-Note: if using `downloadcmd` option, the "Updating Stored Passwords with keyring" step on the [nda-tools](https://github.com/NDAR/nda-tools) ReadMe will still be necessary because if you want to download a specific subject from the package you will need to use both nda-tools and keyring. If downloading every subject all at once, then just using the download manager will suffice. 
-
 The contents of the data package after it has been downloaded should look like this:
 
 ```
@@ -73,9 +74,6 @@ The contents of the data package after it has been downloaded should look like t
 ├── package_info.txt
 └── README.pdf
 ```
-
-
-## Data Packages
 
 ### How to Create an NDA Data Package
 
