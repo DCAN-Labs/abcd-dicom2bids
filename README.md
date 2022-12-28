@@ -42,6 +42,13 @@ There are two methods of downloading data packages from the NDA. They can be dow
 
 Note: if using `downloadcmd` option, the "Updating Stored Passwords with keyring" step on the [nda-tools](https://github.com/NDAR/nda-tools) ReadMe will still be necessary because if you want to download a specific subject from the package you will need to use both nda-tools and keyring. If downloading every subject all at once, then just using the download manager will suffice. 
 
+The contents of `/.config/python_keyring/keyringrc.cfg` should be:
+```
+[backend]
+ default-keyring=keyrings.alt.file.PlaintextKeyring
+ keyring-path=/tmp/work
+```
+
 ## Data Packages
 
 ### NDA QC Spreadsheet (not included)
