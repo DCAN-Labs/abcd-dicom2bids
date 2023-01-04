@@ -219,6 +219,14 @@ This wrapper will create a temporary folder (`temp/` by default) with hundreds o
 
 ### Optional Arguments
 
+`--start-at`: By default, this wrapper will run every step listed below in that order. Use this flag to start at one step and skip all of the previous ones. To do so, enter the name of the step. E.g. `--start-at correct_jsons` will skip every step before JSON correction.
+
+1. create_good_and_bad_series_table
+2. download_nda_data
+3. unpack_and_setup
+4. correct_jsons
+5. validate_bids
+
 `--username` and `--password`: Include one of these to pass the user's NDA credentials from the command line into a `config.ini` file. This will create a new config file if one does not already exist, or overwrite the existing file. If only one of these flags is included, the user will be prompted for the other. They can be passed into the wrapper from the command line like so: `--username <NDA username> --password <NDA password>`.
 
 `--config`: By default, the wrapper will look for a `config.ini` file in a hidden subdirectory of the user's home directory (`~/.abcd2bids/`). Use `--config` to enter a different (non-default) path to the config file, e.g. `--config ~/Documents/config.ini`.
@@ -238,14 +246,6 @@ This wrapper will create a temporary folder (`temp/` by default) with hundreds o
 `--remove`: By default, the wrapper will download the ABCD data to the `raw/` subdirectory of the cloned folder. If the user wants to delete the raw downloaded data for each subject after that subject's data is finished converting, the user can use the `--remove` flag without any additional parameters.
 
 `--output`: By default, the wrapper will place the finished/converted data into the `data/` subdirectory of the cloned folder. If the user wants to put the finished data anywhere else, they can do so using the optional `--output` flag followed by the path at which to create the directory, e.g. `--output ~/abcd-dicom2bids/Finished-Data`. A folder will be created at the given path if one does not already exist.
-
-`--start-at`: By default, this wrapper will run every step listed below in that order. Use this flag to start at one step and skip all of the previous ones. To do so, enter the name of the step. E.g. `--start-at correct_jsons` will skip every step before JSON correction.
-
-1. create_good_and_bad_series_table
-2. download_nda_data
-3. unpack_and_setup
-4. correct_jsons
-5. validate_bids
 
 `--stop-before`: To run every step until a specific step, and skip every step after it, use this flag with the name of the first step to skip. E.g. `--stop-before unpack_and_setup` will only run the first two steps.
 
