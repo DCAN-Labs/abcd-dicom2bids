@@ -272,11 +272,11 @@ The DICOM 2 BIDS conversion process can be done by running `python3 abcd2bids.py
 
 ### Preliminary Steps
 
+**NOTE:** This step can take over two hours to complete, and is completely handled by `abcd2bids.py`
+
 As its first step, the wrapper will call `nda_aws_token_maker.py`. If successful, `nda_aws_token_maker.py` will create a `credentials` file in the `.aws/` subdirectory of the user's `home` directory. 
 
 Next, the wrapper will produce a download list for the Python & BASH portion to download, convert, select, and prepare. The two spreadsheets referenced above are used to create the `ABCD_good_and_bad_series_table.csv` which gets used to actually download the images. If successful, this script will create the file `ABCD_good_and_bad_series_table.csv` in the `spreadsheets/` subdirectory. This step was previously done by a compiled MATLAB script called `data_gatherer`, but now the wrapper has its own functionality to replace that script.
-
-**NOTE:** This step can take over two hours to complete.
 
 ### 1. (Python) `aws_downloader.py`
 
@@ -302,7 +302,7 @@ By default, the wrapper will put the unpacked/setup data in the `data/` subdirec
 
 ### 3. (Python) `correct_jsons.py`
 
-Next, the wrapper runs `correct_jsons.py` on the whole BIDS directory (`data/` by default) to correct/prepare all BIDS sidecar JSON files to comply with the BIDS specification standard version 1.2.0.
+Next, the wrapper runs `correct_jsons.py` on the whole BIDS directory (`data/` by default) to correct/prepare all BIDS sidecar JSON files to comply with the BIDS specification standard version 1.2.0. `correct_jsons.py` will derive fields that are important for the abcd-hcp-pipeline that are hardcoded in scanner specific details.
 
 ### 4. (Docker) Run Official BIDS Validator
 
