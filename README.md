@@ -341,4 +341,4 @@ This wrapper relies on the following other projects:
 
 ## Meta
 
-Documentation last updated by Greg Conan on 2020-06-29.
+Documentation last updated by Jacob Lundquist on 2023-01-05.
