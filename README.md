@@ -38,7 +38,7 @@ If encountering errors during the package download process, try running `pip ins
 
 ## Downloading Data Packages
 
-There are two methods of downloading data packages from the NDA. They can be downloaded through a GUI found [here](https://nda.nih.gov/nda/nda-tools.html#download-manager-beta) or from the command line using `downloadcmd`, which can be installed with [nda-tools](https://github.com/NDAR/nda-tools). Follow instructions provided by the NDA depending on your preferred method to download the ABCD Fasttrack QC. 
+There are two methods of downloading data packages from the NDA. They can be downloaded through a GUI found [here](https://nda.nih.gov/nda/nda-tools.html#download-manager-beta) or from the command line using `downloadcmd`, which can be installed with [nda-tools](https://github.com/NDAR/nda-tools). Follow instructions provided by the NDA depending on your preferred method to download the ABCD Fasttrack QC. Run `downloadcmd -h` for usage information. 
 
 Note: if using `downloadcmd` option, the "Updating Stored Passwords with keyring" step on the [nda-tools](https://github.com/NDAR/nda-tools) ReadMe will still be necessary because if you want to download a specific subject from the package you will need to use both nda-tools and keyring. If downloading every subject all at once, then just using the download manager will suffice. The default is to now download all tasks regardless of run number where as before it would only download if and only if there were two runs (Version # HERE).
 
@@ -78,6 +78,8 @@ To download images for ABCD you must have the `abcd_fastqc01.csv` spreadsheet do
 9. Navigate to your NDA dashboard and from your NDA dashboard, click `DataPackages`. You should see the data package that you just created with a status of "Creating Package". It takes roughly 10 minutes for the NDA to create this package.
 10. When the Data package is ready to download the status will change to "Ready to Download"
 
+Make note of the Package ID number (found in the `Data Packages` table). You will need to input this in the run command as `downloadcmd -dp <PackageID>`
+
 The contents of the data package after it has been downloaded should look like this:
 
 ```
@@ -109,7 +111,7 @@ The contents of the data package after it has been downloaded should look like t
 
 This fasttrack data package is roughly 71TB in size and may take up to a day to be created. You can check the status of this package by navigating to the `Data Packages` tab within your profile. You should see your newly created package at the top of the table with a status of `Creating Package`. Wait until the status changes to `Ready to Download` before proceeding with next steps.
 
-Make note of the Package ID number (found in the `Data Packages` table). You will need to input this in the run command.
+Make note of the Package ID number (found in the `Data Packages` table). You will need to input this in the run command as `downloadcmd -dp <PackageID>`
 
 ## Usage
 ```
@@ -123,14 +125,18 @@ usage: abcd2bids.py [-h] [-c CONFIG] [-d DOWNLOAD] [-o OUTPUT] [-p PASSWORD]
 
 Wrapper to download, parse, and validate QC'd ABCD data.
 
-positional arguments:
+positional (and required) arguments:
   fsl_dir               Required: Path to FSL directory. This positional
                         argument must be a valid path to an existing folder.
   mre_dir               Required: Path to directory containing MATLAB Runtime
                         Environment (MRE) version 9.1 or newer. This is used
                         to run a compiled MATLAB script. This positional
                         argument must be a valid path to an existing folder.
-
+  -q QC, --qc QC        Path to Quality Control (QC) spreadsheet file
+                        downloaded from the NDA.
+  -l SUBJECT_LIST, --subject-list SUBJECT_LIST
+                        Path to a .txt file containing a list of subjects to
+                        download. 
 optional arguments:
   -h, --help            show this help message and exit
   -c CONFIG, --config CONFIG
@@ -159,14 +165,6 @@ optional arguments:
                         the user will be prompted for them. If this is added
                         and --username is not, then the user will be prompted
                         for their NDA username.
-  -q QC, --qc QC        Path to Quality Control (QC) spreadsheet file
-                        downloaded from the NDA. By default, this script will
-                        use ~/abcd-dicom2bids/spreadsheets/abcd_fastqc01.txt 
-                        as the QC spreadsheet.
-  -l SUBJECT_LIST, --subject-list SUBJECT_LIST
-                        Path to a .txt file containing a list of subjects to
-                        download. The default is to download all available
-                        subjects.
   -y {baseline_year_1_arm_1,2_year_follow_up_y_arm_1} [{baseline_year_1_arm_1,2_year_follow_up_y_arm_1} ...], --sessions {baseline_year_1_arm_1,2_year_follow_up_y_arm_1} [{baseline_year_1_arm_1,2_year_follow_up_y_arm_1} ...]
                         List of sessions for each subject to download. The
                         default is to download all sessions for each subject.
@@ -208,10 +206,9 @@ optional arguments:
                         ```
 
 
-The DICOM to BIDS process can be done by running the `abcd2bids.py` wrapper from within the directory cloned from this repo. `abcd2bids.py` requires two positional arguments and can take several optional arguments. Those positional arguments are file paths to the FSL directory and the MATLAB Runtime Environment. Here is an example of a valid call of this wrapper:
+The DICOM to BIDS process can be done by running the `abcd2bids.py` wrapper from within the directory cloned from this repo. `abcd2bids.py` requires four positional arguments and can take several optional arguments. Those positional arguments are file paths to the FSL directory, the MATLAB Runtime Environment, the QC spreadsheet, and the list of subjects to download. Here is an example of a valid call of this wrapper:
 
-```sh
-python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory>
+python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> <Path to QC spreadsheet file downloaded from the NDA> <Path to a .txt file containing a list of subjects to download>
 ```
 
 The first time that a user uses this wrapper, the user will have to enter their NDA credentials. If the user does not include them as command-line arguments, then the wrapper will prompt the user to enter them. The wrapper will then create a `config.ini` file with the user's username and (encrypted) password, so the user will not have to enter their NDA credentials any subsequent times running this wrapper.
@@ -240,15 +237,11 @@ This wrapper will create a temporary folder (`temp/` by default) with hundreds o
 
 `--temp`: By default, the temporary files will be created in the `temp/` subdirectory of the clone of this repo. If the user wants to place the temporary files anywhere else, then they can do so using the optional `--temp` flag followed by the path at which to create the directory containing temp files, e.g. `--temp /usr/home/abcd2bids-temporary-folder`. A folder will be created at the given path if one does not already exist.
 
-`--subject-list`: By default, all subjects will be downloaded and converted. If only a subset of subjects are desired then specify a path to a .txt file containing a list of subjects (each on their own line) to download. If none is provided this script will attempt to download and convert every subject, which may take weeks to complete. It is recommended to run in parallel on batches of subjects.
-
 `--sessions`: By default, the wrapper will download all sessions from each subject. This is equivalent to `--sessions ['baseline_year_1_arm_1', '2_year_follow_up_y_arm_1']`. If only a specific year should be download for a subject then specify the year within list format, e.g. `--sessions ['baseline_year_1_arm_1']` for just "year 1" data.
 
 `--modalities`: By default, the wrapper will download all modalities from each subject. This is equivalent to `--modalities ['anat', 'func', 'dwi']`. If only certain modalities should be downloaded for a subject then provide a list, e.g. `--modalities ['anat', 'func']`
 
 `--download`: By default, the wrapper will download the ABCD data to the `raw/` subdirectory of the cloned folder. If the user wants to download the ABCD data to a different directory, they can use the `--download` flag, e.g. `--download ~/abcd-dicom2bids/ABCD-Data-Download`. A folder will be created at the given path if one does not already exist.
-
-`--qc`: Path to the Quality Control (QC) spreadsheet file downloaded from the NDA. By default, the wrapper will use the `abcd_fastqc01.txt` file in the `spreadsheets` directory.
 
 `--remove`: By default, the wrapper will download the ABCD data to the `raw/` subdirectory of the cloned folder. If the user wants to delete the raw downloaded data for each subject after that subject's data is finished converting, the user can use the `--remove` flag without any additional parameters.
 
@@ -260,8 +253,8 @@ For more information including the shorthand flags of each option, use the `--he
 
 Here is the format for a call to the wrapper with more options added:
 
-```sh
-python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> --username <NDA username> --download <Folder to place raw data in> --output <Folder to place converted data in> --temp <Directory to hold temporary files> --remove
+```
+python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> <Path to QC spreadsheet file downloaded from the NDA> <Path to a .txt file containing a list of subjects to download> --username <NDA username> --download <Folder to place raw data in> --output <Folder to place converted data in> --temp <Directory to hold temporary files> --remove
 ```
 
 *Note: DWI has been added to the list of modalities that can be downloaded. This has resulted in a couple important changes to the scripts included here and the output BIDS data. Most notably, fieldmaps now include an acquisition field in their filenames to differentiate those used for functional images and those used for DWI (e.g. ..._acq-func_... or ..._acq-dwi_...). Data uploaded to [Collection 3165](https://github.com/ABCD-STUDY/nda-abcd-collection-3165), which was created using this repository, does not contain this identifier.*
