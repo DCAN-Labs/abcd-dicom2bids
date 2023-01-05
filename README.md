@@ -48,6 +48,13 @@ The contents of `/.config/python_keyring/keyringrc.cfg` should be:
  default-keyring=keyrings.alt.file.PlaintextKeyring
  keyring-path=/tmp/work
 ```
+After the contents of `keyringrc.cfg` have been properly edited, run these commands to see if your password for nda-tools is up to date:
+```
+python3
+import keyring
+keyring.get_password("nda-tools", "username")
+```
+If the correct password is not returned, then running `keyring.set_password("nda-tools", "username", "password")` should fix the issue. 
 
 ## Data Packages
 
