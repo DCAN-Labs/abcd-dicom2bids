@@ -215,7 +215,7 @@ optional arguments:
 
 The DICOM to BIDS process can be done by running the `abcd2bids.py` wrapper from within the directory cloned from this repo. `abcd2bids.py` requires four positional arguments and can take several optional arguments. Those positional arguments are file paths to the FSL directory, the MATLAB Runtime Environment, the QC spreadsheet, and the list of subjects to download. Here is an example of a valid call of this wrapper:
 ```
-python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> <Path to QC spreadsheet file downloaded from the NDA> <Path to a .txt file containing a list of subjects to download> <Package_ID>
+python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> <Path to QC spreadsheet file downloaded from the NDA> <Path to a .txt file containing a list of subjects to download> <Package_ID> <Path to downloadcmd>
 ```
 
 The first time that a user uses this wrapper, the user will have to enter their NDA credentials. If the user does not include them as command-line arguments, then the wrapper will prompt the user to enter them. The wrapper will then create a `config.ini` file with the user's username and (encrypted) password, so the user will not have to enter their NDA credentials any subsequent times running this wrapper.
@@ -261,7 +261,7 @@ For more information including the shorthand flags of each option, use the `--he
 Here is the format for a call to the wrapper with more options added:
 
 ```
-python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> <Path to QC spreadsheet file downloaded from the NDA> <Path to a .txt file containing a list of subjects to download> <Package_ID> --username <NDA username> --download <Folder to place raw data in> --output <Folder to place converted data in> --temp <Directory to hold temporary files> --remove
+python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> <Path to QC spreadsheet file downloaded from the NDA> <Path to a .txt file containing a list of subjects to download> <Package_ID> <Path to downloadcmd> --username <NDA username> --download <Folder to place raw data in> --output <Folder to place converted data in> --temp <Directory to hold temporary files> --remove
 ```
 
 *Note: DWI has been added to the list of modalities that can be downloaded. This has resulted in a couple important changes to the scripts included here and the output BIDS data. Most notably, fieldmaps now include an acquisition field in their filenames to differentiate those used for functional images and those used for DWI (e.g. ..._acq-func_... or ..._acq-dwi_...). Data uploaded to [Collection 3165](https://github.com/ABCD-STUDY/nda-abcd-collection-3165), which was created using this repository, does not contain this identifier.*
