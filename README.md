@@ -32,29 +32,31 @@ Then install the specified versions of all required python packages by running:
 pip install -r src/requirements.txt
 ```
 
-If encountering errors during the package download process, try running `pip install --upgrade setuptools`
+If encountering errors during the package download process, try running `pip install --upgrade setuptools`. Then check to see if this fixed any download errors by rerunning `pip install -r src/requirements.txt`
 
 ## Downloading Data Packages
 
-There are two methods of downloading data packages from the NDA. They can be downloaded through a GUI found [here](https://nda.nih.gov/nda/nda-tools.html#download-manager-beta) or from the command line using `downloadcmd`, which can be installed with [nda-tools](https://github.com/NDAR/nda-tools). Follow instructions provided by the NDA depending on your preferred method to download the ABCD Fasttrack QC. Run `downloadcmd -h` for usage information. 
+There are two methods of downloading data packages from the NDA. They can be downloaded through a GUI found [here](https://nda.nih.gov/nda/nda-tools.html#download-manager-beta) or from the command line using `downloadcmd`, which can be installed with `pip install nda-tools==0.2.22`. Follow instructions provided by the NDA depending on your preferred method to download the ABCD Fasttrack QC. Run `downloadcmd -h` for usage information. 
 
 Note: if using `downloadcmd` option, the "Updating Stored Passwords with keyring" step on the [nda-tools](https://github.com/NDAR/nda-tools) ReadMe will still be necessary because if you want to download a specific subject from the package you will need to use both nda-tools and keyring. If downloading every subject all at once, then just using the download manager will suffice. The default is to now download all tasks regardless of run number where as before it would only download if and only if there were two runs (Version # HERE).
 
-The contents of `/.config/python_keyring/keyringrc.cfg` should be:
+The contents of `~/.config/python_keyring/keyringrc.cfg` should be:
 ```
 [backend]
  default-keyring=keyrings.alt.file.PlaintextKeyring
  keyring-path=/tmp/work
 ```
-After the contents of `keyringrc.cfg` have been properly edited, run these commands to see if your password for nda-tools is up to date:
+After the contents of `keyringrc.cfg` have been properly edited, run these commands to see if your password for nda-tools is up to date. Be aware that this will display your password in the terminal:
 ```
 python3
 import keyring
-keyring.get_password("nda-tools", "username")
+keyring.get_password("nda-tools", "USERNAME")
 ```
 If the correct password is not returned, then running `keyring.set_password("nda-tools", "username", "password")` should fix the issue. 
 
 ## Data Packages
+
+Skip this section if you already have the necessary packages downloaded. You will just need the Package ID info when running `abcd2bids.py`.
 
 ### NDA QC Spreadsheet (not included)
 
@@ -76,7 +78,7 @@ To download images for ABCD you must have the `abcd_fastqc01.csv` spreadsheet do
 9. Navigate to your NDA dashboard and from your NDA dashboard, click `DataPackages`. You should see the data package that you just created with a status of "Creating Package". It takes roughly 10 minutes for the NDA to create this package.
 10. When the Data package is ready to download the status will change to "Ready to Download"
 
-Make note of the Package ID number (found in the `Data Packages` table). You will need to input this in the run command as `downloadcmd -dp <PackageID>`
+Make note of the Package ID number (found in the `Data Packages` table). You will need to input this in the run command as `downloadcmd -dp <PackageID>`. If you dont specify an ouput directory the package will be downloaded here: `~/NDA/nda-tools/downloadcmd/packages/<PackageID>/`.
 
 The contents of the data package after it has been downloaded should look like this:
 
@@ -89,11 +91,9 @@ The contents of the data package after it has been downloaded should look like t
 └── README.pdf
 ```
 
-### How to Create an NDA Data Package
+#### How to Create an NDA Image Data Package
 
-1. Login to the [NIMH Data Archive](https://nda.nih.gov/).
-1. From the homepage, click the button labeled `GET DATA`.
-1. Select `Data Structures` from left hand menu.
+1. Follow steps 1-3 from "How to Download `abcd_fastqc01.csv`"
 1. In the `Text Search` window enter `image03` and click `Apply`.
     - You should see a single result with the heading `Image`.
 1. Click on the `Image` heading.
@@ -107,17 +107,17 @@ The contents of the data package after it has been downloaded should look like t
 1. Name the Package something informative and make sure to check the box that says `Include Associated Data Files`
 1. Finally click `Create Data Package`
 
-This fasttrack data package is roughly 71TB in size and may take up to a day to be created. You can check the status of this package by navigating to the `Data Packages` tab within your profile. You should see your newly created package at the top of the table with a status of `Creating Package`. Wait until the status changes to `Ready to Download` before proceeding with next steps.
+This data package is roughly 71TB in size and may take up to a day to be created. You can check the status of this package by navigating to the `Data Packages` tab within your profile. You should see your newly created package at the top of the table with a status of `Creating Package`. Wait until the status changes to `Ready to Download` before proceeding with next steps.
 
-Make note of the Package ID number (found in the `Data Packages` table). You will need to input this in the run command as `downloadcmd -dp <PackageID>`
+Make note of the Package ID number (found in the `Data Packages` table). You will need to input this in the run command as `downloadcmd -dp <PackageID>`. If you dont specify an ouput directory the package will be downloaded here: `~/NDA/nda-tools/downloadcmd/packages/<PackageID>/`
 
 ## Usage
 ```
-usage: abcd2bids.py [-h] [-c CONFIG] [-d DOWNLOAD] [-o OUTPUT] [-p PASSWORD]
-                    [-q QC] -l SUBJECT_LIST
-                    [-y {baseline_year_1_arm_1,2_year_follow_up_y_arm_1} [{baseline_year_1_arm_1,2_year_follow_up_y_arm_1} ...]]
+usage: abcd2bids.py [-h] [-c CONFIG] [-d DOWNLOAD] [-o OUTPUT] [-q QC] 
+                    -p PACKAGE_ID [--downloadcmd DOWNLOADCMD] -l SUBJECT_LIST
+                    [-y {baseline_year_1_arm_1,2_year_follow_up_y_arm_1} [{baseline_year_1_arm_1,2_year_follow_up_y_arm_1} ...]] 
                     [-m {anat,func,dwi} [{anat,func,dwi} ...]] [-r]
-                    [-s {reformat_fastqc_spreadsheet,download_nda_data,unpack_and_setup,correct_jsons,validate_bids}]
+                    [-s {reformat_fastqc_spreadsheet,download_nda_data,unpack_and_setup,correct_jsons,validate_bids}] 
                     [-t TEMP] [-u USERNAME] [-z DOCKER_CMD] [-x SIF_PATH]
                     fsl_dir mre_dir
 
@@ -129,12 +129,18 @@ positional (and required) arguments:
   mre_dir               Required: Path to directory containing MATLAB Runtime
                         Environment (MRE) version 9.1 or newer. This is used
                         to run a compiled MATLAB script. This positional
-                        argument must be a valid path to an existing folder.
+                        argument must be a valid path to an existing folder. 
+                        Note: MRE will ouput cached files into INSERT PATH in 
+                        your home directory. This will need to be cleared out 
+                        regularly in order to avoid filling up the system you 
+                        are running abcd2bids.py on.
   -q QC, --qc QC        Path to Quality Control (QC) spreadsheet file
                         downloaded from the NDA.
   -l SUBJECT_LIST, --subject-list SUBJECT_LIST
                         Path to a .txt file containing a list of subjects to
                         download. 
+  -p PACKAGE_ID, --package_id PACKAGE_ID
+                        Package ID number of relevant NDA data package.
 optional arguments:
   -h, --help            show this help message and exit
   -c CONFIG, --config CONFIG
@@ -156,7 +162,7 @@ optional arguments:
                         put the data into the ~/abcd-dicom2bids/data folder. 
                         A folder will be created at the given path if one does 
                         not already exist.
-  -p PASSWORD, --password PASSWORD
+  --password PASSWORD
                         NDA password. Adding this will create a new config
                         file or overwrite an old one. Unless this is added or
                         a config file exists with the user's NDA credentials,
@@ -201,12 +207,12 @@ optional arguments:
                         '/opt/acc/sbin/exadocker'
   -x SIF_PATH, --singularity SIF_PATH
                         Use singularity and path the .sif file
-                        ```
+```
 
 
 The DICOM to BIDS process can be done by running the `abcd2bids.py` wrapper from within the directory cloned from this repo. `abcd2bids.py` requires four positional arguments and can take several optional arguments. Those positional arguments are file paths to the FSL directory, the MATLAB Runtime Environment, the QC spreadsheet, and the list of subjects to download. Here is an example of a valid call of this wrapper:
-
-python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> <Path to QC spreadsheet file downloaded from the NDA> <Path to a .txt file containing a list of subjects to download>
+```
+python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> <Path to QC spreadsheet file downloaded from the NDA> <Path to a .txt file containing a list of subjects to download> <Package_ID>
 ```
 
 The first time that a user uses this wrapper, the user will have to enter their NDA credentials. If the user does not include them as command-line arguments, then the wrapper will prompt the user to enter them. The wrapper will then create a `config.ini` file with the user's username and (encrypted) password, so the user will not have to enter their NDA credentials any subsequent times running this wrapper.
@@ -252,7 +258,7 @@ For more information including the shorthand flags of each option, use the `--he
 Here is the format for a call to the wrapper with more options added:
 
 ```
-python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> <Path to QC spreadsheet file downloaded from the NDA> <Path to a .txt file containing a list of subjects to download> --username <NDA username> --download <Folder to place raw data in> --output <Folder to place converted data in> --temp <Directory to hold temporary files> --remove
+python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> <Path to QC spreadsheet file downloaded from the NDA> <Path to a .txt file containing a list of subjects to download> <Package_ID> --username <NDA username> --download <Folder to place raw data in> --output <Folder to place converted data in> --temp <Directory to hold temporary files> --remove
 ```
 
 *Note: DWI has been added to the list of modalities that can be downloaded. This has resulted in a couple important changes to the scripts included here and the output BIDS data. Most notably, fieldmaps now include an acquisition field in their filenames to differentiate those used for functional images and those used for DWI (e.g. ..._acq-func_... or ..._acq-dwi_...). Data uploaded to [Collection 3165](https://github.com/ABCD-STUDY/nda-abcd-collection-3165), which was created using this repository, does not contain this identifier.*
