@@ -138,9 +138,12 @@ positional (and required) arguments:
                         downloaded from the NDA.
   -l SUBJECT_LIST, --subject-list SUBJECT_LIST
                         Path to a .txt file containing a list of subjects to
-                        download. 
+                        download. Subjects should appear as 'sub-NDAID' without
+                        quotations.
   -p PACKAGE_ID, --package_id PACKAGE_ID
                         Package ID number of relevant NDA data package.
+  --downloadcmd DOWNLOADCMD
+                        Path to wherever the downloadcmd has been installed
 optional arguments:
   -h, --help            show this help message and exit
   -c CONFIG, --config CONFIG
