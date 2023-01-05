@@ -7,8 +7,6 @@ Written by the OHSU ABCD site for selectively downloading ABCD Study imaging DIC
 
 Clone this repository, install requirements listed in `src/requirements.txt` and the dependencies listed below.
 
-TODO: Make requirements.txt
-
 ## Dependencies
 
 1. [Python 3.6.8](https://www.python.org/downloads/release/python-368/)+
