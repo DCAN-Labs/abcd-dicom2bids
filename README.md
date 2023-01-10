@@ -1,7 +1,7 @@
 # ABCD DICOM to BIDS
 
-Written by the OHSU ABCD site for selectively downloading ABCD Study imaging DICOM data QC'ed as good by the ABCD DAIC site, converting it to BIDS standard input data, selecting the best pair of spin echo field maps, and correcting the sidecar JSON files to meet the BIDS Validator specification.
-
+Written by the OHSU ABCD site for selectively downloading ABCD Study imaging DICOM data QC'ed as good by the ABCD DAIC site, converting it to BIDS standard input data, selecting the best pair of spin echo field maps, and correcting the sidecar JSON files to meet the BIDS Validator specification. 
+For information on [Collection 3165, see here](https://github.com/ABCD-STUDY/nda-abcd-collection-3165).
 
 ## Installation
 
@@ -217,7 +217,11 @@ The DICOM to BIDS process can be done by running the `abcd2bids.py` wrapper from
 ```
 python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> <Path to QC spreadsheet file downloaded from the NDA> <Path to a .txt file containing a list of subjects to download> <Package_ID> <Path to downloadcmd>
 ```
-
+Example contents of SUBJECT_LIST file (not using any ABCC subject IDs):
+```
+sub-01
+sub-02
+```
 The first time that a user uses this wrapper, the user will have to enter their NDA credentials. If the user does not include them as command-line arguments, then the wrapper will prompt the user to enter them. The wrapper will then create a `config.ini` file with the user's username and (encrypted) password, so the user will not have to enter their NDA credentials any subsequent times running this wrapper.
 
 If the user already has a `config.ini` file, then the wrapper can use that, so the user does not need to enter their NDA credentials again. However, to make another `config.ini` file or overwrite the old one, the user can enter their NDA credentials as command-line args.
@@ -330,7 +334,8 @@ Without these files, the output of `abcd2bids.py` will fail BIDS validation. The
 
 `data` is where the output of `abcd2bids.py` will be placed by default. So, after running `abcd2bids.py`, this folder will have subdirectories for each subject session. Those subdirectories will be correctly formatted according to the [official BIDS specification standard v1.2.0](https://github.com/bids-standard/bids-specification/releases/tag/v1.2.0).
 
-The resulting ABCD Study dataset here is made up of all the ABCD Study participants' BIDS imaging data that passed initial acquisition quality control (MRI QC) for the subjects and sessions originally provide in the SUBJECT_LIST.  
+The resulting ABCD Study dataset here is made up of all the ABCD Study participants' BIDS imaging data that passed initial acquisition quality control (MRI QC) for the subjects and sessions originally provide in the SUBJECT_LIST. 
+
 
 ## Attributions
 
@@ -341,6 +346,7 @@ This wrapper relies on the following other projects:
 - [Official BIDS validator](https://github.com/bids-standard/bids-validator) 
 - [NDA AWS token generator](https://github.com/NDAR/nda_aws_token_generator)
 - [dcmdump](https://dicom.offis.de/dcmtk.php.en)
+
 
 ## Meta
 
