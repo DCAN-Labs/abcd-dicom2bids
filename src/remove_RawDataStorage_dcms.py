@@ -21,7 +21,7 @@ def check_for_RawDataStorage(dcm_dir):
         print("%s valid" % os.path.join(dcm_dir, dcm1))
         return
     else:
-        print("ERROR: dcmdump output not recognized from cmd: %s" % " ".join(dum_cmd))
+        print("ERROR: dcmdump output not recognized from cmd: %s" % " ".join(dump_cmd))
 
     return
 
@@ -38,7 +38,7 @@ def rm_RawData_dcms(dcm_dir, dcm1):
 
     # Remove the entire first corrupt volume (every 60th DICOM)
     for i in range(0,60):
-        series_num = str((i*383) + 1).zfill(6)
+        series_num = str((i*num_vols) + 1).zfill(6)
         dcm_fn = dcm1.replace('000001', series_num)
         os.remove(os.path.join(dcm_dir, dcm_fn))
 
