@@ -67,10 +67,17 @@ def generate_parser(parser=None):
         help="List the modalities that should be downloaded. Default: ['anat', 'func', 'dwi']"
 )
     parser.add_argument(
-        '-c',
-        '--config-dir',
+        '--downloadcmd',
+        dest='downloadcmd',
         default=os.path.expanduser('~'),
-        help="Directory containing a .s3cfg-ndar for the NDA. Default: home directory (~)"
+        help="Path to the downloadcmd executable. Default: ~/.local/bin/downloadcmd"
+)
+    parser.add_argument(
+        '-p',
+        '--package-id',
+        dest='package_id',
+        required=True,
+        help="ID of the fasttrack qc data package that is created on the NDA"
 )
 
     return parser
@@ -178,18 +185,16 @@ def main(argv=sys.argv):
                     num_nback += 1
                 if has_dti != 0:
                     num_dti += 1
-                for i in file_paths:
-                    tgz_name = os.path.basename(i)
-                    tgz_path = tgz_dir + '/' + tgz_name
-                    if os.path.exists(tgz_path):
-                        print("{} already exists".format(tgz_path))
-                        continue
-                    else:
-                        aws_cmd = ["s3cmd", "--config", os.path.join(args.config_dir, ".s3cfg-ndar"), "get", i, tgz_dir + "/"]
-                        print("Downloading {} to {}".format(i, tgz_dir))
-                        subprocess.run(aws_cmd)
 
+                # Compile all valid s3 links in a txt file to download using the downloadcmd
+                s3_links_file = os.path.join(download_dir, bids_id, year, 's3_links.txt')
+                with open(s3_links_file, 'w') as f:
+                    f.write('\n'.join(str(s3_link) for s3_link in file_paths))
 
+                # Download s3 links from txt file with downloadcmd
+                subprocess.run([os.path.expanduser(args.downloadcmd), '-dp', args.package_id, '-t', s3_links_file, '-d', tgz_dir])
+
+                
     print("There are %s subject visits" % num_sub_visits)
     print("number of subjects with a T1 : %s" % num_t1)
     print("number of subjects with a T2 : %s" % num_t2)
@@ -198,7 +203,6 @@ def main(argv=sys.argv):
     print("number of subjects with sst  : %s" % num_sst)
     print("number of subjects with nBack: %s" % num_nback)
     print("number of subjects with dti  : %s" % num_dti)
-
 
 
 def add_anat_paths(passed_QC_group, file_paths):
@@ -267,19 +271,27 @@ def add_func_paths(passed_QC_group, file_paths):
     ## List only download task if and only if there is a pair of scans for the task that passed QC
     MID_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-MID-fMRI']
 
-    for file_path in MID_df['image_file']:
-        file_paths += [file_path]
-    has_mid = MID_df.shape[0]
+    if MID_df.empty:
+        has_mid = 0
+    else:
+        for file_path in MID_df['image_file']:
+            file_paths += [file_path]
+        has_mid = MID_df.shape[0]
     SST_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-SST-fMRI']
-
-    for file_path in SST_df['image_file']:
-        file_paths += [file_path]
-    has_sst = SST_df.shape[0]
+    if SST_df.empty:
+        has_sst = 0
+    else:
+        for file_path in SST_df['image_file']:
+            file_paths += [file_path]
+        has_sst = SST_df.shape[0]
     nBack_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-nBack-fMRI']
+    if nBack_df.empty:
+        has_nback = 0
+    else:
+        for file_path in nBack_df['image_file']:
+            file_paths += [file_path]
+        has_nback = nBack_df.shape[0]
 
-    for file_path in nBack_df['image_file']:
-        file_paths += [file_path]
-    has_nback = nBack_df.shape[0]
 
     return (file_paths, has_sefm, has_rsfmri, has_mid, has_sst, has_nback)
 

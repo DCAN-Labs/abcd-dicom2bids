@@ -49,6 +49,7 @@ CORRECT_JSONS = os.path.join(PWD, "src", "correct_jsons.py")
 DOWNLOAD_FOLDER = os.path.join(PWD, "raw")
 #NDA_AWS_TOKEN_MAKER = os.path.join(PWD, "src", "nda_aws_token_maker.py")
 NDA_AWS_TOKEN_MAKER = os.path.join(PWD, "src", "ndar_update_keys.py")
+DOWNLOAD_CMD_PATH = os.path.join(os.path.expanduser("~"), ".local", "bin", "downloadcmd")
 
 SERIES_TABLE_PARSER = os.path.join(PWD, "src", "aws_downloader.py")
 SPREADSHEET_DOWNLOAD = os.path.join(PWD, "temp", "abcd_fastqc01_reformatted.csv")
@@ -75,7 +76,7 @@ def main():
 
     # Before running any different scripts, validate user's NDA credentials and
     # use them to make NDA token
-    make_nda_token(cli_args)
+    #make_nda_token(cli_args)
 
     # Run all steps sequentially, starting at the one specified by the user
     started = False
@@ -173,16 +174,6 @@ def get_cli_args():
               "data into the {} folder. A folder will be created at the given "
               "path if one does not already exist.".format(UNPACKED_FOLDER))
     )
-    parser.add_argument(
-        "-p",
-        "--password",
-        type=str,
-        help=("NDA password. Adding this will create a new config "
-              "file or overwrite an old one. Unless this is added or a config "
-              "file exists with the user's NDA credentials, the user will be "
-              "prompted for them. If this is added and --username is not, "
-              "then the user will be prompted for their NDA username.")
-    )
 
     # Optional: Get QC spreadsheet
     parser.add_argument(
@@ -193,6 +184,17 @@ def get_cli_args():
         help=("Path to Quality Control (QC) spreadsheet file downloaded from "
               "the NDA. By default, this script will use {} as the QC "
               "spreadsheet.".format(SPREADSHEET_QC))
+    )
+    parser.add_argument(
+        "-p",
+        "--package_id",
+        required=True,
+        help=("ID of the data package that is created via the NDA")
+    )
+    parser.add_argument(
+        "--downloadcmd",
+        default=DOWNLOAD_CMD_PATH,
+        help=("Path to downloadcmd executable")
     )
 
     # Optional: Subject list
@@ -384,7 +386,23 @@ def try_to_create_and_prep_directory_at(folder_path, default_path, parser):
         for each_file in os.scandir(default):
             if not each_file.is_dir():
                 #shutil.copy2(each_file.path, folder_path)
-                shutil.copyfile(each_file.path, os.path.join(folder_path, each_file.name))
+                try:
+                    shutil.copyfile(each_file.path, os.path.join(folder_path, each_file.name))
+                # If source and destination are same
+                except shutil.SameFileError:
+                    print("Source and destination represents the same file.")
+                 
+                # If destination is a directory.
+                except IsADirectoryError:
+                    print("Destination is a directory.")
+                 
+                # If there is any permission issue
+                except PermissionError:
+                    print("Permission denied.")
+                 
+                # For other errors
+                except:
+                    print("Error occurred while copying file.")
 
 
 def set_to_cleanup_on_crash(temp_dir):
@@ -438,7 +456,7 @@ def make_nda_token(args):
     """
     # If config file with NDA credentials exists, then get credentials from it,
     # unless user entered other credentials to make a new config file
-    if not args.username and not args.password and os.path.exists(args.config):
+    if not args.username and os.path.exists(args.config):
         username, password = get_nda_credentials_from(args.config)
 
     # Otherwise get NDA credentials from user & save them in a new config file,
@@ -452,10 +470,7 @@ def make_nda_token(args):
             username = input("\nEnter your NIMH Data Archives username: ")
 
         # If NDA password was a CLI arg, use it; otherwise prompt user for it
-        if args.password:
-            password = args.password
-        else:
-            password = getpass("Enter your NIMH Data Archives password: ")
+        password = getpass("Enter your NIMH Data Archives password: ")
             
         make_config_file(args.config, username, password)
 
@@ -643,11 +658,13 @@ def download_nda_data(cli_args):
     print(cli_args.modalities)
     subprocess.check_call(("python3", 
                             SERIES_TABLE_PARSER,
+                            "--qc-csv", os.path.join(cli_args.temp, os.path.basename(SPREADSHEET_DOWNLOAD)),
                             "--download-dir", cli_args.download, 
                             "--subject-list", cli_args.subject_list,
                             "--sessions", ','.join(cli_args.sessions),
                             "--modalities", ','.join(cli_args.modalities),
-                            "--config-dir", cli_args.temp))
+                            "--downloadcmd", cli_args.downloadcmd,
+                            "--package-id", cli_args.package_id))
 
 
 def unpack_and_setup(args):
@@ -683,12 +700,13 @@ def unpack_and_setup(args):
     for subject, subject_dir in subject_dir_paths.items():
         for session_dir in os.scandir(subject_dir):
             if session_dir.is_dir():
-                for tgz in os.scandir(session_dir.path):
+                tgz_dir = os.path.join(session_dir.path, 'image03')
+                for tgz in os.scandir(tgz_dir):
                     if tgz:
                         # Get session ID from some (arbitrary) .tgz file in
                         # session folder
                         session_name = tgz.name.split("_")[1]
-                        print('Unpacking and setting up tgzs for {} {} located here: {}'.format(subject, session_name, session_dir.path))
+                        print('Unpacking and setting up tgzs for {} {} located here: {}'.format(subject, session_name, tgz_dir))
                         print("Running: ", UNPACK_AND_SETUP, subject, "ses-" + session_name, session_dir.path, args.output, args.temp, args.fsl_dir, args.mre_dir)
 
                         # Unpack/setup the data for this subject/session
