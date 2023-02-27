@@ -4,7 +4,7 @@ click==7.1.2
 cryptography==39.0.1
 dcm2bids==2.1.4
 docopt==0.6.2
-future==0.18.2
+future==0.18.3
 nibabel==3.0.2
 num2words==0.5.10
 numpy==1.22.0
