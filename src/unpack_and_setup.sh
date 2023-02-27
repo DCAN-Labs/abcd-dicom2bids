@@ -65,7 +65,7 @@ mkdir -p ${TempSubjectDir}
 
 # copy all tgz to the scratch space dir
 echo `date`" :COPYING TGZs TO SCRATCH: ${TempSubjectDir}"
-cp ${TGZDIR}/* ${TempSubjectDir}
+cp ${TGZDIR}/image03/* ${TempSubjectDir}
 
 # unpack tgz to ABCD_DCMs directory
 mkdir ${TempSubjectDir}/DCMs

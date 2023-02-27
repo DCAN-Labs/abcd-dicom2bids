@@ -80,7 +80,10 @@ def main(argv=sys.argv):
                 #print(json_path)
 
                 with open(json_path, 'r') as f:
-                    data = json.load(f)
+                    try:
+                        data = json.load(f)
+                    except ValueError:
+                        print('Decoding JSON has failed: {}'.format(json_path))
 
                 # If TotalReadoutTime is missing from fmap JSON
                 if ('fmap' in root or 'func' in root) and 'TotalReadoutTime' not in data:
