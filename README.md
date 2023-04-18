@@ -38,7 +38,7 @@ If encountering errors during the package download process, try running `pip ins
 
 There are two methods of downloading data packages from the NDA. They can be downloaded through a GUI found [here](https://nda.nih.gov/nda/nda-tools.html#download-manager-beta) or from the command line using `downloadcmd`, which can be installed with `pip install nda-tools==0.2.22`. Follow instructions provided by the NDA depending on your preferred method to download the ABCD Fasttrack QC. Run `downloadcmd -h` for usage information. 
 
-Note: if using `downloadcmd` option, the "Updating Stored Passwords with keyring" step on the [nda-tools](https://github.com/NDAR/nda-tools) ReadMe will still be necessary because if you want to download a specific subject from the package you will need to use both nda-tools and keyring. If downloading every subject all at once, then just using the download manager will suffice. The default is to now download all tasks regardless of run number where as before it would only download if and only if there were two runs (Version # HERE).
+If using `downloadcmd` option, the "Updating Stored Passwords with keyring" step on the [nda-tools](https://github.com/NDAR/nda-tools) ReadMe will still be necessary because if you want to download a specific subject from the package you will need to use both nda-tools and keyring. If downloading every subject all at once, then just using the download manager will suffice. The default is to now download all tasks regardless of run number where as before it would only download if and only if there were two runs (Version # HERE).
 
 The contents of `~/.config/python_keyring/keyringrc.cfg` should be:
 ```
@@ -53,6 +53,10 @@ import keyring
 keyring.get_password("nda-tools", "USERNAME")
 ```
 If the correct password is not returned, then running `keyring.set_password("nda-tools", "username", "password")` should fix the issue. 
+
+If you are experiencing the following error `ModuleNotFoundError: No module named 'keyrings'`, it is most likely due to an outdated version of `keyrings.alt`. Running the command `pip list | grep keyring` will result in the current versions for `keyring` and `keyrings.alt` on your system. To avoid the error, `keyring` and `keyrings.alt` should be updated to versions `23.13.1` and `3.1` respectively. If `keyrings.alt` is outdated, then run `pip install keyrings.alt`.
+
+Important Note: your NDA password and keyring password cannot differ. It's also important to be careful when using exclamation marks or other special characters in the password that can trigger keyring issues/errors.
 
 ## Data Packages
 
