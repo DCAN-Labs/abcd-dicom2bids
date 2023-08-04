@@ -1,0 +1,14 @@
+name: Question
+description: Ask a question about this project
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please check our [documentation](https://github.com/DCAN-Labs/abcd-dicom2bids#readme) prior to asking a question here! 
+  - type: textarea
+    id: summary
+    attributes:
+      label: A short summary of a question you have for the ABCD-DICOM2BIDS development team.
+    validations:
+      required: true

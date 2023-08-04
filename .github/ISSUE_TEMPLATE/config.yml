@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Questions
-    url: https://github.com/DCAN-Labs/abcd-dicom2bids
-    about: Please ask and answer questions related to abcd-dicom2bids usage here.
+  - name: Documentation
+    url: https://github.com/DCAN-Labs/abcd-dicom2bids#readme
+    about: ABCD-DICOM2BIDS Usage Instructions
