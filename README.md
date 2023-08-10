@@ -40,6 +40,8 @@ If encountering errors during the package download process, try running `pip ins
 
 There are two methods of downloading data packages from the NDA. They can be downloaded through a GUI found [here](https://nda.nih.gov/nda/nda-tools.html#download-manager-beta) or from the command line using `downloadcmd`, which can be installed with `pip install nda-tools==0.2.22`. Follow instructions provided by the NDA depending on your preferred method to download the ABCD Fasttrack QC. Run `downloadcmd -h` for usage information. 
 
+### Keyring
+
 If using `downloadcmd` option, the "Updating Stored Passwords with keyring" step on the [nda-tools](https://github.com/NDAR/nda-tools) ReadMe will still be necessary because if you want to download a specific subject from the package you will need to use both nda-tools and keyring. If downloading every subject all at once, then just using the download manager will suffice. The default is to now download all tasks regardless of run number where as before it would only download if and only if there were two runs (Version # HERE).
 
 The contents of `~/.config/python_keyring/keyringrc.cfg` should be:
@@ -60,15 +62,17 @@ If you are experiencing the following error `ModuleNotFoundError: No module name
 
 Important Note: your NDA password and keyring password cannot differ. It's also important to be careful when using exclamation marks or other special characters in the password that can trigger keyring issues/errors.
 
-## Data Packages
+## Using downloadcmd
 
 Skip this section if you already have the necessary packages downloaded. You will just need the Package ID info when running `abcd2bids.py`.
 
+You will be creating two different NDA packages: one for the fastqc file and one for the data images.
+
 ### NDA QC Spreadsheet (not included)
 
-To download images for ABCD you must have the `abcd_fastqc01.csv` spreadsheet downloaded to this repository's `spreadsheets` folder. It can be downloaded from the [NIMH Data Archive (NDA)](https://nda.nih.gov/) with an ABCD Study Data Use Certification in place. `abcd_fastqc01.csv` contains operator QC information for each MRI series. If the image fails operator QC (a score of 0), then the image will not be downloaded.
+To download images for ABCD you must have the `abcd_fastqc01.txt` spreadsheet downloaded to this repository's `spreadsheets` folder. It can be downloaded from the [NIMH Data Archive (NDA)](https://nda.nih.gov/) with an ABCD Study Data Use Certification in place. `abcd_fastqc01.csv` contains operator QC information for each MRI series. If the image fails operator QC (a score of 0), then the image will not be downloaded.
 
-#### How to Download `abcd_fastqc01.csv`
+#### Package for `abcd_fastqc01.txt`
 
 1. Login to the [NIMH Data Archive](https://nda.nih.gov/).
 2. From the homepage, click `Get Data`
@@ -84,7 +88,7 @@ To download images for ABCD you must have the `abcd_fastqc01.csv` spreadsheet do
 9. Navigate to your NDA dashboard and from your NDA dashboard, click `DataPackages`. You should see the data package that you just created with a status of "Creating Package". It takes roughly 10 minutes for the NDA to create this package.
 10. When the Data package is ready to download the status will change to "Ready to Download"
 
-Make note of the Package ID number (found in the `Data Packages` table). You will need to input this in the run command as `downloadcmd -dp <PackageID>`. If you dont specify an ouput directory the package will be downloaded here: `~/NDA/nda-tools/downloadcmd/packages/<PackageID>/`.
+Run the command 'downloadcmd -dp `<PackageID>`. The Package ID number can be found in the `Data Packages` table. If you don't specify an ouput directory, the package will be downloaded here: `~/NDA/nda-tools/downloadcmd/packages/<PackageID>/`.
 
 The contents of the data package after it has been downloaded should look like this:
 
@@ -97,9 +101,9 @@ The contents of the data package after it has been downloaded should look like t
 └── README.pdf
 ```
 
-#### How to Create an NDA Image Data Package
+### Package for Data Image
 
-1. Follow steps 1-3 from "How to Download `abcd_fastqc01.csv`"
+1. Follow steps 1-3 from "How to Download `abcd_fastqc01.txt`"
 1. In the `Text Search` window enter `image03` and click `Apply`.
     - You should see a single result with the heading `Image`.
 1. Click on the `Image` heading.
@@ -115,7 +119,7 @@ The contents of the data package after it has been downloaded should look like t
 
 This data package is roughly 71TB in size and may take up to a day to be created. You can check the status of this package by navigating to the `Data Packages` tab within your profile. You should see your newly created package at the top of the table with a status of `Creating Package`. Wait until the status changes to `Ready to Download` before proceeding with next steps.
 
-Make note of the Package ID number (found in the `Data Packages` table). You will need to input this in the run command as `downloadcmd -dp <PackageID>`. If you dont specify an ouput directory the package will be downloaded here: `~/NDA/nda-tools/downloadcmd/packages/<PackageID>/`
+Run the command 'downloadcmd -dp `<PackageID>`. The Package ID number can be found in the `Data Packages` table. If you don't specify an ouput directory, the package will be downloaded here: `~/NDA/nda-tools/downloadcmd/packages/<PackageID>/`.
 
 ## Usage
 ```
