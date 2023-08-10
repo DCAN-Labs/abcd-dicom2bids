@@ -62,7 +62,7 @@ If you are experiencing the following error `ModuleNotFoundError: No module name
 
 Important Note: your NDA password and keyring password cannot differ. It's also important to be careful when using exclamation marks or other special characters in the password that can trigger keyring issues/errors.
 
-## Using downloadcmd
+## Using `downloadcmd`
 
 Skip this section if you already have the necessary packages downloaded. You will just need the Package ID info when running `abcd2bids.py`.
 
