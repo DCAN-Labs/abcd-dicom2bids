@@ -68,11 +68,9 @@ Skip this section if you already have the necessary packages downloaded. You wil
 
 You will be creating two different NDA packages: one for the fastqc file and one for the data images.
 
-### NDA QC Spreadsheet (not included)
+### Package for `abcd_fastqc01.txt`
 
 To download images for ABCD you must have the `abcd_fastqc01.txt` spreadsheet downloaded to this repository's `spreadsheets` folder. It can be downloaded from the [NIMH Data Archive (NDA)](https://nda.nih.gov/) with an ABCD Study Data Use Certification in place. `abcd_fastqc01.csv` contains operator QC information for each MRI series. If the image fails operator QC (a score of 0), then the image will not be downloaded.
-
-#### Package for `abcd_fastqc01.txt`
 
 1. Login to the [NIMH Data Archive](https://nda.nih.gov/).
 2. From the homepage, click `Get Data`
