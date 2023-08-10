@@ -295,11 +295,11 @@ The DICOM 2 BIDS conversion process can be done by running `python3 abcd2bids.py
 
 As its first step, the wrapper will call `nda_aws_token_maker.py`. If successful, `nda_aws_token_maker.py` will create a `credentials` file in the `.aws/` subdirectory of the user's `home` directory. 
 
-Next, the wrapper will produce a download list for the Python & BASH portion to download, convert, select, and prepare. The two spreadsheets referenced above are used to create the `ABCD_good_and_bad_series_table.csv` which gets used to actually download the images. If successful, this script will create the file `ABCD_good_and_bad_series_table.csv` in the `spreadsheets/` subdirectory. This step was previously done by a compiled MATLAB script called `data_gatherer`, but now the wrapper has its own functionality to replace that script.
+Next, the wrapper will produce a download list for the Python & BASH portion to download, convert, select, and prepare. The two spreadsheets referenced above are used to create the `abcd_fastqc01_reformatted.csv` which gets used to actually download the images. If successful, this script will create the file `abcd_fastqc01_reformatted.csv` in the `spreadsheets/` subdirectory. This step was previously done by a compiled MATLAB script called `data_gatherer`, but now the wrapper has its own functionality to replace that script.
 
 ### 1. (Python) `aws_downloader.py`
 
-Once `ABCD_good_and_bad_series_table.csv` is successfully created, the wrapper will run `src/aws_downloader.py` with this repository's cloned folder as the present working directory to download the ABCD data from the NDA website. It requires the `ABCD_good_and_bad_series_table.csv` spreadsheet under a `spreadsheets` subdirectory of this repository's cloned folder.
+Once `abcd_fastqc01_reformatted.csv` is successfully created, the wrapper will run `src/aws_downloader.py` with this repository's cloned folder as the present working directory to download the ABCD data from the NDA website. It requires the `abcd_fastqc01_reformatted.csv` spreadsheet under a `spreadsheets` subdirectory of this repository's cloned folder.
 
 `src/aws_downloader.py` also requires a valid NDA token in the `.aws/` folder in the user's `home/` directory. If successful, this will download the ABCD data from the NDA site into the `raw/` subdirectory of the clone of this repo. If the download crashes and shows errors about `awscli`, try making sure you have the [latest AWS CLI installed](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html), and that the [`aws` executable is in your BASH `PATH` variable](https://docs.aws.amazon.com/cli/latest/userguide/install-linux.html#install-linux-path).
 
