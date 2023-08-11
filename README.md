@@ -244,7 +244,7 @@ This wrapper will create a temporary folder (`temp/` by default) with hundreds o
 
 `--start-at`: By default, this wrapper will run every step listed below in that order. Use this flag to start at one step and skip all of the previous ones. To do so, enter the name of the step. E.g. `--start-at correct_jsons` will skip every step before JSON correction.
 
-1. aws_downloader.py
+1. aws_downloader
 2. download_nda_data
 3. unpack_and_setup
 4. correct_jsons
