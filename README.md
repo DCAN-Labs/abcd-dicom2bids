@@ -86,8 +86,6 @@ To download images for ABCD you must have the `abcd_fastqc01.txt` spreadsheet do
 9. Navigate to your NDA dashboard and from your NDA dashboard, click `DataPackages`. You should see the data package that you just created with a status of "Creating Package". It takes roughly 10 minutes for the NDA to create this package.
 10. When the Data package is ready to download the status will change to "Ready to Download"
 
-Run the command 'downloadcmd -dp `<PackageID>`. The Package ID number can be found in the `Data Packages` table. If you don't specify an ouput directory, the package will be downloaded here: `~/NDA/nda-tools/downloadcmd/packages/<PackageID>/`.
-
 The contents of the data package after it has been downloaded should look like this:
 
 ```
@@ -116,6 +114,8 @@ The contents of the data package after it has been downloaded should look like t
 1. Finally click `Create Data Package`
 
 This data package is roughly 71TB in size and may take up to a day to be created. You can check the status of this package by navigating to the `Data Packages` tab within your profile. You should see your newly created package at the top of the table with a status of `Creating Package`. Wait until the status changes to `Ready to Download` before proceeding with next steps.
+
+### Downloading Packages
 
 Run the command 'downloadcmd -dp `<PackageID>`. The Package ID number can be found in the `Data Packages` table. If you don't specify an ouput directory, the package will be downloaded here: `~/NDA/nda-tools/downloadcmd/packages/<PackageID>/`.
 
