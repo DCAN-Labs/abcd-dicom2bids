@@ -282,7 +282,7 @@ python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime d
 
 `abcd2bids.py` is a wrapper for 4 distinct scripts, which previously needed to be run on their own in sequential order:
 
-1. (Python) `good_bad_series_parser.py`
+1. (Python) `aws_downloader.py`
 2. (BASH) `unpack_and_setup.sh`
 3. (Python) `correct_jsons.py`
 4. (Docker) Official BIDS validator
