@@ -225,7 +225,7 @@ The DICOM to BIDS process can be done by running the `abcd2bids.py` wrapper from
 ```
 python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> -q <Path to QC spreadsheet file downloaded from the NDA> -l <Path to a .txt file containing a list of subjects to download> -p <Package_ID> -d <Path to downloadcmd> -o <Path to where you want the final file output to be placed>
 ```
-Example contents of SUBJECT_LIST file (not using any ABCD subject IDs):
+Example contents of SUBJECT_LIST file (not using any ABCC subject IDs):
 ```
 sub-01
 sub-02
