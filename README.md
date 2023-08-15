@@ -64,9 +64,9 @@ Important Note: your NDA password and keyring password cannot differ. It's also 
 
 ## Using `downloadcmd`
 
-Skip this section if you already have the necessary packages downloaded. You will just need the Package ID info when running `abcd2bids.py`.
+Skip this section if you already have the necessary packages downloaded. You will just need the Package ID for the images package when running `abcd2bids.py`.
 
-You will be creating two different NDA packages: one for the fastqc file and one for the data images.
+You will be creating two different NDA packages: one for the fastqc file and one for the data images. 
 
 ### Package for `abcd_fastqc01.txt`
 
@@ -113,7 +113,7 @@ The contents of the data package after it has been downloaded should look like t
 1. Name the Package something informative and make sure to check the box that says `Include Associated Data Files`
 1. Finally click `Create Data Package`
 
-This data package is roughly 71TB in size and may take up to a day to be created. You can check the status of this package by navigating to the `Data Packages` tab within your profile. You should see your newly created package at the top of the table with a status of `Creating Package`. Wait until the status changes to `Ready to Download` before proceeding with next steps.
+This data package is roughly 71TB in size and may take up to a day to be created. You can check the status of this package by navigating to the `Data Packages` tab within your profile. You should see your newly created package at the top of the table with a status of `Creating Package`. Wait until the status changes to `Ready to Download` before proceeding with next steps. Make note of this Package ID as it will be needed to run `abcd2bids.py`.
 
 ## Usage
 ```
