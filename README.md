@@ -12,8 +12,8 @@ Clone this repository, install the dependencies listed below ***and*** the requi
 1. [Python 3.6.8](https://www.python.org/downloads/release/python-368/)+
 1. [jq](https://stedolan.github.io/jq/download/) version 1.6 or higher
 1. [MathWorks MATLAB Runtime Environment (MRE) version 9.1 (R2016b)](https://www.mathworks.com/products/compiler/matlab-runtime.html)
-1. [cbedetti Dcm2Bids version X](https://github.com/cbedetti/Dcm2Bids) (`export` into your BASH `PATH` variable)
-1. [Rorden Lab dcm2niix version X](https://github.com/rordenlab/dcm2niix) (`export` into your BASH `PATH` variable) version v1.0.20201102 (WARNING: older versions of dcm2niix have failed to properly convert DICOMs)
+1. [cbedetti Dcm2Bids version 2.1.4](https://github.com/cbedetti/Dcm2Bids) (`export` into your BASH `PATH` variable)
+1. [Rorden Lab dcm2niix version v1.0.20201102](https://github.com/rordenlab/dcm2niix) (`export` into your BASH `PATH` variable) (WARNING: older versions of dcm2niix have failed to properly convert DICOMs)
 1. [dcmdump version X](https://dicom.offis.de/dcmtk.php.en) (`export` into your BASH `PATH` variable)
 1. [zlib's pigz-2.4](https://zlib.net/pigz) (`export` into your BASH `PATH` variable)
 1. Singularity or Docker (see documentation for [Docker Community Edition for Ubuntu](https://docs.docker.com/install/linux/docker-ce/ubuntu/))
