@@ -54,9 +54,9 @@ After the contents of `keyringrc.cfg` have been properly edited, run these comma
 ```
 python3
 import keyring
-keyring.get_password("nda-tools", "USERNAME")
+keyring.get_password("nda-tools", "<username>")
 ```
-If the correct password is not returned, then running `keyring.set_password("nda-tools", "username", "password")` should fix the issue. 
+If the correct password is not returned, then running `keyring.set_password("nda-tools", "<username>", "<password>")` should fix the issue. 
 
 If you are experiencing the following error `ModuleNotFoundError: No module named 'keyrings'`, it is most likely due to an outdated version of `keyrings.alt`. Running the command `pip list | grep keyring` will result in the current versions for `keyring` and `keyrings.alt` on your system. To avoid the error, `keyring` and `keyrings.alt` should be updated to versions `23.13.1` and `3.1` respectively. If `keyrings.alt` is outdated, then run `pip install keyrings.alt`.
 
