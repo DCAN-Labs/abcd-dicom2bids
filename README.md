@@ -217,7 +217,7 @@ optional arguments:
 ```
 
 
-The DICOM to BIDS process can be done by running the `abcd2bids.py` wrapper from within the directory cloned from this repo. `abcd2bids.py` requires four positional arguments and can take several optional arguments. Those positional arguments are file paths to the FSL directory, the MATLAB Runtime Environment, the QC spreadsheet, and the list of subjects to download. Here is an example of a valid call of this wrapper:
+The DICOM to BIDS process can be done by running the `abcd2bids.py` wrapper from within the directory cloned from this repo. `abcd2bids.py` requires four positional arguments and can take several optional arguments. Those positional arguments are file paths to the FSL directory, the MATLAB Runtime Environment, the list of subjects to download, and the Package ID of the images package. Here is an example of a valid call of this wrapper:
 ```
 python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> -q <Path to QC spreadsheet file downloaded from the NDA> -l <Path to a .txt file containing a list of subjects to download> -p <Package_ID> -d <Path to downloadcmd> -o <Path to where you want the final file output to be placed>
 ```
