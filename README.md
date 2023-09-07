@@ -14,7 +14,7 @@ Clone this repository, install requirements listed in `src/requirements.txt` ***
 1. [MathWorks MATLAB Runtime Environment (MRE) version 9.1 (R2016b)](https://www.mathworks.com/products/compiler/matlab-runtime.html)
 1. [cbedetti Dcm2Bids version X](https://github.com/cbedetti/Dcm2Bids) (`export` into your BASH `PATH` variable)
 1. [Rorden Lab dcm2niix version X](https://github.com/rordenlab/dcm2niix) (`export` into your BASH `PATH` variable) version v1.0.20201102 (WARNING: older versions of dcm2niix have failed to properly convert DICOMs)
-1. [dcmdump version X](https://dicom.offis.de/dcmtk.php.en) (`export` into your BASH `PATH` variable)
+1. [dcmdump version 3.6.5 or higher](https://dicom.offis.de/dcmtk.php.en) (`export` into your BASH `PATH` variable)
 1. [zlib's pigz-2.4](https://zlib.net/pigz) (`export` into your BASH `PATH` variable)
 1. Singularity or Docker (see documentation for [Docker Community Edition for Ubuntu](https://docs.docker.com/install/linux/docker-ce/ubuntu/))
 1. [FMRIB Software Library (FSL) v5.0](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
