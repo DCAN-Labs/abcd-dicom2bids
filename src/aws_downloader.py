@@ -305,8 +305,7 @@ def add_dwi_paths(passed_QC_group, file_paths):
             if DTI_FM_AP_df.empty:
                 return (file_paths, 0)
             DTI_FM_PA_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-Diffusion-FM-PA']
-            DTI_FM_df = DTI_FM_AP_df.tail(1)
-            DTI_FM_df = DTI_FM_df.append(DTI_FM_PA_df.tail(1))
+            DTI_FM_df = pd.concat([DTI_FM_AP_df.tail(1), DTI_FM_PA_df.tail(1)], ignore_index=True)
         if not DTI_FM_df.empty:
             for file_path in DTI_df['image_file']:
                 file_paths += [file_path]
