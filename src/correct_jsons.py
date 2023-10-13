@@ -108,6 +108,8 @@ def main(argv=sys.argv):
                 if 'fmap' in root and 'IntendedFor' in data and len(data['IntendedFor']) > 0:
                     # Regular expression replace all paths in that list with a relative path to ses-SESSION
                     intended_list = data['IntendedFor']
+                    if not isinstance(intended_list, list):
+                        intended_list = [intended_list]
                     corrected_intended_list = [re.sub(r'.*(ses-.*_ses-.+)','\g<1>',entry) for entry in intended_list]
                     update_json_field(json_path, 'IntendedFor', corrected_intended_list)
 
