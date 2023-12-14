@@ -139,7 +139,7 @@ def main(argv=sys.argv):
             subject_df = series_df[series_df['pGUID'] == pguid]
             for year in year_list:
                 sub_ses_df = subject_df[subject_df['EventName'] == year]
-                sub_pass_QC_df = sub_ses_df # changed to include all data, not just data with QC == 1.0
+                sub_pass_QC_df = sub_ses_df[sub_ses_df['QC'] == 1.0] #changed this line back to be able to filter based on QC from fast track
                 file_paths = []
                 ### Logging information
                 # initialize logging variables
