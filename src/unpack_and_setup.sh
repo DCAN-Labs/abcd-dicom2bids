@@ -119,7 +119,7 @@ if [ -e ${TempSubjectDir}/DCMs/${SUB}/${VISIT}/dwi ]; then
             echo "Replacing Siemens bvals and bvecs"
             cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Siemens_bvals.txt ${orig_bval}
             cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Siemens_bvecs.txt ${orig_bvec}
-        elif [[ `dcmdump --search 0008,0070 ${first_dcm} 2>/dev/null` == *PHILIPS* ]]; then
+        elif [[ `dcmdump --search 0008,0070 ${first_dcm} 2>/dev/null` == *Philips* ]]; then
             echo "Found Philips data"
         else
             echo "ERROR setting up DWI: Manufacturer not recognized"
