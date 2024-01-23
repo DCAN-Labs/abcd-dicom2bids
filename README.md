@@ -5,19 +5,21 @@ For information on [Collection 3165, see here](https://github.com/ABCD-STUDY/nda
 
 ## Installation
 
-Clone this repository, install requirements listed in `src/requirements.txt` ***and*** the dependencies listed below.
+Clone this repository, install the dependencies listed below ***and*** the requirements listed in `src/requirements.txt`.
 
-## Dependencies
+### Dependencies
 
 1. [Python 3.6.8](https://www.python.org/downloads/release/python-368/)+
 1. [jq](https://stedolan.github.io/jq/download/) version 1.6 or higher
 1. [MathWorks MATLAB Runtime Environment (MRE) version 9.1 (R2016b)](https://www.mathworks.com/products/compiler/matlab-runtime.html)
-1. [cbedetti Dcm2Bids version X](https://github.com/cbedetti/Dcm2Bids) (`export` into your BASH `PATH` variable)
-1. [Rorden Lab dcm2niix version X](https://github.com/rordenlab/dcm2niix) (`export` into your BASH `PATH` variable) version v1.0.20201102 (WARNING: older versions of dcm2niix have failed to properly convert DICOMs)
+1. [cbedetti Dcm2Bids version 2.1.4](https://github.com/cbedetti/Dcm2Bids) (`export` into your BASH `PATH` variable) (WARNING: versions >=3.0.0 are not compatible with code written for previous versions)
+1. [Rorden Lab dcm2niix version v1.0.20201102](https://github.com/rordenlab/dcm2niix) (`export` into your BASH `PATH` variable) (WARNING: older versions of dcm2niix have failed to properly convert DICOMs)
 1. [dcmdump version 3.6.5 or higher](https://dicom.offis.de/dcmtk.php.en) (`export` into your BASH `PATH` variable)
 1. [zlib's pigz-2.4](https://zlib.net/pigz) (`export` into your BASH `PATH` variable)
 1. Singularity or Docker (see documentation for [Docker Community Edition for Ubuntu](https://docs.docker.com/install/linux/docker-ce/ubuntu/))
 1. [FMRIB Software Library (FSL) v5.0](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
+
+### Requirements
 
 We recommend creating a virtual environment for Python by running:
 
@@ -38,6 +40,8 @@ If encountering errors during the package download process, try running `pip ins
 
 There are two methods of downloading data packages from the NDA. They can be downloaded through a GUI found [here](https://nda.nih.gov/nda/nda-tools.html#download-manager-beta) or from the command line using `downloadcmd`, which can be installed with `pip install nda-tools==0.2.22`. Follow instructions provided by the NDA depending on your preferred method to download the ABCD Fasttrack QC. Run `downloadcmd -h` for usage information. 
 
+### Keyring
+
 If using `downloadcmd` option, the "Updating Stored Passwords with keyring" step on the [nda-tools](https://github.com/NDAR/nda-tools) ReadMe will still be necessary because if you want to download a specific subject from the package you will need to use both nda-tools and keyring. If downloading every subject all at once, then just using the download manager will suffice. The default is to now download all tasks regardless of run number where as before it would only download if and only if there were two runs (Version # HERE).
 
 The contents of `~/.config/python_keyring/keyringrc.cfg` should be:
@@ -50,23 +54,23 @@ After the contents of `keyringrc.cfg` have been properly edited, run these comma
 ```
 python3
 import keyring
-keyring.get_password("nda-tools", "USERNAME")
+keyring.get_password("nda-tools", "<username>")
 ```
-If the correct password is not returned, then running `keyring.set_password("nda-tools", "username", "password")` should fix the issue. 
+If the correct password is not returned, then running `keyring.set_password("nda-tools", "<username>", "<password>")` should fix the issue. 
 
 If you are experiencing the following error `ModuleNotFoundError: No module named 'keyrings'`, it is most likely due to an outdated version of `keyrings.alt`. Running the command `pip list | grep keyring` will result in the current versions for `keyring` and `keyrings.alt` on your system. To avoid the error, `keyring` and `keyrings.alt` should be updated to versions `23.13.1` and `3.1` respectively. If `keyrings.alt` is outdated, then run `pip install keyrings.alt`.
 
 Important Note: your NDA password and keyring password cannot differ. It's also important to be careful when using exclamation marks or other special characters in the password that can trigger keyring issues/errors.
 
-## Data Packages
+## Using `downloadcmd`
 
-Skip this section if you already have the necessary packages downloaded. You will just need the Package ID info when running `abcd2bids.py`.
+Skip this section if you already have the necessary packages downloaded. You will just need the Package ID for the images package when running `abcd2bids.py`.
 
-### NDA QC Spreadsheet (not included)
+You will be creating two different NDA packages: one for the fastqc file and one for the data images. 
 
-To download images for ABCD you must have the `abcd_fastqc01.csv` spreadsheet downloaded to this repository's `spreadsheets` folder. It can be downloaded from the [NIMH Data Archive (NDA)](https://nda.nih.gov/) with an ABCD Study Data Use Certification in place. `abcd_fastqc01.csv` contains operator QC information for each MRI series. If the image fails operator QC (a score of 0), then the image will not be downloaded.
+### Package for `abcd_fastqc01.txt`
 
-#### How to Download `abcd_fastqc01.csv`
+To download images for ABCD you must have the `abcd_fastqc01.txt` spreadsheet downloaded to this repository's `spreadsheets` folder. It can be downloaded from the [NIMH Data Archive (NDA)](https://nda.nih.gov/) with an ABCD Study Data Use Certification in place. `abcd_fastqc01.csv` contains operator QC information for each MRI series.
 
 1. Login to the [NIMH Data Archive](https://nda.nih.gov/).
 2. From the homepage, click `Get Data`
@@ -82,8 +86,6 @@ To download images for ABCD you must have the `abcd_fastqc01.csv` spreadsheet do
 9. Navigate to your NDA dashboard and from your NDA dashboard, click `DataPackages`. You should see the data package that you just created with a status of "Creating Package". It takes roughly 10 minutes for the NDA to create this package.
 10. When the Data package is ready to download the status will change to "Ready to Download"
 
-Make note of the Package ID number (found in the `Data Packages` table). You will need to input this in the run command as `downloadcmd -dp <PackageID>`. If you dont specify an ouput directory the package will be downloaded here: `~/NDA/nda-tools/downloadcmd/packages/<PackageID>/`.
-
 The contents of the data package after it has been downloaded should look like this:
 
 ```
@@ -95,9 +97,9 @@ The contents of the data package after it has been downloaded should look like t
 └── README.pdf
 ```
 
-#### How to Create an NDA Image Data Package
+### Package for Data Image
 
-1. Follow steps 1-3 from "How to Download `abcd_fastqc01.csv`"
+1. Follow steps 1-3 from "How to Download `abcd_fastqc01.txt`"
 1. In the `Text Search` window enter `image03` and click `Apply`.
     - You should see a single result with the heading `Image`.
 1. Click on the `Image` heading.
@@ -111,9 +113,7 @@ The contents of the data package after it has been downloaded should look like t
 1. Name the Package something informative and make sure to check the box that says `Include Associated Data Files`
 1. Finally click `Create Data Package`
 
-This data package is roughly 71TB in size and may take up to a day to be created. You can check the status of this package by navigating to the `Data Packages` tab within your profile. You should see your newly created package at the top of the table with a status of `Creating Package`. Wait until the status changes to `Ready to Download` before proceeding with next steps.
-
-Make note of the Package ID number (found in the `Data Packages` table). You will need to input this in the run command as `downloadcmd -dp <PackageID>`. If you dont specify an ouput directory the package will be downloaded here: `~/NDA/nda-tools/downloadcmd/packages/<PackageID>/`
+This data package is roughly 71TB in size and may take up to a day to be created. You can check the status of this package by navigating to the `Data Packages` tab within your profile. You should see your newly created package at the top of the table with a status of `Creating Package`. Wait until the status changes to `Ready to Download` before proceeding with next steps. Make note of this Package ID as it will be needed to run `abcd2bids.py`.
 
 ## Usage
 ```
@@ -217,9 +217,9 @@ optional arguments:
 ```
 
 
-The DICOM to BIDS process can be done by running the `abcd2bids.py` wrapper from within the directory cloned from this repo. `abcd2bids.py` requires four positional arguments and can take several optional arguments. Those positional arguments are file paths to the FSL directory, the MATLAB Runtime Environment, the QC spreadsheet, and the list of subjects to download. Here is an example of a valid call of this wrapper:
+The DICOM to BIDS process can be done by running the `abcd2bids.py` wrapper from within the directory cloned from this repo. `abcd2bids.py` requires four positional arguments and can take several optional arguments. Those positional arguments are file paths to the FSL directory, the MATLAB Runtime Environment, the list of subjects to download, and the Package ID of the images package. Here is an example of a valid call of this wrapper:
 ```
-python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> <Path to QC spreadsheet file downloaded from the NDA> <Path to a .txt file containing a list of subjects to download> <Package_ID> <Path to downloadcmd>
+python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> -q <Path to QC spreadsheet file downloaded from the NDA> -l <Path to a .txt file containing a list of subjects to download> -p <Package_ID> --downloadcmd <Path to downloadcmd> -o <Path to where you want the final file output to be placed>
 ```
 Example contents of SUBJECT_LIST file (not using any ABCC subject IDs):
 ```
@@ -240,7 +240,7 @@ This wrapper will create a temporary folder (`temp/` by default) with hundreds o
 
 `--start-at`: By default, this wrapper will run every step listed below in that order. Use this flag to start at one step and skip all of the previous ones. To do so, enter the name of the step. E.g. `--start-at correct_jsons` will skip every step before JSON correction.
 
-1. create_good_and_bad_series_table
+1. reformat_fastqc_spreadsheet
 2. download_nda_data
 3. unpack_and_setup
 4. correct_jsons
@@ -269,7 +269,7 @@ For more information including the shorthand flags of each option, use the `--he
 Here is the format for a call to the wrapper with more options added:
 
 ```
-python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> <Path to QC spreadsheet file downloaded from the NDA> <Path to a .txt file containing a list of subjects to download> <Package_ID> <Path to downloadcmd> --username <NDA username> --download <Folder to place raw data in> --output <Folder to place converted data in> --temp <Directory to hold temporary files> --remove
+python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime directory> -q <Path to QC spreadsheet file downloaded from the NDA> -l <Path to a .txt file containing a list of subjects to download> -p <Package_ID> --downloadcmd <Path to downloadcmd> --username <NDA username> --download <Folder to place raw data in> --output <Folder to place converted data in> --temp <Directory to hold temporary files> --remove
 ```
 
 *Note: DWI has been added to the list of modalities that can be downloaded. This has resulted in a couple important changes to the scripts included here and the output BIDS data. Most notably, fieldmaps now include an acquisition field in their filenames to differentiate those used for functional images and those used for DWI (e.g. ..._acq-func_... or ..._acq-dwi_...). Data uploaded to [Collection 3165](https://github.com/ABCD-STUDY/nda-abcd-collection-3165), which was created using this repository, does not contain this identifier.*
@@ -278,7 +278,7 @@ python3 abcd2bids.py <FSL directory> <Matlab2016bRuntime v9.1 compiler runtime d
 
 `abcd2bids.py` is a wrapper for 4 distinct scripts, which previously needed to be run on their own in sequential order:
 
-1. (Python) `good_bad_series_parser.py`
+1. (Python) `aws_downloader.py`
 2. (BASH) `unpack_and_setup.sh`
 3. (Python) `correct_jsons.py`
 4. (Docker) Official BIDS validator
@@ -291,11 +291,11 @@ The DICOM 2 BIDS conversion process can be done by running `python3 abcd2bids.py
 
 As its first step, the wrapper will call `nda_aws_token_maker.py`. If successful, `nda_aws_token_maker.py` will create a `credentials` file in the `.aws/` subdirectory of the user's `home` directory. 
 
-Next, the wrapper will produce a download list for the Python & BASH portion to download, convert, select, and prepare. The two spreadsheets referenced above are used to create the `ABCD_good_and_bad_series_table.csv` which gets used to actually download the images. If successful, this script will create the file `ABCD_good_and_bad_series_table.csv` in the `spreadsheets/` subdirectory. This step was previously done by a compiled MATLAB script called `data_gatherer`, but now the wrapper has its own functionality to replace that script.
+Next, the wrapper will produce a download list for the Python & BASH portion to download, convert, select, and prepare. The two spreadsheets referenced above are used to create the `abcd_fastqc01_reformatted.csv` which gets used to actually download the images. If successful, this script will create the file `abcd_fastqc01_reformatted.csv` in the `spreadsheets/` subdirectory. This step was previously done by a compiled MATLAB script called `data_gatherer`, but now the wrapper has its own functionality to replace that script.
 
 ### 1. (Python) `aws_downloader.py`
 
-Once `ABCD_good_and_bad_series_table.csv` is successfully created, the wrapper will run `src/aws_downloader.py` with this repository's cloned folder as the present working directory to download the ABCD data from the NDA website. It requires the `ABCD_good_and_bad_series_table.csv` spreadsheet under a `spreadsheets` subdirectory of this repository's cloned folder.
+Once `abcd_fastqc01_reformatted.csv` is successfully created, the wrapper will run `src/aws_downloader.py` with this repository's cloned folder as the present working directory to download the ABCD data from the NDA website. It requires the `abcd_fastqc01_reformatted.csv` spreadsheet under a `spreadsheets` subdirectory of this repository's cloned folder.
 
 `src/aws_downloader.py` also requires a valid NDA token in the `.aws/` folder in the user's `home/` directory. If successful, this will download the ABCD data from the NDA site into the `raw/` subdirectory of the clone of this repo. If the download crashes and shows errors about `awscli`, try making sure you have the [latest AWS CLI installed](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html), and that the [`aws` executable is in your BASH `PATH` variable](https://docs.aws.amazon.com/cli/latest/userguide/install-linux.html#install-linux-path).
 

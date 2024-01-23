@@ -4,6 +4,7 @@ click==7.1.2
 cryptography==41.0.6
 dcm2bids==2.1.4
 docopt==0.6.2
+nda-tools==0.2.22
 future==0.18.3
 nibabel==5.1.0
 num2words==0.5.10
