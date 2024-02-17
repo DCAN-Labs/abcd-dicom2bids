@@ -1,7 +1,7 @@
 bids-validator==1.5.7
 cffi==1.15.1
 click==7.1.2
-cryptography==41.0.6
+cryptography==42.0.2
 dcm2bids==2.1.4
 docopt==0.6.2
 nda-tools==0.2.22
