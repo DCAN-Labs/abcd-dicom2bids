@@ -122,12 +122,13 @@ def main(argv=sys.argv):
         writer = csv.writer(f)
 
         # Read csv as pandas dataframe, drop duplicate entries, sort, and group by subject/visit
-        series_df = pd.read_csv(series_csv)
+        series_header = pd.read_csv(series_csv, nrows=0).columns.tolist()
+        series_df = pd.read_csv(series_csv, usecols=list(range(1,len(series_header)+1)))
 
         # If subject list is provided
         # Get list of all unique subjects if not provided
         # subject_list = series_df.pGUID.unique()
-        #year_list = ['baseline_year_1_arm_1']
+        # year_list = ['baseline_year_1_arm_1']
         # Get list of all years if not provided
         # year_list = series_df.EventName.unique()
 
