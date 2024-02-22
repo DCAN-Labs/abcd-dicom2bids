@@ -182,18 +182,18 @@ if ls ${TempSubjectDir}/DCMs/${SUB}/${VISIT}/func/*EventRelatedInformation.* > /
 
     tasks=(MID SST nBack)
 
-    for task in ${tasks}; do
-        envs= `ls ${TempSubjectDir}/DCMs/${SUB}/${VISIT}/func/*${task}*EventRelatedInformation.*`
-        echo ${envs}
+    for task in "${tasks[@]}"; do
+        envs=$(ls ${TempSubjectDir}/DCMs/${SUB}/${VISIT}/func/*${task}*EventRelatedInformation.*)
+        echo "Task ERI files found:" ${envs}
 
         i=1
-        for ev in ${evs}; do
-            if [[ "${envs}" == *"nBack"* ]]; then
+        for ev in ${envs}; do
+            if [[ "${ev}" == *"nBack"* ]]; then
                 task=nback
             fi
-            extension="${filename##*.}"
-            cp ${ev} ${srcdata_dir}/${SUB}_${VISIT}_task-${task}_run-0${i}_bold_EventRelatedInformation${extension}
-            ((i++))
+            extension="${ev##*.}"
+            cp ${ev} ${srcdata_dir}/${SUB}_${VISIT}_task-${task}_run-0${i}_bold_EventRelatedInformation.${extension}
+            ((i++)) # Maybe needs a dollar sign in front 
         done
     done
 fi
