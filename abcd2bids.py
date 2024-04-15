@@ -600,6 +600,7 @@ def reformat_fastqc_spreadsheet(cli_args):
     # remove "Replaced" rows from download list
     qc_data = qc_data[qc_data['ftq_recall_reason'] != 'Replaced']
 
+
     # Change column names for good_bad_series_parser to use; then save to .csv
     qc_data.rename({
         "ftq_usable": "QC", "subjectkey": "pGUID", "visit": "EventName",

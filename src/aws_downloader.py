@@ -131,7 +131,6 @@ def main(argv=sys.argv):
         # year_list = ['baseline_year_1_arm_1']
         # Get list of all years if not provided
         # year_list = series_df.EventName.unique()
-
         uid_start = "INV"
         for sub in subject_list:
             uid = sub.split(uid_start, 1)[1]
