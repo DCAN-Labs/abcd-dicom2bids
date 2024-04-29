@@ -572,8 +572,8 @@ def reformat_fastqc_spreadsheet(cli_args):
     all_qc_data.columns = new_headers # Replace the old headers with the new list
     print(all_qc_data.columns)
 
-    # select all QC data, not just those with ftq_usable == 1
-    qc_data = fix_split_col(all_qc_data)
+    # Select QC data that is usable (ftq_usable==1) and complete (ftq_complete==1)
+    qc_data = fix_split_col(all_qc_data.loc[(all_qc_data['ftq_usable'] == 1) & (all_qc_data['ftq_complete'] == 1)])
 
     def get_img_desc(row):
         """
