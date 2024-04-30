@@ -116,10 +116,10 @@ if [ -e ${TempSubjectDir}/DCMs/${SUB}/${VISIT}/dwi ]; then
                 cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/GE_bvecs_DV26.txt ${orig_bvec}
             fi
         elif [[ `dcmdump --search 0008,0070 ${first_dcm} 2>/dev/null` == *SIEMENS* ]]; then
-            echo "Replacing Siemens bvals and bvecs"
-            cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Siemens_bvals.txt ${orig_bval}
-            cp `dirname $0`/ABCD_Release_2.0_Diffusion_Tables/Siemens_bvecs.txt ${orig_bvec}
+            # Siemens BVAL and BVEC files should be good directly from dcm2niix
+            echo "Found Siemens data, not replacing BVAL or BVEC files"
         elif [[ `dcmdump --search 0008,0070 ${first_dcm} 2>/dev/null` == *Philips* ]]; then
+            # Philips BVAL and BVEC files should be good directly from dcm2niix
             echo "Found Philips data, not replacing BVAL or BVEC files"
         else
             echo "ERROR setting up DWI: Manufacturer not recognized"
