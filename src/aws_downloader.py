@@ -205,34 +205,35 @@ def main(argv=sys.argv):
 
 
 def add_anat_paths(passed_QC_group, file_paths):
-    ##  Download both T1_NORM and T1
-    T1_df = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-T1']
+    ##  If T1_NORM exists, only download that file instead of normal T1
+    T1_df = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-T1-NORM']
     if T1_df.empty:
-        has_t1 = 0 # No T1s. Invalid subject
+        T1_df = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-T1']
+        if T1_df.empty:
+            has_t1 = 0 # No T1s. Invalid subject
+        else:
+            for file_path in T1_df['image_file']:
+                file_paths += [file_path]
+            has_t1 = T1_df.shape[0]
     else:
-        for file_path in T1_df['image_file']:
+        for file_path in T1_df["image_file"]:
             file_paths += [file_path]
         has_t1 = T1_df.shape[0]
 
-    T1_df_norm = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-T1-NORM']
-    if not T1_df_norm.empty:
-        for file_path in T1_df_norm['image_file']:
-            file_paths += [file_path]
-        has_t1 += T1_df_norm.shape[0]
-
-    T2_df = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-T2']
+    ##  If T2_NORM exists, only download that file instead of normal T2
+    T2_df = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-T2-NORM']
     if T2_df.empty:
-        has_t2 = 0 # No T2s
+        T2_df = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-T2']
+        if T2_df.empty:
+            has_t2 = 0 # No T1s. Invalid subject
+        else:
+            for file_path in T2_df['image_file']:
+                file_paths += [file_path]
+            has_t2 = T2_df.shape[0]
     else:
-        for file_path in T2_df['image_file']:
+        for file_path in T2_df["image_file"]:
             file_paths += [file_path]
         has_t2 = T2_df.shape[0]
-
-    T2_df_norm = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-T2-NORM']
-    if not T2_df_norm.empty:
-        for file_path in T2_df_norm['image_file']:
-            file_paths += [file_path]
-        has_t2 += T2_df_norm.shape[0]
 
     return (file_paths, has_t1, has_t2)
 
