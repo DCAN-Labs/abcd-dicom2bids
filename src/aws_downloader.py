@@ -139,7 +139,10 @@ def main(argv=sys.argv):
             subject_df = series_df[series_df['pGUID'] == pguid]
             for year in year_list:
                 sub_ses_df = subject_df[subject_df['EventName'] == year]
-                sub_pass_QC_df = sub_ses_df[sub_ses_df['QC'] == 1.0] #changed this line back to be able to filter based on QC from fast track
+                #sub_pass_QC_df = sub_ses_df[sub_ses_df['QC'] == 1.0]
+                # change this to filter based on ftq_complete==1 as well as QC==1 in reformatted fasttrack (which is equivalent to ftq_usable in original fasttrack)
+                sub_pass_QC_df = sub_ses_df[(sub_ses_df['QC'] == 1.0) & (sub_ses_df['ftq_complete'] ==1)]
+
                 file_paths = []
                 ### Logging information
                 # initialize logging variables
@@ -165,9 +168,6 @@ def main(argv=sys.argv):
                     (file_paths, has_sefm, has_rsfmri, has_mid, has_sst, has_nback) = add_func_paths(sub_ses_df, sub_pass_QC_df, file_paths)
                 if 'dwi' in modalities:
                     (file_paths, has_dti) = add_dwi_paths(sub_ses_df, sub_pass_QC_df, file_paths)
-
-                sub_ses_df.to_csv('/home/feczk001/shared/projects/ABCC_DCM2BIDS/SUBMIT/abcd-dicom2bids/TEST/sub_ses_df.csv')
-                sub_pass_QC_df.to_csv('/home/feczk001/shared/projects/ABCC_DCM2BIDS/SUBMIT/abcd-dicom2bids/TEST/sub_pass_QC_df.csv')
         
                 # TODO: log subject level information
                 print(' t1=%s, t2=%s, sefm=%s, rsfmri=%s, mid=%s, sst=%s, nback=%s, has_dti=%s' % (has_t1, has_t2, has_sefm, has_rsfmri, has_mid, has_sst, has_nback, has_dti))
