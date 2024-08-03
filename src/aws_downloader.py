@@ -242,17 +242,23 @@ def add_anat_paths(passed_QC_group, file_paths):
 
 def add_func_paths(all_group, passed_QC_group, file_paths):
     ## Pair and download SEFMs first based on all fmaps available
-    FM_AP_df = all_group[all_group['image_description'] == 'ABCD-fMRI-FM-AP']
-    FM_PA_df = all_group[all_group['image_description'] == 'ABCD-fMRI-FM-PA']
-    FM_df = pd.DataFrame()
+    # First check if the fmap files are type 'ABCD-fMRI-FM' without AP/PA
+    FM_df = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-fMRI-FM']
 
-    if FM_AP_df.shape[0] != FM_PA_df.shape[0] or FM_AP_df.empty:
-        has_sefm = 0 # No SEFMs. Invalid subject
-    else:
-        for i in range(0, FM_AP_df.shape[0]):
-            if FM_AP_df.iloc[i]['QC'] == 1.0 and FM_PA_df.iloc[i]['QC'] == 1.0:
-                FM_df = FM_df.append(FM_AP_df.iloc[i])
-                FM_df = FM_df.append(FM_PA_df.iloc[i])
+    # If not, then populate with AP/PA files 
+    if FM_df.empty:
+        FM_AP_df = all_group[all_group['image_description'] == 'ABCD-fMRI-FM-AP']
+        FM_PA_df = all_group[all_group['image_description'] == 'ABCD-fMRI-FM-PA']
+        FM_df = pd.DataFrame()
+
+        if FM_AP_df.shape[0] != FM_PA_df.shape[0] or FM_AP_df.empty:
+            has_sefm = 0 # No SEFMs. Invalid subject
+        else:
+            for i in range(0, FM_AP_df.shape[0]):
+                if FM_AP_df.iloc[i]['QC'] == 1.0 and FM_PA_df.iloc[i]['QC'] == 1.0:
+                    FM_df = FM_df.append(FM_AP_df.iloc[i])
+                    FM_df = FM_df.append(FM_PA_df.iloc[i])
+    # If still empty, then return 0
     if FM_df.empty:
         has_sefm = 0 # No SEFMs. Invalid subject
     else:
@@ -296,22 +302,26 @@ def add_func_paths(all_group, passed_QC_group, file_paths):
 
     return (file_paths, has_sefm, has_rsfmri, has_mid, has_sst, has_nback)
 
-
 def add_dwi_paths(all_group, passed_QC_group, file_paths):
     DTI_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-DTI']
     if DTI_df.shape[0] >= 1:
         # If a DTI exists then download all passing DTI fieldmaps
-        DTI_FM_AP_df = all_group[all_group['image_description'] == 'ABCD-Diffusion-FM-AP']
-        DTI_FM_PA_df = all_group[all_group['image_description'] == 'ABCD-Diffusion-FM-PA']
-        DTI_FM_df = pd.DataFrame()
+        # First search to see if subject has FM fieldmaps without AP/PA in image_description
+        DTI_FM_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-Diffusion-FM']
 
-        if DTI_FM_AP_df.shape[0] != DTI_FM_PA_df.shape[0] or DTI_FM_AP_df.empty:
-            return (file_paths, 0)
-        else:
-            for i in range(0, DTI_FM_AP_df.shape[0]):
-                if DTI_FM_AP_df.iloc[i]['QC'] == 1.0 and DTI_FM_PA_df.iloc[i]['QC'] == 1.0:
-                    DTI_FM_df = DTI_FM_df.append(DTI_FM_AP_df.iloc[i])
-                    DTI_FM_df = DTI_FM_df.append(DTI_FM_PA_df.iloc[i])
+        # If not present, next search and sort AP/PA fmaps
+        if DTI_FM_df.empty:
+            DTI_FM_AP_df = all_group[all_group['image_description'] == 'ABCD-Diffusion-FM-AP']
+            DTI_FM_PA_df = all_group[all_group['image_description'] == 'ABCD-Diffusion-FM-PA']
+            DTI_FM_df = pd.DataFrame()
+            
+            if DTI_FM_AP_df.shape[0] != DTI_FM_PA_df.shape[0] or DTI_FM_AP_df.empty:
+                return (file_paths, 0)
+            else:
+                for i in range(0, DTI_FM_AP_df.shape[0]):
+                    if DTI_FM_AP_df.iloc[i]['QC'] == 1.0 and DTI_FM_PA_df.iloc[i]['QC'] == 1.0:
+                        DTI_FM_df = DTI_FM_df.append(DTI_FM_AP_df.iloc[i])
+                        DTI_FM_df = DTI_FM_df.append(DTI_FM_PA_df.iloc[i])
 
         if not DTI_FM_df.empty:
             for file_path in DTI_df['image_file']:
