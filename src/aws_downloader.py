@@ -251,10 +251,18 @@ def add_func_paths(all_group, passed_QC_group, file_paths):
         FM_PA_df = all_group[all_group['image_description'] == 'ABCD-fMRI-FM-PA']
         FM_df = pd.DataFrame()
 
-        if FM_AP_df.shape[0] != FM_PA_df.shape[0] or FM_AP_df.empty:
+        #if FM_AP_df.shape[0] != FM_PA_df.shape[0] or FM_AP_df.empty:
+        if FM_AP_df.empty:
             has_sefm = 0 # No SEFMs. Invalid subject
         else:
-            for i in range(0, FM_AP_df.shape[0]):
+            # If there are a different number of AP and PA fmaps, then figure out which has fewer to use for upper_range value to iterate through
+            if FM_AP_df.shape[0] <= FM_PA_df.shape[0]:
+                upper_range=FM_AP_df.shape[0]
+            elif FM_AP_df.shape[0] > FM_PA_df.shape[0]:
+                upper_range=FM_PA_df.shape[0]
+
+            #for i in range(0, FM_AP_df.shape[0]):
+            for i in range(0, upper_range):
                 if FM_AP_df.iloc[i]['QC'] == 1.0 and FM_PA_df.iloc[i]['QC'] == 1.0:
                     FM_df = FM_df.append(FM_AP_df.iloc[i])
                     FM_df = FM_df.append(FM_PA_df.iloc[i])
