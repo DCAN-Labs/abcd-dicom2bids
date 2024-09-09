@@ -573,7 +573,10 @@ def reformat_fastqc_spreadsheet(cli_args):
     print(all_qc_data.columns)
 
     # Select QC data that is usable (ftq_usable==1) and complete (ftq_complete==1)
-    qc_data = fix_split_col(all_qc_data.loc[(all_qc_data['ftq_usable'] == 1) & (all_qc_data['ftq_complete'] == 1)])
+    #qc_data = fix_split_col(all_qc_data.loc[(all_qc_data['ftq_usable'] == 1) & (all_qc_data['ftq_complete'] == 1)])
+
+    # Don't filter by QC/complete - instead filter in aws_downloader.py
+    qc_data = fix_split_col(all_qc_data)
 
     def get_img_desc(row):
         """
