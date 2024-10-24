@@ -190,9 +190,14 @@ TEMPBIDSINPUT=${TempSubjectDir}/BIDS_unprocessed/${SUB}
 if [ -d ${TEMPBIDSINPUT} ] ; then
     echo `date`" :CHMOD BIDS INPUT"
     chmod g+rw -R ${TEMPBIDSINPUT} || true
+    #Delete unneccsary .bval and .bvec files from fmap 
+    echo `date`" :DELETING .bval and .bvec FILES"
+    find ${TEMPBIDSINPUT}/${VISIT}/fmap/ -type f \( -name '*.bval' -o -name '*.bvec' \) -delete || true
     echo `date`" :COPY BIDS INPUT"
     mkdir -p ${ROOT_BIDSINPUT}
     cp -r ${TEMPBIDSINPUT} ${ROOT_BIDSINPUT}/
+    # Copy everything except .bval and .bvec files in the specific fmap directory
+
 fi
 
 ROOT_SRCDATA=${ROOT_BIDSINPUT}/sourcedata
