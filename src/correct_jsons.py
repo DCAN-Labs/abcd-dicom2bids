@@ -77,7 +77,7 @@ def main(argv=sys.argv):
 
             if ext == '.json':
                 json_path = os.path.join(root, filename)
-                #print(json_path)
+                # print(json_path)
 
                 with open(json_path, 'r') as f:
                     try:
@@ -111,6 +111,7 @@ def main(argv=sys.argv):
                     if not isinstance(intended_list, list):
                         intended_list = [intended_list]
                     corrected_intended_list = [re.sub(r'.*(ses-.*_ses-.+)','\g<1>',entry) for entry in intended_list]
+                    print("Updating",json_path,"IntendedFor", corrected_intended_list)
                     update_json_field(json_path, 'IntendedFor', corrected_intended_list)
 
                 # Remove SliceTiming field from func JSONs

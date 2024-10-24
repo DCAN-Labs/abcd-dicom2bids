@@ -242,7 +242,7 @@ def edit_dwi_jsons(layout, subject, sessions):
     if PA_json:
         PA_json_path = "/".join([PA_json[0].dirname, PA_json[0].filename])
         all_json_paths += [PA_json_path]
-        insert_edit_json(PA_json_path, 'IntendedFor',[])
+        insert_edit_json(PA_json_path, 'IntendedFor',rel_dwi_paths)
         insert_edit_json(PA_json_path, 'PhaseEncodingDirection', 'j')
 
         insert_edit_json(PA_json_path, 'PhaseEncodingDirection', 'j')
@@ -362,8 +362,7 @@ def main(argv=sys.argv):
             seperate_concatenated_fm(layout, subject, sessions, fsl_dir)
             # recreate layout with the additional SEFMS
             layout = BIDSLayout(args.bids_dir)
-        
-
+            
         fmap = layout.get(subject=subject, session=sessions, datatype='fmap', extension='.nii.gz', acquisition='func')        
         # Check if there are func fieldmaps and return a list of each SEFM pos/neg pair
         if fmap:
