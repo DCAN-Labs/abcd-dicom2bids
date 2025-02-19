@@ -139,7 +139,10 @@ def main(argv=sys.argv):
             subject_df = series_df[series_df['pGUID'] == pguid]
             for year in year_list:
                 sub_ses_df = subject_df[subject_df['EventName'] == year]
-                sub_pass_QC_df = sub_ses_df[sub_ses_df['QC'] == 1.0] #changed this line back to be able to filter based on QC from fast track
+                #sub_pass_QC_df = sub_ses_df[sub_ses_df['QC'] == 1.0]
+                # change this to filter based on ftq_complete==1 as well as QC==1 in reformatted fasttrack (which is equivalent to ftq_usable in original fasttrack)
+                sub_pass_QC_df = sub_ses_df[(sub_ses_df['QC'] == 1.0) & (sub_ses_df['ftq_complete'] ==1)]
+
                 file_paths = []
                 ### Logging information
                 # initialize logging variables
@@ -159,12 +162,12 @@ def main(argv=sys.argv):
                                 
                 if 'anat' in modalities:
                     (file_paths, has_t1, has_t2) = add_anat_paths(sub_pass_QC_df, file_paths)
+
+                # Pass in sub_ses_df as well for func and dwi so that the fmaps can be properly paired
                 if 'func' in modalities:
-                    (file_paths, has_sefm, has_rsfmri, has_mid, has_sst, has_nback) = add_func_paths(sub_pass_QC_df, file_paths)
+                    (file_paths, has_sefm, has_rsfmri, has_mid, has_sst, has_nback) = add_func_paths(sub_ses_df, sub_pass_QC_df, file_paths)
                 if 'dwi' in modalities:
-                    (file_paths, has_dti) = add_dwi_paths(sub_pass_QC_df, file_paths)
-                    
-            
+                    (file_paths, has_dti) = add_dwi_paths(sub_ses_df, sub_pass_QC_df, file_paths)
         
                 # TODO: log subject level information
                 print(' t1=%s, t2=%s, sefm=%s, rsfmri=%s, mid=%s, sst=%s, nback=%s, has_dti=%s' % (has_t1, has_t2, has_sefm, has_rsfmri, has_mid, has_sst, has_nback, has_dti))
@@ -237,27 +240,39 @@ def add_anat_paths(passed_QC_group, file_paths):
 
     return (file_paths, has_t1, has_t2)
 
-def add_func_paths(passed_QC_group, file_paths):
-    ## Pair SEFMs and only download if both pass QC
-    #   Check first if just the FM exists
+def add_func_paths(all_group, passed_QC_group, file_paths):
+    ## Pair and download SEFMs first based on all fmaps available
+    # First check if the fmap files are type 'ABCD-fMRI-FM' without AP/PA
     FM_df = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-fMRI-FM']
+
+    # If not, then populate with AP/PA files 
     if FM_df.empty:
-        FM_AP_df = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-fMRI-FM-AP']
-        FM_PA_df = passed_QC_group[passed_QC_group['image_description'] == 'ABCD-fMRI-FM-PA']
-        if FM_AP_df.shape[0] != FM_PA_df.shape[0] or FM_AP_df.empty:
+        FM_AP_df = all_group[all_group['image_description'] == 'ABCD-fMRI-FM-AP']
+        FM_PA_df = all_group[all_group['image_description'] == 'ABCD-fMRI-FM-PA']
+        FM_df = pd.DataFrame()
+
+        #if FM_AP_df.shape[0] != FM_PA_df.shape[0] or FM_AP_df.empty:
+        if FM_AP_df.empty:
             has_sefm = 0 # No SEFMs. Invalid subject
         else:
-            for i in range(0, FM_AP_df.shape[0]):
+            # If there are a different number of AP and PA fmaps, then figure out which has fewer to use for upper_range value to iterate through
+            if FM_AP_df.shape[0] <= FM_PA_df.shape[0]:
+                upper_range=FM_AP_df.shape[0]
+            elif FM_AP_df.shape[0] > FM_PA_df.shape[0]:
+                upper_range=FM_PA_df.shape[0]
+
+            #for i in range(0, FM_AP_df.shape[0]):
+            for i in range(0, upper_range):
                 if FM_AP_df.iloc[i]['QC'] == 1.0 and FM_PA_df.iloc[i]['QC'] == 1.0:
                     FM_df = FM_df.append(FM_AP_df.iloc[i])
                     FM_df = FM_df.append(FM_PA_df.iloc[i])
+    # If still empty, then return 0
     if FM_df.empty:
         has_sefm = 0 # No SEFMs. Invalid subject
     else:
         for file_path in FM_df['image_file']:
             file_paths += [file_path]
         has_sefm = FM_df.shape[0]
-
 
     ## List all rsfMRI scans that pass QC
     RS_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-rsfMRI']
@@ -295,18 +310,27 @@ def add_func_paths(passed_QC_group, file_paths):
 
     return (file_paths, has_sefm, has_rsfmri, has_mid, has_sst, has_nback)
 
-
-def add_dwi_paths(passed_QC_group, file_paths):
+def add_dwi_paths(all_group, passed_QC_group, file_paths):
     DTI_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-DTI']
     if DTI_df.shape[0] >= 1:
         # If a DTI exists then download all passing DTI fieldmaps
+        # First search to see if subject has FM fieldmaps without AP/PA in image_description
         DTI_FM_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-Diffusion-FM']
+
+        # If not present, next search and sort AP/PA fmaps
         if DTI_FM_df.empty:
-            DTI_FM_AP_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-Diffusion-FM-AP']
-            if DTI_FM_AP_df.empty:
+            DTI_FM_AP_df = all_group[all_group['image_description'] == 'ABCD-Diffusion-FM-AP']
+            DTI_FM_PA_df = all_group[all_group['image_description'] == 'ABCD-Diffusion-FM-PA']
+            DTI_FM_df = pd.DataFrame()
+            
+            if DTI_FM_AP_df.shape[0] != DTI_FM_PA_df.shape[0] or DTI_FM_AP_df.empty:
                 return (file_paths, 0)
-            DTI_FM_PA_df = passed_QC_group.loc[passed_QC_group['image_description'] == 'ABCD-Diffusion-FM-PA']
-            DTI_FM_df = pd.concat([DTI_FM_AP_df.tail(1), DTI_FM_PA_df.tail(1)], ignore_index=True)
+            else:
+                for i in range(0, DTI_FM_AP_df.shape[0]):
+                    if DTI_FM_AP_df.iloc[i]['QC'] == 1.0 and DTI_FM_PA_df.iloc[i]['QC'] == 1.0:
+                        DTI_FM_df = DTI_FM_df.append(DTI_FM_AP_df.iloc[i])
+                        DTI_FM_df = DTI_FM_df.append(DTI_FM_PA_df.iloc[i])
+
         if not DTI_FM_df.empty:
             for file_path in DTI_df['image_file']:
                 file_paths += [file_path]
