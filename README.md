@@ -1,3 +1,7 @@
+# ⚠️ **THIS CODEBASE IS NO LONGER BEING MAINTAINED** ⚠️
+
+We have built on this code base to generate [abcc_dicom2bids_s3](https://github.com/DCAN-Labs/abcc_dicom2bids_s3), which, among other improvements, performs BIDS conversion on DICOM data pulled from an s3 bucket instead of downloading raw data from the NDA. This was done in preparation for the data now being shared via the [NBDC Data Hub](https://nbdc-splash-beta.lassoinformatics.com/abcd-study) for the impending data release.
+
 # ABCD DICOM to BIDS
 
 Written by the OHSU ABCD site for selectively downloading ABCD Study imaging DICOM data QC'ed as good by the ABCD DAIC site, converting it to BIDS standard input data, selecting the best pair of spin echo field maps, and correcting the sidecar JSON files to meet the BIDS Validator specification. 
